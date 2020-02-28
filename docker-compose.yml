@@ -1,0 +1,12 @@
+version: "2.4"
+services:
+  mariadb:
+    image: mysql:5.7
+    container_name: comp4111-mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=comp4111
+    ports:
+      - 3306:3306
+    restart: "unless-stopped"
+    cpus: 1
+    mem_limit: 1g
