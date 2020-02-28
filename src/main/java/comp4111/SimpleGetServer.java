@@ -1,27 +1,28 @@
 package comp4111;
 
-import org.apache.http.*;
-import org.apache.http.config.SocketConfig;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.bootstrap.HttpServer;
-import org.apache.http.impl.bootstrap.ServerBootstrap;
-import org.apache.http.protocol.HttpContext;
-import org.apache.http.protocol.HttpRequestHandler;
+import org.apache.hc.core5.http.*;
+import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
+import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
+import org.apache.hc.core5.http.io.HttpRequestHandler;
+import org.apache.hc.core5.http.io.SocketConfig;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.http.protocol.HttpContext;
+import org.apache.hc.core5.io.CloseMode;
+import org.apache.hc.core5.util.TimeValue;
+import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-// Adapted from https://hc.apache.org/httpcomponents-core-ga/httpcore/examples/org/apache/http/examples/HttpFileServer.java
+// Adapted from https://hc.apache.org/httpcomponents-core-5.0.x/httpcore5/examples/ClassicFileServerExample.java
 public class SimpleGetServer {
 
     private static final Logger LOGGER = LogManager.getLogger();
@@ -36,36 +37,40 @@ public class SimpleGetServer {
             ).stream().collect(Collectors.toMap(HttpPathHandler::getHandlePattern, Function.identity())));
 
     public static void main(String[] args) {
-        final SocketConfig socketConfig = SocketConfig.custom()
-                .setSoTimeout(10000)
+        final var socketConfig = SocketConfig.custom()
+                .setSoTimeout(Timeout.ofMilliseconds(10000))
                 .setTcpNoDelay(true)
                 .build();
 
-        final ServerBootstrap serverBuilder = ServerBootstrap.bootstrap()
+        final var serverBuilder = ServerBootstrap.bootstrap()
                 .setListenerPort(8080)
-                .setServerInfo("HTTP/1.1")
-                .setExceptionLogger(new StdErrorExceptionLogger())
+                .setExceptionListener(new SimpleExceptionListener())
                 .setSocketConfig(socketConfig);
-        patternHandler.forEach(serverBuilder::registerHandler);
+        patternHandler.forEach(serverBuilder::register);
 
         final HttpServer server = serverBuilder.create();
 
         try {
             server.start();
-            server.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> server.close(CloseMode.GRACEFUL)));
+            server.awaitTermination(TimeValue.MAX_VALUE);
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
-
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> server.shutdown(5, TimeUnit.SECONDS)));
     }
 
     /**
      * A logger for any server errors.
      */
-    static class StdErrorExceptionLogger implements ExceptionLogger {
+    static class SimpleExceptionListener implements ExceptionListener {
+
         @Override
-        public void log(final Exception ex) {
+        public void onError(Exception ex) {
+            LOGGER.error(ex);
+        }
+
+        @Override
+        public void onError(HttpConnection connection, Exception ex) {
             if (ex instanceof SocketTimeoutException) {
                 LOGGER.error("Connection timed out", ex);
             } else if (ex instanceof ConnectionClosedException) {
@@ -80,7 +85,7 @@ public class SimpleGetServer {
      * An extension for {@link HttpRequestHandler} which also allows a class to specify the pattern it handles.
      */
     interface HttpPathHandler extends HttpRequestHandler {
-        /* notnull */
+        @NotNull
         String getHandlePattern();
     }
 
@@ -89,20 +94,21 @@ public class SimpleGetServer {
      */
     static class HttpRootHandler implements HttpPathHandler {
 
+        @NotNull
         @Override
         public String getHandlePattern() {
             return "/";
         }
 
         @Override
-        public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException {
-            final String method = request.getRequestLine().getMethod().toUpperCase(Locale.ROOT);
+        public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException {
+            final String method = request.getMethod();
             if (!method.equals("GET")) {
                 throw new MethodNotSupportedException("Method " + method + " not supported");
             }
 
-            response.setStatusCode(HttpStatus.SC_OK);
-            final StringEntity entity = new StringEntity("<html><body><p>Hello World!</p></body></html>", ContentType.TEXT_HTML);
+            response.setCode(HttpStatus.SC_OK);
+            final var entity = new StringEntity("<html><body><p>Hello World!</p></body></html>", ContentType.TEXT_HTML);
             response.setEntity(entity);
         }
     }
@@ -112,14 +118,15 @@ public class SimpleGetServer {
      */
     static class NotFoundHandler implements HttpPathHandler {
 
+        @NotNull
         @Override
         public String getHandlePattern() {
             return "*";
         }
 
         @Override
-        public void handle(HttpRequest request, HttpResponse response, HttpContext context) {
-            response.setStatusCode(HttpStatus.SC_NOT_FOUND);
+        public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) {
+            response.setCode(HttpStatus.SC_NOT_FOUND);
         }
     }
 }
