@@ -1,5 +1,6 @@
 package comp4111;
 
+import comp4111.handler.*;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
 import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
@@ -13,6 +14,7 @@ import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
@@ -30,10 +32,14 @@ public class SimpleGetServer {
     /**
      * Lookup table for HTTP paths and their corresponding handlers.
      */
-    private static final Map<String, HttpRequestHandler> patternHandler = Collections.unmodifiableMap(
+    private static final Map<String, HttpPathHandler> patternHandler = Collections.unmodifiableMap(
             List.of(
                     new HttpRootHandler(),
-                    new NotFoundHandler()
+                    new NotFoundHandler(),
+                    new LoginPostHandler(),
+                    new LogoutGetHandler(),
+                    new BooksHandler(),
+                    new BookHandler()
             ).stream().collect(Collectors.toMap(HttpPathHandler::getHandlePattern, Function.identity())));
 
     public static void main(String[] args) {
@@ -74,37 +80,41 @@ public class SimpleGetServer {
             if (ex instanceof SocketTimeoutException) {
                 LOGGER.error("Connection timed out", ex);
             } else if (ex instanceof ConnectionClosedException) {
-                LOGGER.error(ex);
+                LOGGER.trace(ex);
             } else {
                 LOGGER.error("Unknown exception occurred.", ex);
             }
         }
     }
 
-    /**
-     * An extension for {@link HttpRequestHandler} which also allows a class to specify the pattern it handles.
-     */
-    interface HttpPathHandler extends HttpRequestHandler {
-        @NotNull
-        String getHandlePattern();
-    }
 
     /**
      * HTTP handler for responding to "/" path.
      */
-    static class HttpRootHandler implements HttpPathHandler {
+    static class HttpRootHandler extends HttpEndpointHandler {
 
-        @NotNull
         @Override
-        public String getHandlePattern() {
-            return "/";
+        public @NotNull HttpEndpoint getHandlerDefinition() {
+            return new HttpEndpoint() {
+                @Override
+                public @NotNull Method getHandleMethod() {
+                    return Method.GET;
+                }
+
+                @Override
+                public @NotNull String getHandlePattern() {
+                    return "/";
+                }
+            };
         }
 
         @Override
-        public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException {
-            final String method = request.getMethod();
-            if (!method.equals("GET")) {
-                throw new MethodNotSupportedException("Method " + method + " not supported");
+        public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) {
+            final Method method = toMethodOrNull(request.getMethod());
+            if (method == null || !method.equals(getHandleMethod())) {
+                response.setCode(HttpStatus.SC_METHOD_NOT_ALLOWED);
+                response.setHeader("Allow", getHandleMethod());
+                return;
             }
 
             response.setCode(HttpStatus.SC_OK);
@@ -116,12 +126,17 @@ public class SimpleGetServer {
     /**
      * HTTP handler for responding to other paths which are not otherwise registered.
      */
-    static class NotFoundHandler implements HttpPathHandler {
+    static class NotFoundHandler extends HttpPathHandler {
 
-        @NotNull
         @Override
-        public String getHandlePattern() {
-            return "*";
+        public @NotNull HttpPath getHandlerDefinition() {
+            return new HttpPath() {
+
+                @Override
+                public @NotNull String getHandlePattern() {
+                    return "*";
+                }
+            };
         }
 
         @Override
