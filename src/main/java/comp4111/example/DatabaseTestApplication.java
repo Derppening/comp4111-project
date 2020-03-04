@@ -1,4 +1,4 @@
-package comp4111;
+package comp4111.example;
 
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;

@@ -1,4 +1,4 @@
-package comp4111;
+package comp4111.example;
 
 import comp4111.handler.*;
 import org.apache.hc.core5.http.*;
@@ -32,12 +32,8 @@ public class SimpleGetServer {
      */
     private static final Map<String, HttpPathHandler> patternHandler = Collections.unmodifiableMap(
             List.of(
-                    new HttpRootHandler(),
                     new NotFoundHandler(),
-                    new LoginPostHandler(),
-                    new LogoutGetHandler(),
-                    new BooksHandler(),
-                    new BookHandler()
+                    new HttpRootHandler()
             ).stream().collect(Collectors.toMap(HttpPathHandler::getHandlePattern, Function.identity())));
 
     public static void main(String[] args) {
@@ -66,7 +62,7 @@ public class SimpleGetServer {
     /**
      * A logger for any server errors.
      */
-    static class SimpleExceptionListener implements ExceptionListener {
+    private static class SimpleExceptionListener implements ExceptionListener {
 
         @Override
         public void onError(Exception ex) {
@@ -89,7 +85,7 @@ public class SimpleGetServer {
     /**
      * HTTP handler for responding to "/" path.
      */
-    static class HttpRootHandler extends HttpEndpointHandler {
+    private static class HttpRootHandler extends HttpEndpointHandler {
 
         @Override
         public @NotNull HttpEndpoint getHandlerDefinition() {
@@ -124,7 +120,7 @@ public class SimpleGetServer {
     /**
      * HTTP handler for responding to other paths which are not otherwise registered.
      */
-    static class NotFoundHandler extends HttpPathHandler {
+    private static class NotFoundHandler extends HttpPathHandler {
 
         @Override
         public @NotNull HttpPath getHandlerDefinition() {
