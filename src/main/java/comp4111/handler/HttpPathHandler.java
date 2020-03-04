@@ -27,7 +27,7 @@ public abstract class HttpPathHandler implements HttpRequestHandler, HttpPath {
     protected static Method toMethodOrNull(@NotNull String methodStr) {
         Method method = null;
         try {
-            method = Method.valueOf(methodStr);
+            method = Method.normalizedValueOf(methodStr);
         } catch (IllegalArgumentException e) {
             // ignored
         }
