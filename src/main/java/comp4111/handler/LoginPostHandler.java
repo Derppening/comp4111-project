@@ -9,9 +9,12 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 
+/**
+ * Endpoint handler for all {@code /login} POST requests.
+ */
 public final class LoginPostHandler extends HttpEndpointHandler {
 
-    public static final String HANDLE_PATTERN = "/login";
+    public static final String HANDLE_PATTERN = PATH_PREFIX + "/login";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -43,6 +46,7 @@ public final class LoginPostHandler extends HttpEndpointHandler {
             return;
         }
 
+        // TODO: Handle null payload
         final var payload = request.getEntity().getContent().readAllBytes();
 
         final LoginRequest loginRequest;

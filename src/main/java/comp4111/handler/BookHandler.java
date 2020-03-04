@@ -7,20 +7,25 @@ import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Path handler for all {@code /book/*} requests.
+ */
 public final class BookHandler extends HttpPathHandler {
 
-    public static final String HANDLE_PATTERN = "/book/*";
-    private static final Map<Method, HttpEndpointHandler> METHOD_LUT = Collections.unmodifiableMap(
-            List.of(
-                    new BookPutHandler(),
-                    new BookDeleteHandler()
-            ).stream().collect(Collectors.toMap(HttpEndpointHandler::getHandleMethod, Function.identity())));
+    public static final String HANDLE_PATTERN = PATH_PREFIX + "/book/";
+
+    /**
+     * Lookup table for matching a method to its {@link HttpEndpointHandler}.
+     */
+    private static final Map<Method, HttpEndpointHandler> METHOD_LUT = List.of(
+            new BookPutHandler(),
+            new BookDeleteHandler()
+    ).stream().collect(Collectors.toUnmodifiableMap(HttpEndpointHandler::getHandleMethod, Function.identity()));
 
     @NotNull
     @Override
@@ -29,7 +34,7 @@ public final class BookHandler extends HttpPathHandler {
             @NotNull
             @Override
             public String getHandlePattern() {
-                return HANDLE_PATTERN;
+                return HANDLE_PATTERN + "*";
             }
         };
     }
@@ -51,14 +56,23 @@ public final class BookHandler extends HttpPathHandler {
         }
     }
 
+    /**
+     * Retrieves the book ID from the HTTP path.
+     *
+     * @param path Path of the HTTP request, as retrieved by {@link ClassicHttpRequest#getPath()}.
+     * @return The ID of the book.
+     */
     static long getIdFromRequest(@NotNull String path) {
-        final var startIdx = "/book/".length();
+        final var startIdx = HANDLE_PATTERN.length();
         final var endIdx = path.indexOf('?') != -1 ? path.indexOf('?') : path.length();
 
         return Long.parseLong(path.substring(startIdx, endIdx));
     }
 }
 
+/**
+ * Endpoint handler for all {@code /book/*} PUT requests.
+ */
 final class BookPutHandler extends HttpEndpointHandler {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -89,6 +103,7 @@ final class BookPutHandler extends HttpEndpointHandler {
 
         final var bookId = BookHandler.getIdFromRequest(request.getPath());
 
+        // TODO: Handle null payload
         final var payload = request.getEntity().getContent().readAllBytes();
 
         final boolean available;
@@ -109,6 +124,9 @@ final class BookPutHandler extends HttpEndpointHandler {
     }
 }
 
+/**
+ * Endpoint handler for all {@code /book/*} DELETE requests.
+ */
 final class BookDeleteHandler extends HttpEndpointHandler {
 
     @Override

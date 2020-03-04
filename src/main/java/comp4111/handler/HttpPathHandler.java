@@ -10,19 +10,37 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * A handler which binds to a specific {@link HttpPath}.
+ *
+ * Since this class does not have an associated {@link Method} bound to the handler, this class should be used as either
+ * a generic path handler for all methods, or a dispatcher to dispatch the request to a {@link HttpEndpointHandler}.
+ */
 public abstract class HttpPathHandler implements HttpRequestHandler, HttpPath {
 
     protected final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 
+    /**
+     * @return The handler definition, which may be any object which inherits from {@link HttpPath}.
+     */
     @NotNull
     public abstract HttpPath getHandlerDefinition();
 
+    /**
+     * @return The path pattern that this class handles.
+     */
     @NotNull
     @Override
     public final String getHandlePattern() {
         return getHandlerDefinition().getHandlePattern();
     }
 
+    /**
+     * Parses a string into an HTTP method.
+     *
+     * @param methodStr String representation of the HTTP method.
+     * @return Parsed {@link Method}, or {@code null} if the method is not known.
+     */
     @Nullable
     protected static Method toMethodOrNull(@NotNull String methodStr) {
         Method method = null;
@@ -34,6 +52,12 @@ public abstract class HttpPathHandler implements HttpRequestHandler, HttpPath {
         return method;
     }
 
+    /**
+     * Parses the query parameters of an HTTP request.
+     *
+     * @param path Path of the HTTP request.
+     * @return {@link Map} of the query key-value pairs.
+     */
     @NotNull
     protected static Map<String, String> parseQueryParams(@NotNull String path) {
         final var queryStartIndex = path.indexOf('?');

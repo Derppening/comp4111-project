@@ -7,9 +7,12 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 
+/**
+ * Endpoint handler for all {@code /logout} GET requests.
+ */
 public final class LogoutGetHandler extends HttpEndpointHandler {
 
-    public static final String HANDLE_PATTERN = "/logout";
+    public static final String HANDLE_PATTERN = PATH_PREFIX + "/logout";
 
     @NotNull
     @Override

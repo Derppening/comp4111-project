@@ -6,6 +6,9 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Path handler for all {@code *} requests.
+ */
 public class WildcardHandler extends HttpPathHandler {
 
     @Override

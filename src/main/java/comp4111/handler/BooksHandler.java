@@ -14,14 +14,20 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Path handler for all {@code /books} requests.
+ */
 public final class BooksHandler extends HttpPathHandler {
 
-    public static final String HANDLE_PATTERN = "/books";
-    private static final Map<Method, HttpEndpointHandler> METHOD_LUT = Collections.unmodifiableMap(
-            List.of(
-                    new BooksGetHandler(),
-                    new BooksPostHandler()
-            ).stream().collect(Collectors.toMap(HttpEndpointHandler::getHandleMethod, Function.identity())));
+    public static final String HANDLE_PATTERN = PATH_PREFIX + "/books";
+
+    /**
+     * Lookup table for matching a method to its {@link HttpEndpointHandler}.
+     */
+    private static final Map<Method, HttpEndpointHandler> METHOD_LUT = List.of(
+            new BooksGetHandler(),
+            new BooksPostHandler()
+    ).stream().collect(Collectors.toUnmodifiableMap(HttpEndpointHandler::getHandleMethod, Function.identity()));
 
     @Override
     public @NotNull HttpPath getHandlerDefinition() {
@@ -52,6 +58,9 @@ public final class BooksHandler extends HttpPathHandler {
     }
 }
 
+/**
+ * Endpoint handler for all {@code /books} GET requests.
+ */
 final class BooksGetHandler extends HttpEndpointHandler {
 
     @Override
@@ -86,6 +95,9 @@ final class BooksGetHandler extends HttpEndpointHandler {
     }
 }
 
+/**
+ * Endpoint handler for all {@code /books} POST requests.
+ */
 final class BooksPostHandler extends HttpEndpointHandler {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -116,6 +128,7 @@ final class BooksPostHandler extends HttpEndpointHandler {
         }
         final var token = queryParams.get("token");
 
+        // TODO: Handle null payload
         final var payload = request.getEntity().getContent().readAllBytes();
 
         final Book book;

@@ -1,17 +1,22 @@
 package comp4111.handler;
 
 import org.apache.hc.core5.http.Method;
-import org.apache.hc.core5.http.io.HttpRequestHandler;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * An extension for {@link HttpRequestHandler} which also allows a class to specify the pattern it handles.
+ * A handler which binds to a specific {@link HttpEndpoint}.
  */
 public abstract class HttpEndpointHandler extends HttpPathHandler implements HttpEndpoint {
 
+    /**
+     * @return The handler definition, which may be any object which inherits from {@link HttpEndpoint}.
+     */
     @NotNull
     public abstract HttpEndpoint getHandlerDefinition();
 
+    /**
+     * @return The HTTP method that this class handles.
+     */
     @NotNull
     @Override
     public final Method getHandleMethod() {
