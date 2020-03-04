@@ -2,17 +2,17 @@ package comp4111.handler;
 
 import org.apache.hc.core5.http.Method;
 import org.apache.hc.core5.http.io.HttpRequestHandler;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public abstract class HttpPathHandler implements HttpRequestHandler, HttpPath {
 
-    protected final Logger LOGGER = LogManager.getLogger(this.getClass());
+    protected final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 
     @NotNull
     public abstract HttpPath getHandlerDefinition();

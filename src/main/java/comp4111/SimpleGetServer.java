@@ -4,17 +4,15 @@ import comp4111.handler.*;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
 import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
-import org.apache.hc.core5.http.io.HttpRequestHandler;
 import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.util.TimeValue;
 import org.apache.hc.core5.util.Timeout;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
@@ -27,7 +25,7 @@ import java.util.stream.Collectors;
 // Adapted from https://hc.apache.org/httpcomponents-core-5.0.x/httpcore5/examples/ClassicFileServerExample.java
 public class SimpleGetServer {
 
-    private static final Logger LOGGER = LogManager.getLogger();
+    private static final Logger LOGGER = LoggerFactory.getLogger(SimpleGetServer.class);
 
     /**
      * Lookup table for HTTP paths and their corresponding handlers.
@@ -72,7 +70,7 @@ public class SimpleGetServer {
 
         @Override
         public void onError(Exception ex) {
-            LOGGER.error(ex);
+            LOGGER.error("", ex);
         }
 
         @Override
@@ -80,7 +78,7 @@ public class SimpleGetServer {
             if (ex instanceof SocketTimeoutException) {
                 LOGGER.error("Connection timed out", ex);
             } else if (ex instanceof ConnectionClosedException) {
-                LOGGER.trace(ex);
+                LOGGER.trace("", ex);
             } else {
                 LOGGER.error("Unknown exception occurred.", ex);
             }
