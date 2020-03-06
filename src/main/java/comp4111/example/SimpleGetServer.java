@@ -85,7 +85,7 @@ public class SimpleGetServer {
     /**
      * HTTP handler for responding to "/" path.
      */
-    private static class HttpRootHandler extends HttpEndpointHandler {
+    static class HttpRootHandler extends HttpEndpointHandler {
 
         @Override
         public @NotNull HttpEndpoint getHandlerDefinition() {
@@ -120,7 +120,7 @@ public class SimpleGetServer {
     /**
      * HTTP handler for responding to other paths which are not otherwise registered.
      */
-    private static class NotFoundHandler extends HttpPathHandler {
+    static class NotFoundHandler extends HttpPathHandler {
 
         @Override
         public @NotNull HttpPath getHandlerDefinition() {
