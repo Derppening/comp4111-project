@@ -103,7 +103,11 @@ final class BookPutHandler extends HttpEndpointHandler {
 
         final var bookId = BookHandler.getIdFromRequest(request.getPath());
 
-        // TODO: Handle null payload
+        if (request.getEntity() == null) {
+            response.setCode(HttpStatus.SC_BAD_REQUEST);
+            response.setEntity(new StringEntity("Payload must be specified", ContentType.TEXT_PLAIN));
+            return;
+        }
         final var payload = request.getEntity().getContent().readAllBytes();
 
         final boolean available;

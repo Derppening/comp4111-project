@@ -46,7 +46,11 @@ public final class LoginPostHandler extends HttpEndpointHandler {
             return;
         }
 
-        // TODO: Handle null payload
+        if (request.getEntity() == null) {
+            response.setCode(HttpStatus.SC_BAD_REQUEST);
+            response.setEntity(new StringEntity("Payload must be specified", ContentType.TEXT_PLAIN));
+            return;
+        }
         final var payload = request.getEntity().getContent().readAllBytes();
 
         final LoginRequest loginRequest;
