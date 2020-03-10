@@ -89,7 +89,7 @@ final class BooksGetHandler extends HttpEndpointHandler {
 
         LOGGER.info("POST /books token=\"{}\"", token);
 
-        // TODO(Derppening): Handle request
+        // TODO(Derppening): Handle QUERY operation on db
 
         response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
     }
@@ -151,7 +151,7 @@ final class BooksPostHandler extends HttpEndpointHandler {
                 book.getPublisher(),
                 book.getYear());
 
-        // TODO(Derppening): Handle payload
+        // TODO(Derppening): Handle ADD operation on db
 
         response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
     }

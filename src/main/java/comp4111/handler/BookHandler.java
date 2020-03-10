@@ -122,7 +122,7 @@ final class BookPutHandler extends HttpEndpointHandler {
 
         LOGGER.info("PUT /book token={} id={} Available={}", token, bookId, available);
 
-        // TODO: Handle payload
+        // TODO: Handle UPDATE operation on db
 
         response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
     }
@@ -163,7 +163,7 @@ final class BookDeleteHandler extends HttpEndpointHandler {
 
         LOGGER.info("DELETE /book token=\"{}\" id={}", token, bookId);
 
-        // TODO(Derppening): Handle
+        // TODO: Handle DELETE operation on db
 
         response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
     }

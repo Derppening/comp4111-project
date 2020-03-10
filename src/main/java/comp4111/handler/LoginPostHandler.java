@@ -70,7 +70,9 @@ public final class LoginPostHandler extends HttpEndpointHandler {
 
         LOGGER.info("POST /login Username=\"{}\" Password=\"{}\"", loginRequest.getUsername(), loginRequest.getPassword());
 
-        // TODO(Derppening): Handle payload
+        // TODO(Derppening): Handle login request
+        // TODO(Derppening): Use SecureRandom to generate token
+        //  https://stackoverflow.com/a/56628391
 
         response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
     }
