@@ -5,6 +5,8 @@ import org.jetbrains.annotations.NotNull;
 
 public class Book {
 
+    // TODO: id?
+
     @JsonProperty("Title")
     @NotNull
     private final String title;

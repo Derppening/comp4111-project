@@ -26,7 +26,8 @@ public class MainApplication {
             new LoginPostHandler(),
             new LogoutGetHandler(),
             new BooksHandler(),
-            new BookHandler()
+            new BookHandler(),
+            new TransactionHandler()
     ).stream().collect(Collectors.toUnmodifiableMap(HttpPathHandler::getHandlePattern, Function.identity()));
 
     public static void main(String[] args) {
