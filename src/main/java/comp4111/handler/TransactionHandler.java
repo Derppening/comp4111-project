@@ -1,7 +1,10 @@
 package comp4111.handler;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import comp4111.controller.TransactionManager;
 import comp4111.model.TransactionPostRequest;
+import comp4111.model.TransactionPostResult;
 import comp4111.model.TransactionPutRequest;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
@@ -22,6 +25,8 @@ public final class TransactionHandler extends HttpPathHandler {
             new TransactionPostHandler(),
             new TransactionPutHandler()
     ).stream().collect(Collectors.toUnmodifiableMap(HttpEndpointHandler::getHandleMethod, Function.identity()));
+
+    static final TransactionManager TRANSACTION_MGR = new TransactionManager();
 
     @Override
     public @NotNull HttpPath getHandlerDefinition() {
@@ -100,17 +105,30 @@ final class TransactionPostHandler extends HttpEndpointHandler {
             LOGGER.info("POST /transaction token=\"{}\" transaction=\"{}\" operation={}", token, txRequest.getTransaction(), txRequest.getOperation());
             handleTransactionCommitRequest(txRequest, response);
         }
-
-        response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
     }
 
     private void handleTransactionIdRequest(@NotNull ClassicHttpResponse response) {
+        final var uuid = TransactionHandler.TRANSACTION_MGR.newTransaction();
 
-        // TODO(Derppening): Get Transaction ID
+        final var transactionResponse = new TransactionPostResult(uuid);
+
+        try {
+            response.setEntity(new StringEntity(objectMapper.writeValueAsString(transactionResponse), ContentType.APPLICATION_JSON));
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Cannot serialize transaction ID response", e);
+        }
+
+        response.setCode(HttpStatus.SC_OK);
     }
 
     private void handleTransactionCommitRequest(@NotNull TransactionPostRequest request, @NotNull ClassicHttpResponse response) {
-        // TODO(Derppening)
+        final var result = TransactionHandler.TRANSACTION_MGR.performTransaction(request);
+
+        if (result) {
+            response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
+        } else {
+            response.setCode(HttpStatus.SC_BAD_REQUEST);
+        }
     }
 }
 
@@ -166,8 +184,12 @@ final class TransactionPutHandler extends HttpEndpointHandler {
                 putRequest.getId(),
                 putRequest.getAction());
 
-        // TODO(Derppening): Handle COMMIT/CANCEL operations
+        final var result = TransactionHandler.TRANSACTION_MGR.addTransactionPlan(putRequest);
 
-        response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
+        if (result) {
+            response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
+        } else {
+            response.setCode(HttpStatus.SC_BAD_REQUEST);
+        }
     }
 }
