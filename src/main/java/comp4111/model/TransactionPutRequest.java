@@ -1,5 +1,6 @@
 package comp4111.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.jetbrains.annotations.NotNull;
 
@@ -10,7 +11,12 @@ public class TransactionPutRequest {
     public enum Action {
         LOAN, RETURN;
 
-        public static Action normalizedValueOf(@NotNull String value) {
+        @JsonCreator
+        public static Action setValue(@NotNull String key) {
+            return normalizedValueOf(key);
+        }
+
+        private static Action normalizedValueOf(@NotNull String value) {
             return valueOf(value.toUpperCase());
         }
     }
@@ -26,11 +32,11 @@ public class TransactionPutRequest {
     public TransactionPutRequest(
             @NotNull @JsonProperty("Transaction") UUID uuid,
             @JsonProperty("Book") int bookId,
-            @JsonProperty("Action") String action
+            @JsonProperty("Action") Action action
     ) {
         this.transaction = uuid;
         this.id = bookId;
-        this.action = Action.normalizedValueOf(action);
+        this.action = action;
     }
 
     @NotNull

@@ -1,5 +1,6 @@
 package comp4111.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.jetbrains.annotations.NotNull;
 
@@ -10,7 +11,12 @@ public class TransactionPostRequest {
     public enum Operation {
         COMMIT, CANCEL;
 
-        public static Operation normalizedValueOf(@NotNull String value) {
+        @JsonCreator
+        public static Operation setValue(@NotNull String key) {
+            return normalizedValueOf(key);
+        }
+
+        private static Operation normalizedValueOf(@NotNull String value) {
             return valueOf(value.toUpperCase());
         }
     }
