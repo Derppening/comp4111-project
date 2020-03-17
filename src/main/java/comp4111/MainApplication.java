@@ -1,5 +1,6 @@
 package comp4111;
 
+import comp4111.connection.DatabaseConnection;
 import comp4111.handler.*;
 import comp4111.listener.GenericExceptionListener;
 import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
@@ -45,6 +46,9 @@ public class MainApplication {
         final HttpServer server = serverBuilder.create();
 
         try {
+            // Set up the database connection
+            DatabaseConnection.setConfig();
+
             server.start();
             Runtime.getRuntime().addShutdownHook(new Thread(() -> server.close(CloseMode.GRACEFUL)));
             server.awaitTermination(TimeValue.MAX_VALUE);
