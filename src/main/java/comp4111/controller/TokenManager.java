@@ -70,9 +70,17 @@ public class TokenManager {
         SECURE_RANDOM.nextBytes(bytes);
         final var token = BASE64_ENCODER.encodeToString(bytes);
 
-        final var prevToken = inFlightTokens.putIfAbsent(token, user);
+        final boolean isSuccessful;
+        synchronized (inFlightTokens) {
+            if (containsUser(user)) {
+                isSuccessful = false;
+            } else {
+                inFlightTokens.put(token, user);
+                isSuccessful = true;
+            }
+        }
 
-        return prevToken == null ? token : null;
+        return isSuccessful ? token : null;
     }
 
     /**
