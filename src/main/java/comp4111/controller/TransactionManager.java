@@ -13,8 +13,8 @@ import java.util.function.Supplier;
  */
 public class TransactionManager {
 
-    private static final Supplier<Map<UUID, List<TransactionPutRequest>>> DEFAULT_MAP_SUPPLIER = () -> Collections.synchronizedMap(new HashMap<>());
-    private static final Supplier<List<TransactionPutRequest>> DEFAULT_TRANSACTION_LIST_SUPPLIER = () -> Collections.synchronizedList(new ArrayList<>());
+    static final Supplier<Map<UUID, List<TransactionPutRequest>>> DEFAULT_MAP_SUPPLIER = () -> Collections.synchronizedMap(new HashMap<>());
+    static final Supplier<List<TransactionPutRequest>> DEFAULT_TRANSACTION_LIST_SUPPLIER = () -> Collections.synchronizedList(new ArrayList<>());
 
     @Nullable
     private static TransactionManager INSTANCE;
@@ -54,7 +54,7 @@ public class TransactionManager {
     @NotNull
     private final Supplier<@NotNull List<@NotNull TransactionPutRequest>> listCreator;
 
-    private TransactionManager(@NotNull Map<UUID, List<TransactionPutRequest>> backingMap, @NotNull Supplier<List<TransactionPutRequest>> listCreator) {
+    TransactionManager(@NotNull Map<UUID, List<TransactionPutRequest>> backingMap, @NotNull Supplier<List<TransactionPutRequest>> listCreator) {
         this.inFlightTransactions = backingMap;
         this.listCreator = listCreator;
     }

@@ -14,7 +14,7 @@ import java.util.function.Supplier;
  */
 public class TokenManager {
 
-    private static final Supplier<Map<String, String>> DEFAULT_MAP_SUPPLIER = ConcurrentHashMap::new;
+    static final Supplier<Map<String, String>> DEFAULT_MAP_SUPPLIER = ConcurrentHashMap::new;
 
     @Nullable
     private static TokenManager INSTANCE;
@@ -54,7 +54,7 @@ public class TokenManager {
 
     private final Map<@NotNull String, @NotNull String> inFlightTokens;
 
-    private TokenManager(@NotNull Map<String, String> backingMap) {
+    TokenManager(@NotNull Map<String, String> backingMap) {
         inFlightTokens = backingMap;
     }
 
