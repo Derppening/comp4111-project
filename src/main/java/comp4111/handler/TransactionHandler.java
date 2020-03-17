@@ -26,8 +26,6 @@ public final class TransactionHandler extends HttpPathHandler {
             new TransactionPutHandler()
     ).stream().collect(Collectors.toUnmodifiableMap(HttpEndpointHandler::getHandleMethod, Function.identity()));
 
-    static final TransactionManager TRANSACTION_MGR = new TransactionManager();
-
     @Override
     public @NotNull HttpPath getHandlerDefinition() {
         return new HttpPath() {
@@ -58,6 +56,7 @@ public final class TransactionHandler extends HttpPathHandler {
 
 final class TransactionPostHandler extends HttpEndpointHandler {
 
+    private final TransactionManager transactionMgr = TransactionManager.getInstance();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -108,7 +107,7 @@ final class TransactionPostHandler extends HttpEndpointHandler {
     }
 
     private void handleTransactionIdRequest(@NotNull ClassicHttpResponse response) {
-        final var uuid = TransactionHandler.TRANSACTION_MGR.newTransaction();
+        final var uuid = transactionMgr.newTransaction();
 
         final var transactionResponse = new TransactionPostResult(uuid);
 
@@ -122,7 +121,7 @@ final class TransactionPostHandler extends HttpEndpointHandler {
     }
 
     private void handleTransactionCommitRequest(@NotNull TransactionPostRequest request, @NotNull ClassicHttpResponse response) {
-        final var result = TransactionHandler.TRANSACTION_MGR.performTransaction(request);
+        final var result = transactionMgr.performTransaction(request);
 
         if (result) {
             response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
@@ -134,6 +133,7 @@ final class TransactionPostHandler extends HttpEndpointHandler {
 
 final class TransactionPutHandler extends HttpEndpointHandler {
 
+    private final TransactionManager transactionMgr = TransactionManager.getInstance();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -184,7 +184,7 @@ final class TransactionPutHandler extends HttpEndpointHandler {
                 putRequest.getId(),
                 putRequest.getAction());
 
-        final var result = TransactionHandler.TRANSACTION_MGR.addTransactionPlan(putRequest);
+        final var result = transactionMgr.addTransactionPlan(putRequest);
 
         if (result) {
             response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
