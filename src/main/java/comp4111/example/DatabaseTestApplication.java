@@ -29,11 +29,11 @@ public class DatabaseTestApplication {
     /**
      * The name of the database.
      */
-    private static final String DB_NAME = "sonoo";
+    private static final String DB_NAME = "example";
     /**
      * The name of the dummy table.
      */
-    private static final String TABLE_NAME = "emp";
+    private static final String TABLE_NAME = "example";
 
     /**
      * Sample class for database storage.

@@ -1,7 +1,9 @@
 package comp4111;
 
-import comp4111.connection.DatabaseConnection;
+import comp4111.connection.*;
+import comp4111.dal.*;
 import comp4111.handler.*;
+import comp4111.util.*;
 import comp4111.listener.GenericExceptionListener;
 import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
 import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
@@ -46,14 +48,28 @@ public class MainApplication {
         final HttpServer server = serverBuilder.create();
 
         try {
-            // Set up the database connection
+            // Set up the database connection.
             DatabaseConnection.setConfig();
 
             server.start();
             Runtime.getRuntime().addShutdownHook(new Thread(() -> server.close(CloseMode.GRACEFUL)));
             server.awaitTermination(TimeValue.MAX_VALUE);
+
+            createDefaultUsers();
         } catch (IOException | InterruptedException e) {
             LOGGER.error("Received unknown exception while running server", e);
+        }
+    }
+
+    /**
+     * A helper function
+     */
+    private static void createDefaultUsers() {
+        if (!LoginUtils.userLogin("user001", "passwd001")) { // The database probably does not contain user credentials.
+            for (int i = 1; i < 101; i++) {
+                String suffix = String.format("%03d", i);
+                LoginDataAccess.createUserAccount("user" + suffix, "passwd" + suffix);
+            }
         }
     }
 }
