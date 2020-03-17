@@ -1,6 +1,7 @@
 package comp4111.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import comp4111.controller.TokenManager;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
@@ -76,6 +77,7 @@ public final class BookHandler extends HttpPathHandler {
 final class BookPutHandler extends HttpEndpointHandler {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final TokenManager tokenMgr = TokenManager.getInstance();
 
     @Override
     public @NotNull HttpEndpoint getHandlerDefinition() {
@@ -99,7 +101,12 @@ final class BookPutHandler extends HttpEndpointHandler {
             response.setCode(HttpStatus.SC_UNAUTHORIZED);
             return;
         }
+
         final var token = queryParams.get("token");
+        if (!tokenMgr.containsToken(token)) {
+            response.setCode(HttpStatus.SC_BAD_REQUEST);
+            return;
+        }
 
         final var bookId = BookHandler.getIdFromRequest(request.getPath());
 
@@ -133,6 +140,8 @@ final class BookPutHandler extends HttpEndpointHandler {
  */
 final class BookDeleteHandler extends HttpEndpointHandler {
 
+    private final TokenManager tokenMgr = TokenManager.getInstance();
+
     @Override
     public @NotNull HttpEndpoint getHandlerDefinition() {
         return new HttpEndpoint() {
@@ -157,7 +166,12 @@ final class BookDeleteHandler extends HttpEndpointHandler {
             response.setCode(HttpStatus.SC_UNAUTHORIZED);
             return;
         }
+
         final var token = queryParams.get("token");
+        if (!tokenMgr.containsToken(token)) {
+            response.setCode(HttpStatus.SC_BAD_REQUEST);
+            return;
+        }
 
         final var bookId = BookHandler.getIdFromRequest(request.getPath());
 

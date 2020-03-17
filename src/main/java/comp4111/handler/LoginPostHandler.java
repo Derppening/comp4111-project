@@ -1,7 +1,9 @@
 package comp4111.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import comp4111.controller.TokenManager;
 import comp4111.model.LoginRequest;
+import comp4111.model.LoginResult;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
@@ -16,6 +18,7 @@ public final class LoginPostHandler extends HttpEndpointHandler {
 
     public static final String HANDLE_PATTERN = PATH_PREFIX + "/login";
 
+    private final TokenManager tokenMgr = TokenManager.getInstance();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @NotNull
@@ -62,18 +65,28 @@ public final class LoginPostHandler extends HttpEndpointHandler {
             return;
         }
 
-        if (loginRequest.getUsername().isBlank() || loginRequest.getPassword().isBlank()) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
-            response.setEntity(new StringEntity("Username/Password must be provided", ContentType.TEXT_HTML));
+        LOGGER.info("POST /login Username=\"{}\" Password=\"{}\"", loginRequest.getUsername(), loginRequest.getPassword());
+
+        // TODO: Handle login request
+        LOGGER.warn("PLACEHOLDER: Assuming that login combination is correct");
+
+        final String token;
+        synchronized (tokenMgr) {
+            if (tokenMgr.containsUser(loginRequest.getUsername())) {
+                token = null;
+            } else {
+                token = tokenMgr.newToken(loginRequest.getUsername());
+            }
+        }
+
+        if (token == null) {
+            response.setCode(HttpStatus.SC_CONFLICT);
             return;
         }
 
-        LOGGER.info("POST /login Username=\"{}\" Password=\"{}\"", loginRequest.getUsername(), loginRequest.getPassword());
-
-        // TODO(Derppening): Handle login request
-        // TODO(Derppening): Use SecureRandom to generate token
-        //  https://stackoverflow.com/a/56628391
+        final var loginResult = new LoginResult(token);
 
         response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
+        response.setEntity(new StringEntity(objectMapper.writeValueAsString(loginResult), ContentType.APPLICATION_JSON));
     }
 }

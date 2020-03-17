@@ -1,5 +1,6 @@
 package comp4111.handler;
 
+import comp4111.controller.TokenManager;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
@@ -13,6 +14,7 @@ import java.io.IOException;
 public final class LogoutGetHandler extends HttpEndpointHandler {
 
     public static final String HANDLE_PATTERN = PATH_PREFIX + "/logout";
+    private final TokenManager tokenMgr = TokenManager.getInstance();
 
     @NotNull
     @Override
@@ -52,8 +54,10 @@ public final class LogoutGetHandler extends HttpEndpointHandler {
 
         LOGGER.info("GET /logout token=\"{}\"", token);
 
-        // TODO(Derppening): Handle logout request
-
-        response.setCode(HttpStatus.SC_OK);
+        if (tokenMgr.removeToken(token)) {
+            response.setCode(HttpStatus.SC_OK);
+        } else {
+            response.setCode(HttpStatus.SC_BAD_REQUEST);
+        }
     }
 }

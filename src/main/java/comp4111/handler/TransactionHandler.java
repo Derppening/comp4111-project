@@ -2,6 +2,7 @@ package comp4111.handler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import comp4111.controller.TokenManager;
 import comp4111.controller.TransactionManager;
 import comp4111.model.TransactionPostRequest;
 import comp4111.model.TransactionPostResult;
@@ -58,6 +59,7 @@ final class TransactionPostHandler extends HttpEndpointHandler {
 
     private final TransactionManager transactionMgr = TransactionManager.getInstance();
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final TokenManager tokenMgr = TokenManager.getInstance();
 
     @Override
     public @NotNull HttpEndpoint getHandlerDefinition() {
@@ -81,9 +83,12 @@ final class TransactionPostHandler extends HttpEndpointHandler {
             response.setCode(HttpStatus.SC_UNAUTHORIZED);
             return;
         }
-        final var token = queryParams.get("token");
 
-        // TODO: Check token
+        final var token = queryParams.get("token");
+        if (!tokenMgr.containsToken(token)) {
+            response.setCode(HttpStatus.SC_BAD_REQUEST);
+            return;
+        }
 
         if (request.getEntity() == null) {
             LOGGER.info("POST /transaction token=\"{}\"", token);
@@ -135,6 +140,7 @@ final class TransactionPutHandler extends HttpEndpointHandler {
 
     private final TransactionManager transactionMgr = TransactionManager.getInstance();
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final TokenManager tokenMgr = TokenManager.getInstance();
 
     @Override
     public @NotNull HttpEndpoint getHandlerDefinition() {
@@ -158,9 +164,12 @@ final class TransactionPutHandler extends HttpEndpointHandler {
             response.setCode(HttpStatus.SC_UNAUTHORIZED);
             return;
         }
-        final var token = queryParams.get("token");
 
-        // TODO: Check token
+        final var token = queryParams.get("token");
+        if (!tokenMgr.containsToken(token)) {
+            response.setCode(HttpStatus.SC_BAD_REQUEST);
+            return;
+        }
 
         if (request.getEntity() == null) {
             response.setCode(HttpStatus.SC_BAD_REQUEST);
