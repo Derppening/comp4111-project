@@ -95,6 +95,14 @@ final class BooksGetHandler extends HttpEndpointHandler {
             return;
         }
 
+        final var queryId = queryParams.getOrDefault("id", null);
+        final var queryTitle = queryParams.getOrDefault("title", null);
+        final var queryAuthor = queryParams.getOrDefault("author", null);
+        final var queryLimit = queryParams.getOrDefault("limit", null);
+        // TODO: sort+order must be specified together?
+        final var querySort = queryParams.getOrDefault("sortby", null);
+        final var queryOrder = queryParams.getOrDefault("order", null);
+
         LOGGER.info("POST /books token=\"{}\"", token);
 
         // TODO(Derppening): Handle QUERY operation on db
