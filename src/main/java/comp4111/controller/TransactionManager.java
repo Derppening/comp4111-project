@@ -21,7 +21,6 @@ public class TransactionManager {
     @NotNull
     public UUID newTransaction() {
         final var uuid = UUID.randomUUID();
-        assert !inFlightTransactions.containsKey(uuid);
         inFlightTransactions.put(uuid, Collections.synchronizedList(new ArrayList<>()));
 
         return uuid;
@@ -54,11 +53,10 @@ public class TransactionManager {
     public boolean performTransaction(@NotNull final TransactionPostRequest postRequest) {
         final var uuid = postRequest.getTransaction();
 
-        final var transaction = inFlightTransactions.get(uuid);
+        final var transaction = inFlightTransactions.remove(uuid);
         if (transaction == null) {
             return false;
         }
-        inFlightTransactions.remove(uuid);
 
         if (postRequest.getOperation() == TransactionPostRequest.Operation.COMMIT) {
             // TODO: Commit to database
