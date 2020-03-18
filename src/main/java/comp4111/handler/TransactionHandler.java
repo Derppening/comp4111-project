@@ -7,6 +7,7 @@ import comp4111.controller.TransactionManager;
 import comp4111.model.TransactionPostRequest;
 import comp4111.model.TransactionPostResult;
 import comp4111.model.TransactionPutRequest;
+import comp4111.util.JacksonUtils;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
@@ -58,7 +59,7 @@ public final class TransactionHandler extends HttpPathHandler {
 final class TransactionPostHandler extends HttpEndpointHandler {
 
     private final TransactionManager transactionMgr = TransactionManager.getInstance();
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
     private final TokenManager tokenMgr = TokenManager.getInstance();
 
     @Override
@@ -139,7 +140,7 @@ final class TransactionPostHandler extends HttpEndpointHandler {
 final class TransactionPutHandler extends HttpEndpointHandler {
 
     private final TransactionManager transactionMgr = TransactionManager.getInstance();
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
     private final TokenManager tokenMgr = TokenManager.getInstance();
 
     @Override

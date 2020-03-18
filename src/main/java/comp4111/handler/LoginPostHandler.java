@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import comp4111.controller.TokenManager;
 import comp4111.model.LoginRequest;
 import comp4111.model.LoginResult;
+import comp4111.util.JacksonUtils;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
@@ -19,7 +20,7 @@ public final class LoginPostHandler extends HttpEndpointHandler {
     public static final String HANDLE_PATTERN = PATH_PREFIX + "/login";
 
     private final TokenManager tokenMgr = TokenManager.getInstance();
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
     @NotNull
     @Override

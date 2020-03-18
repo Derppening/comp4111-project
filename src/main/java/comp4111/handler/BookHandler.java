@@ -2,6 +2,7 @@ package comp4111.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import comp4111.controller.TokenManager;
+import comp4111.util.JacksonUtils;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
@@ -76,7 +77,7 @@ public final class BookHandler extends HttpPathHandler {
  */
 final class BookPutHandler extends HttpEndpointHandler {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
     private final TokenManager tokenMgr = TokenManager.getInstance();
 
     @Override
