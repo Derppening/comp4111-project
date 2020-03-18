@@ -1,8 +1,9 @@
 package comp4111.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import comp4111.handler.impl.LoginPostHandlerImpl;
-import comp4111.model.LoginRequest;
+import comp4111.controller.TokenManager;
+import comp4111.handler.impl.BooksPostHandlerImpl;
+import comp4111.model.Book;
 import comp4111.util.JacksonUtils;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
@@ -12,30 +13,27 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 
 /**
- * Endpoint handler for all {@code /login} POST requests.
+ * Endpoint handler for all {@code /books} POST requests.
  */
-public abstract class LoginPostHandler extends HttpEndpointHandler {
-
-    public static final String HANDLE_PATTERN = PATH_PREFIX + "/login";
+public abstract class BooksPostHandler extends HttpEndpointHandler {
 
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
+    private final TokenManager tokenMgr = TokenManager.getInstance();
 
-    private LoginRequest loginRequest;
+    private Book book;
 
     @NotNull
-    public static LoginPostHandler getInstance() {
-        return new LoginPostHandlerImpl();
+    public static BooksPostHandler getInstance() {
+        return new BooksPostHandlerImpl();
     }
 
-    @NotNull
     @Override
-    public final HttpEndpoint getHandlerDefinition() {
+    public @NotNull HttpEndpoint getHandlerDefinition() {
         return new HttpEndpoint() {
-
             @NotNull
             @Override
             public String getHandlePattern() {
-                return HANDLE_PATTERN;
+                return BooksHandler.HANDLE_PATTERN;
             }
 
             @NotNull
@@ -48,10 +46,15 @@ public abstract class LoginPostHandler extends HttpEndpointHandler {
 
     @Override
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-        final Method method = toMethodOrNull(request.getMethod());
-        if (method == null || !method.equals(getHandleMethod())) {
-            response.setCode(HttpStatus.SC_METHOD_NOT_ALLOWED);
-            response.setHeader("Allow", getHandleMethod());
+        final var queryParams = parseQueryParams(request.getPath());
+        if (!queryParams.containsKey("token")) {
+            response.setCode(HttpStatus.SC_UNAUTHORIZED);
+            throw new IllegalArgumentException();
+        }
+
+        final var token = queryParams.get("token");
+        if (!tokenMgr.containsToken(token)) {
+            response.setCode(HttpStatus.SC_BAD_REQUEST);
             throw new IllegalArgumentException();
         }
 
@@ -63,17 +66,22 @@ public abstract class LoginPostHandler extends HttpEndpointHandler {
         final var payload = request.getEntity().getContent().readAllBytes();
 
         try {
-            loginRequest = objectMapper.readValue(payload, LoginRequest.class);
+            book = objectMapper.readValue(payload, Book.class);
         } catch (Exception e) {
             response.setCode(HttpStatus.SC_BAD_REQUEST);
             response.setEntity(new StringEntity(e.getLocalizedMessage(), ContentType.TEXT_HTML));
             throw new IllegalArgumentException(e);
         }
 
-        LOGGER.info("POST /login Username=\"{}\" Password=\"{}\"", loginRequest.getUsername(), loginRequest.getPassword());
+        LOGGER.info("POST /books token=\"{}\" Title=\"{}\" Author=\"{}\" Publisher=\"{}\" Year={}",
+                token,
+                book.getTitle(),
+                book.getAuthor(),
+                book.getPublisher(),
+                book.getYear());
     }
 
-    protected LoginRequest getLoginRequest() {
-        return loginRequest;
+    protected Book getBook() {
+        return book;
     }
 }
