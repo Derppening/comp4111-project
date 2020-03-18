@@ -1,4 +1,4 @@
-package comp4111.connection;
+package comp4111.dal;
 
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
@@ -26,18 +26,42 @@ public class DatabaseConnection {
      * The name of the database.
      */
     private static final String DB_NAME = "comp4111";
+    /**
+     * The Connection object.
+     */
+    static Connection con;
 
     public static void setConfig() {
         // Create a connection to the MySQL server.
-        try (Connection con = DriverManager.getConnection(MYSQL_URL, MYSQL_LOGIN, MYSQL_PASSWORD)) {
+        try {
+            // The connection is supposed to be closed in MainApplication.
+            con = DriverManager.getConnection(MYSQL_URL, MYSQL_LOGIN, MYSQL_PASSWORD);
             if (databaseExists(con, DB_NAME)) {
                 dropDatabase(con, DB_NAME);
             }
 
             createDatabase(con, DB_NAME);
             useDatabase(con, DB_NAME);
+
+            String tableSpec = "User_Credentials" +
+                    "(" +
+                    "    username varchar(40)," +
+                    "    hashed_password varchar(64)," +
+                    "    salt varchar(32)," +
+                    "    primary key(username)" +
+                    ");";
+            createTable(con, tableSpec);
         } catch (Exception e) {
             LOGGER.error("Error setting up the environment", e);
+            System.exit(1);
+        }
+    }
+
+    public static void cleanUp() {
+        try {
+            con.close();
+        } catch (SQLException e) {
+            LOGGER.error("Error closing the connection", e);
             System.exit(1);
         }
     }
@@ -53,7 +77,7 @@ public class DatabaseConnection {
         // https://stackoverflow.com/a/838993
         // PreparedStatement is used here to prevent SQL injection attacks
         // Use '?' to indicate a parameter, which can then be substituted later.
-        try (PreparedStatement stmt = con.prepareStatement("SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?")) {
+        try (PreparedStatement stmt = con.prepareStatement("select SCHEMA_NAME from information_schema.SCHEMATA where SCHEMA_NAME = ?")) {
             // The set* methods set the actual value of the parameters.
             // Note that the parameterIndex is 1-based.
             stmt.setString(1, dbName);
@@ -76,7 +100,7 @@ public class DatabaseConnection {
         try (Statement stmt = con.createStatement()) {
             // https://www.w3schools.com/sql/sql_drop_db.asp
             // Be careful with this.
-            stmt.execute("DROP DATABASE " + dbName);
+            stmt.execute("drop database " + dbName);
         }
     }
 
@@ -89,7 +113,7 @@ public class DatabaseConnection {
     private static void createDatabase(@NotNull final Connection con, @NotNull final String dbName) throws SQLException {
         try (Statement stmt = con.createStatement()) {
             // https://www.w3schools.com/sql/sql_create_db.asp
-            stmt.execute("CREATE DATABASE " + dbName);
+            stmt.execute("create database " + dbName);
         }
     }
 
@@ -104,7 +128,7 @@ public class DatabaseConnection {
             // Don't do this.
             // ...
             // If you have to do this, create a new connection which only connects to the specific database.
-            stmt.execute("USE " + dbName);
+            stmt.execute("use " + dbName);
         }
     }
 
@@ -114,10 +138,10 @@ public class DatabaseConnection {
      * @param con {@link Connection} to the database.
      * @param tableSpec Spec of the table. "CREATE TABLE" will be prepended.
      */
-    private static void createTable(@NotNull final Connection con, @Language(value = "SQL", prefix = "CREATE TABLE ") @NotNull final String tableSpec) throws SQLException {
+    private static void createTable(@NotNull final Connection con, @Language(value = "SQL", prefix = "create table ") @NotNull final String tableSpec) throws SQLException {
         try (Statement stmt = con.createStatement()) {
             // https://www.w3schools.com/sql/sql_create_table.asp
-            stmt.execute("CREATE TABLE " + tableSpec);
+            stmt.execute("create table " + tableSpec);
         }
     }
 }

@@ -1,6 +1,5 @@
 package comp4111;
 
-import comp4111.connection.*;
 import comp4111.dal.*;
 import comp4111.handler.*;
 import comp4111.util.*;
@@ -50,19 +49,21 @@ public class MainApplication {
         try {
             // Set up the database connection.
             DatabaseConnection.setConfig();
+            createDefaultUsers();
 
             server.start();
             Runtime.getRuntime().addShutdownHook(new Thread(() -> server.close(CloseMode.GRACEFUL)));
             server.awaitTermination(TimeValue.MAX_VALUE);
-
-            createDefaultUsers();
         } catch (IOException | InterruptedException e) {
             LOGGER.error("Received unknown exception while running server", e);
+        } finally {
+            DatabaseConnection.cleanUp();
+            LOGGER.info("The database connection is closed");
         }
     }
 
     /**
-     * A helper function
+     * A helper function.
      */
     private static void createDefaultUsers() {
         if (!LoginUtils.userLogin("user001", "passwd001")) { // The database probably does not contain user credentials.
