@@ -13,19 +13,19 @@ public class DatabaseConnection {
     /**
      * The URL to the MySQL database.
      */
-    private static final String MYSQL_URL = "jdbc:mysql://localhost:3306";
+    static final String MYSQL_URL = "jdbc:mysql://localhost:3306";
     /**
      * The username used to login.
      */
-    private static final String MYSQL_LOGIN = "root";
+    static final String MYSQL_LOGIN = "root";
     /**
      * The password of the user.
      */
-    private static final String MYSQL_PASSWORD = "comp4111";
+    static final String MYSQL_PASSWORD = "comp4111";
     /**
      * The name of the database.
      */
-    private static final String DB_NAME = "comp4111";
+    static final String DB_NAME = "comp4111";
     /**
      * The Connection object.
      */
@@ -36,21 +36,19 @@ public class DatabaseConnection {
         try {
             // The connection is supposed to be closed in MainApplication.
             con = DriverManager.getConnection(MYSQL_URL, MYSQL_LOGIN, MYSQL_PASSWORD);
-            if (databaseExists(con, DB_NAME)) {
-                dropDatabase(con, DB_NAME);
+            if (!databaseExists(con, DB_NAME)) {
+                createDatabase(con, DB_NAME);
+                useDatabase(con, DB_NAME);
+
+                String tableSpec = "User_Credentials" +
+                        "(" +
+                        "    username varchar(40)," +
+                        "    hashed_password varchar(64)," +
+                        "    salt varchar(32)," +
+                        "    primary key(username)" +
+                        ");";
+                createTable(con, tableSpec);
             }
-
-            createDatabase(con, DB_NAME);
-            useDatabase(con, DB_NAME);
-
-            String tableSpec = "User_Credentials" +
-                    "(" +
-                    "    username varchar(40)," +
-                    "    hashed_password varchar(64)," +
-                    "    salt varchar(32)," +
-                    "    primary key(username)" +
-                    ");";
-            createTable(con, tableSpec);
         } catch (Exception e) {
             LOGGER.error("Error setting up the environment", e);
             System.exit(1);
