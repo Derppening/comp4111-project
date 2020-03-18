@@ -1,9 +1,6 @@
 package comp4111.handler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import comp4111.controller.TokenManager;
 import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 
@@ -24,9 +21,17 @@ public final class BookHandler extends HttpPathHandler {
      * Lookup table for matching a method to its {@link HttpEndpointHandler}.
      */
     private static final Map<Method, HttpEndpointHandler> METHOD_LUT = List.of(
-            new BookPutHandler(),
-            new BookDeleteHandler()
+            BookPutHandler.getInstance(),
+            BookDeleteHandler.getInstance()
     ).stream().collect(Collectors.toUnmodifiableMap(HttpEndpointHandler::getHandleMethod, Function.identity()));
+
+    @NotNull
+    public static BookHandler getInstance() {
+        return new BookHandler();
+    }
+
+    private BookHandler() {
+    }
 
     @NotNull
     @Override
@@ -71,114 +76,3 @@ public final class BookHandler extends HttpPathHandler {
     }
 }
 
-/**
- * Endpoint handler for all {@code /book/*} PUT requests.
- */
-final class BookPutHandler extends HttpEndpointHandler {
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    private final TokenManager tokenMgr = TokenManager.getInstance();
-
-    @Override
-    public @NotNull HttpEndpoint getHandlerDefinition() {
-        return new HttpEndpoint() {
-            @Override
-            public @NotNull String getHandlePattern() {
-                return BookHandler.HANDLE_PATTERN;
-            }
-
-            @Override
-            public @NotNull Method getHandleMethod() {
-                return Method.PUT;
-            }
-        };
-    }
-
-    @Override
-    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-        final var queryParams = parseQueryParams(request.getPath());
-        if (!queryParams.containsKey("token")) {
-            response.setCode(HttpStatus.SC_UNAUTHORIZED);
-            return;
-        }
-
-        final var token = queryParams.get("token");
-        if (!tokenMgr.containsToken(token)) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
-            return;
-        }
-
-        final var bookId = BookHandler.getIdFromRequest(request.getPath());
-
-        if (request.getEntity() == null) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
-            response.setEntity(new StringEntity("Payload must be specified", ContentType.TEXT_PLAIN));
-            return;
-        }
-        final var payload = request.getEntity().getContent().readAllBytes();
-
-        final boolean available;
-        try {
-            final var rootNode = objectMapper.readTree(payload);
-            available = rootNode.get("Available").asBoolean();
-        } catch (Exception e) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
-            response.setEntity(new StringEntity(e.getLocalizedMessage(), ContentType.TEXT_HTML));
-            return;
-        }
-
-        LOGGER.info("PUT /book token={} id={} Available={}", token, bookId, available);
-
-        // TODO: Handle UPDATE operation on db
-
-        response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
-    }
-}
-
-/**
- * Endpoint handler for all {@code /book/*} DELETE requests.
- */
-final class BookDeleteHandler extends HttpEndpointHandler {
-
-    private final TokenManager tokenMgr = TokenManager.getInstance();
-
-    @Override
-    public @NotNull HttpEndpoint getHandlerDefinition() {
-        return new HttpEndpoint() {
-            @NotNull
-            @Override
-            public String getHandlePattern() {
-                return BookHandler.HANDLE_PATTERN;
-            }
-
-            @NotNull
-            @Override
-            public Method getHandleMethod() {
-                return Method.DELETE;
-            }
-        };
-    }
-
-    @Override
-    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-        final var queryParams = parseQueryParams(request.getPath());
-        if (!queryParams.containsKey("token")) {
-            response.setCode(HttpStatus.SC_UNAUTHORIZED);
-            return;
-        }
-
-        final var token = queryParams.get("token");
-        if (!tokenMgr.containsToken(token)) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
-            return;
-        }
-
-        final var bookId = BookHandler.getIdFromRequest(request.getPath());
-
-        LOGGER.info("DELETE /book token=\"{}\" id={}", token, bookId);
-
-        // TODO: Handle DELETE operation on db
-
-        response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
-    }
-}

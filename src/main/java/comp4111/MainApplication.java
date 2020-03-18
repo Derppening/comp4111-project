@@ -24,12 +24,12 @@ public class MainApplication {
     private static final Logger LOGGER = LoggerFactory.getLogger(MainApplication.class);
 
     private static final Map<String, HttpPathHandler> PATTERN_HANDLER = List.of(
-            new WildcardHandler(),
-            new LoginPostHandler(),
-            new LogoutGetHandler(),
-            new BooksHandler(),
-            new BookHandler(),
-            new TransactionHandler()
+            WildcardHandler.getInstance(),
+            LoginPostHandler.getInstance(),
+            LogoutGetHandler.getInstance(),
+            BooksHandler.getInstance(),
+            BookHandler.getInstance(),
+            TransactionHandler.getInstance()
     ).stream().collect(Collectors.toUnmodifiableMap(HttpPathHandler::getHandlePattern, Function.identity()));
 
     public static void main(String[] args) {

@@ -1,6 +1,6 @@
 package comp4111.handler;
 
-import comp4111.controller.TokenManager;
+import comp4111.handler.impl.LogoutGetHandlerImpl;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
@@ -11,10 +11,16 @@ import java.io.IOException;
 /**
  * Endpoint handler for all {@code /logout} GET requests.
  */
-public final class LogoutGetHandler extends HttpEndpointHandler {
+public abstract class LogoutGetHandler extends HttpEndpointHandler {
 
     public static final String HANDLE_PATTERN = PATH_PREFIX + "/logout";
-    private final TokenManager tokenMgr = TokenManager.getInstance();
+
+    private String token;
+
+    @NotNull
+    public static LogoutGetHandler getInstance() {
+        return new LogoutGetHandlerImpl();
+    }
 
     @NotNull
     @Override
@@ -40,24 +46,22 @@ public final class LogoutGetHandler extends HttpEndpointHandler {
         if (method == null || !method.equals(getHandleMethod())) {
             response.setCode(HttpStatus.SC_METHOD_NOT_ALLOWED);
             response.setHeader("Allow", getHandleMethod());
-            return;
+            throw new IllegalArgumentException();
         }
 
         final var queryParams = parseQueryParams(request.getPath());
         if (!queryParams.containsKey("token")) {
             response.setCode(HttpStatus.SC_BAD_REQUEST);
             response.setEntity(new StringEntity("Token must be provided."));
-            return;
+            throw new IllegalArgumentException();
         }
 
-        final var token = queryParams.get("token");
+        token = queryParams.get("token");
 
         LOGGER.info("GET /logout token=\"{}\"", token);
+    }
 
-        if (tokenMgr.removeToken(token)) {
-            response.setCode(HttpStatus.SC_OK);
-        } else {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
-        }
+    public String getToken() {
+        return token;
     }
 }
