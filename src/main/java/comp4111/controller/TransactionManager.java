@@ -104,6 +104,10 @@ public class TransactionManager {
             return false;
         }
 
+        if (transaction.isEmpty()) {
+            return true;
+        }
+
         if (postRequest.getOperation() == TransactionPostRequest.Operation.COMMIT) {
             // TODO: Commit to database
         } else {
