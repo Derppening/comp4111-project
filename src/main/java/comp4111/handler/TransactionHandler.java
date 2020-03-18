@@ -127,13 +127,11 @@ final class TransactionPostHandler extends HttpEndpointHandler {
     }
 
     private void handleTransactionCommitRequest(@NotNull TransactionPostRequest request, @NotNull ClassicHttpResponse response) {
-        final var result = transactionMgr.performTransaction(request);
+        final var transactionList = transactionMgr.getAndEraseTransaction(request);
 
-        if (result) {
-            response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
-        } else {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
-        }
+        // TODO: Pass transactionList to DB
+
+        response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
     }
 }
 

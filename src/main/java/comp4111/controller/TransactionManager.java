@@ -95,11 +95,12 @@ public class TransactionManager {
      *
      * @param postRequest The POST request of the transaction.
      * @return {@code true} if the operation was successful.
+     * @deprecated Use {@link TransactionManager#getAndEraseTransaction(TransactionPostRequest)} and handle the
+     * transaction in the calling method.
      */
+    @Deprecated
     public boolean performTransaction(@NotNull final TransactionPostRequest postRequest) {
-        final var uuid = postRequest.getTransaction();
-
-        final var transaction = inFlightTransactions.remove(uuid);
+        final var transaction = getAndEraseTransaction(postRequest);
         if (transaction == null) {
             return false;
         }
@@ -115,5 +116,18 @@ public class TransactionManager {
         }
 
         return true;
+    }
+
+    /**
+     * Returns the transaction given by the transaction ID, and clears it from this manager.
+     *
+     * @param postRequest The POST request of the transaction.
+     * @return The transaction associated with the POST request, or {@code null} if the transaction does not exist.
+     */
+    @Nullable
+    public List<TransactionPutRequest> getAndEraseTransaction(@NotNull final TransactionPostRequest postRequest) {
+        final var uuid = postRequest.getTransaction();
+
+        return inFlightTransactions.remove(uuid);
     }
 }
