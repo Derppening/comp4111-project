@@ -82,6 +82,39 @@ public class TransactionPutRequestTest {
     }
 
     @Test
+    void givenJsonNullTransaction_checkThrows() {
+        @Language("JSON") final var json = "{" +
+                "\"Transaction\": null, " +
+                "\"Book\": \"abc\", " +
+                "\"Action\": \"loan\"" +
+                "}";
+
+        assertThrows(Exception.class, () -> objectMapper.readValue(json, TransactionPutRequest.class));
+    }
+
+    @Test
+    void givenJsonNullBook_checkThrows() {
+        @Language("JSON") final var json = "{" +
+                "\"Transaction\": \"" + uuid.toString() + "\", " +
+                "\"Book\": null, " +
+                "\"Action\": \"loan\"" +
+                "}";
+
+        assertThrows(Exception.class, () -> objectMapper.readValue(json, TransactionPutRequest.class));
+    }
+
+    @Test
+    void givenJsonNullAction_checkThrows() {
+        @Language("JSON") final var json = "{" +
+                "\"Transaction\": \"" + uuid.toString() + "\", " +
+                "\"Book\": 1, " +
+                "\"Action\": null" +
+                "}";
+
+        assertThrows(Exception.class, () -> objectMapper.readValue(json, TransactionPutRequest.class));
+    }
+
+    @Test
     void givenLoanJson_checkCanDeserialize() {
         @Language("JSON") final var json = "{" +
                 "\"Transaction\": \"" + uuid.toString() + "\", " +

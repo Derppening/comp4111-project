@@ -28,16 +28,17 @@ public class TransactionPutRequest {
     @JsonProperty("Book")
     private final int id;
     @JsonProperty("Action")
+    @NotNull
     private final Action action;
 
     public TransactionPutRequest(
             @NotNull @JsonProperty("Transaction") UUID uuid,
             @JsonProperty("Book") int bookId,
-            @JsonProperty("Action") Action action
+            @NotNull @JsonProperty("Action") Action action
     ) {
         this.transaction = Objects.requireNonNull(uuid);
         this.id = bookId;
-        this.action = action;
+        this.action = Objects.requireNonNull(action);
     }
 
     @NotNull
@@ -49,6 +50,7 @@ public class TransactionPutRequest {
         return id;
     }
 
+    @NotNull
     public Action getAction() {
         return action;
     }

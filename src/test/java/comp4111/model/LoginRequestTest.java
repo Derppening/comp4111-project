@@ -61,6 +61,20 @@ public class LoginRequestTest {
     }
 
     @Test
+    void givenJsonNullUsername_checkThrows() {
+        @Language("JSON") final var json = "{\"Username\": null, \"Password\": \"passwd001\"}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, LoginRequest.class));
+    }
+
+    @Test
+    void givenJsonNullPassword_checkThrows() {
+        @Language("JSON") final var json = "{\"Username\": \"user001\", \"Password\": null}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, LoginRequest.class));
+    }
+
+    @Test
     void givenObj_checkCanSerialize() throws JsonProcessingException {
         final var expectedUsername = "user001";
         final var expectedPassword = "passwd001";

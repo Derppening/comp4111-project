@@ -59,6 +59,26 @@ public class TransactionPostRequestTest {
     }
 
     @Test
+    void givenJsonNullTransaction_checkThrows() {
+        @Language("JSON") final var json = "{" +
+                "\"Transaction\":  null, " +
+                "\"Operation\": \"commit\"" +
+                "}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, TransactionPostRequest.class));
+    }
+
+    @Test
+    void givenJsonNullOperation_checkThrows() {
+        @Language("JSON") final var json = "{" +
+                "\"Transaction\":  \"" + uuid.toString() + "\", " +
+                "\"Operation\": null" +
+                "}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, TransactionPostRequest.class));
+    }
+
+    @Test
     void givenCommitJson_checkCanDeserialize() {
         @Language("JSON") final var json = "{" +
                 "\"Transaction\":  \"" + uuid.toString() + "\", " +

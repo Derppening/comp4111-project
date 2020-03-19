@@ -26,14 +26,15 @@ public class TransactionPostRequest {
     @NotNull
     private final UUID transaction;
     @JsonProperty("Operation")
+    @NotNull
     private final Operation operation;
 
     public TransactionPostRequest(
             @NotNull @JsonProperty("Transaction") UUID uuid,
-            @JsonProperty("Operation") Operation operation
+            @NotNull @JsonProperty("Operation") Operation operation
     ) {
         this.transaction = Objects.requireNonNull(uuid);
-        this.operation = operation;
+        this.operation = Objects.requireNonNull(operation);
     }
 
     @NotNull
@@ -41,6 +42,7 @@ public class TransactionPostRequest {
         return transaction;
     }
 
+    @NotNull
     public Operation getOperation() {
         return operation;
     }

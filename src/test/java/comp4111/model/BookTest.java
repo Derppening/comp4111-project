@@ -95,6 +95,30 @@ public class BookTest {
     }
 
     @Test
+    void givenJsonNullTitle_checkThrows() {
+        @Language("JSON") final var json = "{" +
+                "\"Title\": null, " +
+                "\"Author\": \"Lewis Carroll\", " +
+                "\"Publisher\": \"Macmillan Publishers\", " +
+                "\"Year\": 1865" +
+                "}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, Book.class));
+    }
+
+    @Test
+    void givenJsonNullYear_checkThrows() {
+        @Language("JSON") final var json = "{" +
+                "\"Title\": \"Alice in the Wonderland\", " +
+                "\"Author\": \"Lewis Carroll\", " +
+                "\"Publisher\": \"Macmillan Publishers\", " +
+                "\"Year\": null" +
+                "}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, Book.class));
+    }
+
+    @Test
     @Disabled("Jackson does not support strict type checking")
     void givenJsonBadTitleType_checkThrows() {
         @Language("JSON") final var json = "{" +
