@@ -1,10 +1,13 @@
 package comp4111.model;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import comp4111.util.JacksonUtils;
 import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -15,7 +18,14 @@ public class LoginRequestTest {
 
     @BeforeEach
     void setUp() {
-        objectMapper = new ObjectMapper();
+        objectMapper = JacksonUtils.getDefaultObjectMapper();
+    }
+
+    @Test
+    void givenEmptyJson_checkThrows() {
+        @Language("JSON") final var json = "{}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, LoginRequest.class));
     }
 
     @Test
@@ -26,6 +36,28 @@ public class LoginRequestTest {
 
         assertEquals(expected.getUsername(), actual.getUsername());
         assertEquals(expected.getPassword(), actual.getPassword());
+    }
+
+    @Test
+    void givenJsonMissingUsername_checkThrows() {
+        @Language("JSON") final var json = "{\"Password\": \"passwd001\"}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, LoginRequest.class));
+    }
+
+    @Test
+    void givenJsonMissingPassword_checkThrows() {
+        @Language("JSON") final var json = "{\"Username\": \"user001\"}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, LoginRequest.class));
+    }
+
+    @Disabled("Jackson does not support strict type checking")
+    @Test
+    void givenJsonBadUsernameType_checkThrows() {
+        @Language("JSON") final var json = "{\"Username\": 123, \"Password\": \"passwd001\"}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, LoginRequest.class));
     }
 
     @Test

@@ -3,6 +3,8 @@ package comp4111.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 public class Book {
 
     // TODO: id?
@@ -27,9 +29,9 @@ public class Book {
             @NotNull @JsonProperty("Author") String author,
             @NotNull @JsonProperty("Publisher") String publisher,
             @JsonProperty("Year") int year) {
-        this.title = title;
-        this.author = author;
-        this.publisher = publisher;
+        this.title = Objects.requireNonNull(title);
+        this.author = Objects.requireNonNull(author);
+        this.publisher = Objects.requireNonNull(publisher);
         this.year = year;
     }
 

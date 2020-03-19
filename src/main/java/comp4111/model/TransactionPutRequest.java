@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class TransactionPutRequest {
@@ -34,7 +35,7 @@ public class TransactionPutRequest {
             @JsonProperty("Book") int bookId,
             @JsonProperty("Action") Action action
     ) {
-        this.transaction = uuid;
+        this.transaction = Objects.requireNonNull(uuid);
         this.id = bookId;
         this.action = action;
     }
