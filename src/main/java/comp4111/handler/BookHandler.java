@@ -2,12 +2,7 @@ package comp4111.handler;
 
 import comp4111.handler.impl.BookHandlerImpl;
 import org.apache.hc.core5.http.ClassicHttpRequest;
-import org.apache.hc.core5.http.ClassicHttpResponse;
-import org.apache.hc.core5.http.HttpException;
-import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
-
-import java.io.IOException;
 
 /**
  * Path handler for all {@code /book/*} requests.
@@ -36,11 +31,6 @@ public abstract class BookHandler extends HttpPathHandler {
     @Override
     public HttpPath getHandlerDefinition() {
         return HANDLER_DEFINITION;
-    }
-
-    @Override
-    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-        dispatchByMethod(request, response, context, getMethodLut());
     }
 
     /**

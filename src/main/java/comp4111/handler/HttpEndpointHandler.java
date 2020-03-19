@@ -1,9 +1,13 @@
 package comp4111.handler;
 
 import comp4111.controller.TokenManager;
+import comp4111.util.HttpUtils;
 import org.apache.hc.core5.http.*;
+import org.apache.hc.core5.http.io.HttpRequestHandler;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
@@ -11,23 +15,25 @@ import java.util.Map;
 /**
  * A handler which binds to a specific {@link HttpEndpoint}.
  */
-public abstract class HttpEndpointHandler extends HttpPathHandler implements HttpEndpoint {
+public abstract class HttpEndpointHandler implements HttpRequestHandler, HttpEndpoint {
+
+    protected final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 
     protected final TokenManager tokenMgr = TokenManager.getInstance();
-
-    /**
-     * @return A lookup table containing an entry of the {@link Method} handled by this handler, mapped to this handler.
-     */
-    @Override
-    protected Map<Method, HttpEndpointHandler> getMethodLut() {
-        return Map.of(getHandleMethod(), this);
-    }
 
     /**
      * @return The handler definition, which may be any object which inherits from {@link HttpEndpoint}.
      */
     @NotNull
     public abstract HttpEndpoint getHandlerDefinition();
+
+    /**
+     * @return The path pattern that this class handles.
+     */
+    @Override
+    public @NotNull String getHandlePattern() {
+        return getHandlerDefinition().getHandlePattern();
+    }
 
     /**
      * @return The HTTP method that this class handles.
@@ -47,7 +53,7 @@ public abstract class HttpEndpointHandler extends HttpPathHandler implements Htt
      *                                  thrown, the response code of {@code response} will be set appropriately
      */
     protected void checkMethod(@NotNull ClassicHttpRequest request, @NotNull ClassicHttpResponse response) {
-        final Method method = toMethodOrNull(request.getMethod());
+        final Method method = HttpUtils.toMethodOrNull(request.getMethod());
         if (method == null || !method.equals(getHandleMethod())) {
             response.setCode(HttpStatus.SC_METHOD_NOT_ALLOWED);
             response.setHeader("Allow", getHandleMethod());

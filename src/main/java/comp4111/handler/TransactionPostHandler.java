@@ -3,6 +3,7 @@ package comp4111.handler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import comp4111.handler.impl.TransactionPostHandlerImpl;
 import comp4111.model.TransactionPostRequest;
+import comp4111.util.HttpUtils;
 import comp4111.util.JacksonUtils;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
@@ -41,7 +42,7 @@ public abstract class TransactionPostHandler extends HttpEndpointHandler {
 
     @Override
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-        final var queryParams = parseQueryParams(request.getPath());
+        final var queryParams = HttpUtils.parseQueryParams(request.getPath());
         final var token = checkToken(queryParams, response);
 
         if (request.getEntity() == null) {

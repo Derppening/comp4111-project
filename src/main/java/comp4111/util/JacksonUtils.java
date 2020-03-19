@@ -5,7 +5,8 @@ import org.jetbrains.annotations.NotNull;
 
 public class JacksonUtils {
 
-    private JacksonUtils() {}
+    private JacksonUtils() {
+    }
 
     /**
      * @return An {@link ObjectMapper} which is configured for this project.

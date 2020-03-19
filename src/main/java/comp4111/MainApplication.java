@@ -23,8 +23,8 @@ public class MainApplication {
 
     private static final Map<String, HttpPathHandler> PATTERN_HANDLER = List.of(
             WildcardHandler.getInstance(),
-            LoginPostHandler.getInstance(),
-            LogoutGetHandler.getInstance(),
+            LoginHandler.getInstance(),
+            LogoutHandler.getInstance(),
             BooksHandler.getInstance(),
             BookHandler.getInstance(),
             TransactionHandler.getInstance()

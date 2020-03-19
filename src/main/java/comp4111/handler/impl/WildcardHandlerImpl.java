@@ -9,11 +9,12 @@ import org.apache.hc.core5.http.Method;
 import org.apache.hc.core5.http.protocol.HttpContext;
 
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class WildcardHandlerImpl extends WildcardHandler {
 
     @Override
-    protected Map<Method, HttpEndpointHandler> getMethodLut() {
+    protected Map<Method, Supplier<HttpEndpointHandler>> getMethodLut() {
         return null;
     }
 

@@ -1,15 +1,13 @@
 package comp4111.handler;
 
-import comp4111.handler.impl.BooksHandlerImpl;
+import comp4111.handler.impl.LoginHandlerImpl;
 import org.jetbrains.annotations.NotNull;
 
-/**
- * Path handler for all {@code /books} requests.
- */
-public abstract class BooksHandler extends HttpPathHandler {
+public abstract class LoginHandler extends HttpPathHandler {
 
-    public static final String HANDLE_PATTERN = PATH_PREFIX + "/books";
+    public static final String HANDLE_PATTERN = PATH_PREFIX + "/login";
     private static final HttpPath HANDLER_DEFINITION = new HttpPath() {
+
         @NotNull
         @Override
         public String getHandlePattern() {
@@ -18,11 +16,11 @@ public abstract class BooksHandler extends HttpPathHandler {
     };
 
     @NotNull
-    public static BooksHandler getInstance() {
-        return new BooksHandlerImpl();
+    public static LoginHandler getInstance() {
+        return new LoginHandlerImpl();
     }
 
-    protected BooksHandler() {
+    protected LoginHandler() {
     }
 
     @Override
@@ -30,4 +28,3 @@ public abstract class BooksHandler extends HttpPathHandler {
         return HANDLER_DEFINITION;
     }
 }
-

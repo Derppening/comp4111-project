@@ -1,6 +1,7 @@
 package comp4111.handler;
 
 import comp4111.handler.impl.BooksGetHandlerImpl;
+import comp4111.util.HttpUtils;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
@@ -43,7 +44,7 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
 
     @Override
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-        final var queryParams = parseQueryParams(request.getPath());
+        final var queryParams = HttpUtils.parseQueryParams(request.getPath());
         final var token = checkToken(queryParams, response);
 
         final var queryIdStr = queryParams.getOrDefault("id", null);

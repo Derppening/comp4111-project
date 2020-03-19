@@ -1,6 +1,7 @@
 package comp4111.handler;
 
 import comp4111.handler.impl.LogoutGetHandlerImpl;
+import comp4111.util.HttpUtils;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.HttpException;
@@ -15,7 +16,6 @@ import java.io.IOException;
  */
 public abstract class LogoutGetHandler extends HttpEndpointHandler {
 
-    public static final String HANDLE_PATTERN = PATH_PREFIX + "/logout";
     private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
         @NotNull
         @Override
@@ -26,7 +26,7 @@ public abstract class LogoutGetHandler extends HttpEndpointHandler {
         @NotNull
         @Override
         public String getHandlePattern() {
-            return HANDLE_PATTERN;
+            return LogoutHandler.HANDLE_PATTERN;
         }
     };
 
@@ -47,7 +47,7 @@ public abstract class LogoutGetHandler extends HttpEndpointHandler {
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
         checkMethod(request, response);
 
-        final var queryParams = parseQueryParams(request.getPath());
+        final var queryParams = HttpUtils.parseQueryParams(request.getPath());
 
         token = getToken(queryParams, response);
 
