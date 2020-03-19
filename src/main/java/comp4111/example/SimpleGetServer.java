@@ -1,6 +1,9 @@
 package comp4111.example;
 
-import comp4111.handler.*;
+import comp4111.handler.HttpEndpoint;
+import comp4111.handler.HttpEndpointHandler;
+import comp4111.handler.HttpPath;
+import comp4111.handler.HttpPathHandler;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
 import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
@@ -121,6 +124,11 @@ public class SimpleGetServer {
      * HTTP handler for responding to other paths which are not otherwise registered.
      */
     static class NotFoundHandler extends HttpPathHandler {
+
+        @Override
+        protected Map<Method, HttpEndpointHandler> getMethodLut() {
+            return null;
+        }
 
         @Override
         public @NotNull HttpPath getHandlerDefinition() {

@@ -24,6 +24,13 @@ public abstract class HttpPathHandler implements HttpRequestHandler, HttpPath {
     protected final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 
     /**
+     * @return The lookup table for matching a request sent with {@link Method} to its corresponding
+     * {@link HttpEndpointHandler}. Can be {@code null} to indicate that a lookup table is not applicable to this
+     * handler, for example if all requests should be handled the same regardless of its method.
+     */
+    protected abstract Map<Method, HttpEndpointHandler> getMethodLut();
+
+    /**
      * @return The handler definition, which may be any object which inherits from {@link HttpPath}.
      */
     @NotNull

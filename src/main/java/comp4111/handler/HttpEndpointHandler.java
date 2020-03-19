@@ -16,6 +16,14 @@ public abstract class HttpEndpointHandler extends HttpPathHandler implements Htt
     protected final TokenManager tokenMgr = TokenManager.getInstance();
 
     /**
+     * @return A lookup table containing an entry of the {@link Method} handled by this handler, mapped to this handler.
+     */
+    @Override
+    protected Map<Method, HttpEndpointHandler> getMethodLut() {
+        return Map.of(getHandleMethod(), this);
+    }
+
+    /**
      * @return The handler definition, which may be any object which inherits from {@link HttpEndpoint}.
      */
     @NotNull
