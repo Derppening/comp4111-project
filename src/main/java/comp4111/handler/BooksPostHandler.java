@@ -1,7 +1,6 @@
 package comp4111.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import comp4111.controller.TokenManager;
 import comp4111.handler.impl.BooksPostHandlerImpl;
 import comp4111.model.Book;
 import comp4111.util.JacksonUtils;
@@ -18,7 +17,6 @@ import java.io.IOException;
 public abstract class BooksPostHandler extends HttpEndpointHandler {
 
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
-    private final TokenManager tokenMgr = TokenManager.getInstance();
 
     private Book book;
 

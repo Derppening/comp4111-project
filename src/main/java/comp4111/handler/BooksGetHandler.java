@@ -1,6 +1,5 @@
 package comp4111.handler;
 
-import comp4111.controller.TokenManager;
 import comp4111.handler.impl.BooksGetHandlerImpl;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.protocol.HttpContext;
@@ -12,8 +11,6 @@ import java.io.IOException;
  * Endpoint handler for all {@code /books} GET requests.
  */
 public abstract class BooksGetHandler extends HttpEndpointHandler {
-
-    private final TokenManager tokenMgr = TokenManager.getInstance();
 
     private Integer queryId;
     private String queryTitle;

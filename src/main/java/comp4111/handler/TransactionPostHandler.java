@@ -1,7 +1,6 @@
 package comp4111.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import comp4111.controller.TokenManager;
 import comp4111.handler.impl.TransactionPostHandlerImpl;
 import comp4111.model.TransactionPostRequest;
 import comp4111.util.JacksonUtils;
@@ -14,7 +13,6 @@ import java.io.IOException;
 
 public abstract class TransactionPostHandler extends HttpEndpointHandler {
 
-    private final TokenManager tokenMgr = TokenManager.getInstance();
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
     private TransactionPostRequest txRequest;

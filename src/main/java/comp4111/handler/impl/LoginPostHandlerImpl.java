@@ -1,7 +1,6 @@
 package comp4111.handler.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import comp4111.controller.TokenManager;
 import comp4111.handler.LoginPostHandler;
 import comp4111.model.LoginResult;
 import comp4111.util.JacksonUtils;
@@ -14,7 +13,6 @@ import java.io.IOException;
 public class LoginPostHandlerImpl extends LoginPostHandler {
 
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
-    private final TokenManager tokenMgr = TokenManager.getInstance();
 
     @Override
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {

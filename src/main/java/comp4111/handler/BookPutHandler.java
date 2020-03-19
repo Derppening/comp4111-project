@@ -1,7 +1,6 @@
 package comp4111.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import comp4111.controller.TokenManager;
 import comp4111.handler.impl.BookPutHandlerImpl;
 import comp4111.util.JacksonUtils;
 import org.apache.hc.core5.http.*;
@@ -17,7 +16,6 @@ import java.io.IOException;
 public abstract class BookPutHandler extends HttpEndpointHandler {
 
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
-    private final TokenManager tokenMgr = TokenManager.getInstance();
 
     private int bookId;
     private Boolean available;

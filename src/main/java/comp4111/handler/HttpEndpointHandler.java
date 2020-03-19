@@ -1,5 +1,6 @@
 package comp4111.handler;
 
+import comp4111.controller.TokenManager;
 import org.apache.hc.core5.http.Method;
 import org.jetbrains.annotations.NotNull;
 
@@ -7,6 +8,8 @@ import org.jetbrains.annotations.NotNull;
  * A handler which binds to a specific {@link HttpEndpoint}.
  */
 public abstract class HttpEndpointHandler extends HttpPathHandler implements HttpEndpoint {
+
+    protected final TokenManager tokenMgr = TokenManager.getInstance();
 
     /**
      * @return The handler definition, which may be any object which inherits from {@link HttpEndpoint}.

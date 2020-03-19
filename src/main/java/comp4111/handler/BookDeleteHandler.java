@@ -1,6 +1,5 @@
 package comp4111.handler;
 
-import comp4111.controller.TokenManager;
 import comp4111.handler.impl.BookDeleteHandlerImpl;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.protocol.HttpContext;
@@ -12,8 +11,6 @@ import java.io.IOException;
  * Endpoint handler for all {@code /book/*} DELETE requests.
  */
 public abstract class BookDeleteHandler extends HttpEndpointHandler {
-
-    private final TokenManager tokenMgr = TokenManager.getInstance();
 
     private int bookId;
 
