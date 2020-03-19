@@ -1,14 +1,17 @@
 package comp4111.handler;
 
-import org.apache.hc.core5.http.Method;
+import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.HttpRequestHandler;
+import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * A handler which binds to a specific {@link HttpPath}.
@@ -83,5 +86,29 @@ public abstract class HttpPathHandler implements HttpRequestHandler, HttpPath {
             path = nextDelimiter != -1 ? path.substring(nextDelimiter + 1) : "";
         }
         return params;
+    }
+
+    /**
+     * Dispatches a request by its method.
+     *
+     * @param request {@link ClassicHttpRequest} to dispatch. Usually the first argument of {@link HttpRequestHandler#handle(ClassicHttpRequest, ClassicHttpResponse, HttpContext)}.
+     * @param response {@link ClassicHttpResponse} of the request. Usually the second argument of {@link HttpRequestHandler#handle(ClassicHttpRequest, ClassicHttpResponse, HttpContext)}.
+     * @param context {@link HttpContext} of the request. Usually the third argument of {@link HttpRequestHandler#handle(ClassicHttpRequest, ClassicHttpResponse, HttpContext)}.
+     * @param lut Lookup table for matching a {@link Method} to its corresponding {@link HttpEndpointHandler}.
+     */
+    protected static void dispatchByMethod(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context, Map<Method, HttpEndpointHandler> lut) throws HttpException, IOException {
+        final Method method = toMethodOrNull(request.getMethod());
+
+        HttpEndpointHandler handler = null;
+        if (method != null) {
+            handler = lut.get(method);
+        }
+
+        if (handler != null) {
+            handler.handle(request, response, context);
+        } else {
+            response.setCode(HttpStatus.SC_METHOD_NOT_ALLOWED);
+            response.setHeader("Allow", lut.keySet().stream().map(Enum::toString).collect(Collectors.joining(",")));
+        }
     }
 }

@@ -1,6 +1,9 @@
 package comp4111.handler;
 
-import org.apache.hc.core5.http.*;
+import org.apache.hc.core5.http.ClassicHttpRequest;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.HttpException;
+import org.apache.hc.core5.http.Method;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 
@@ -47,19 +50,7 @@ public final class BookHandler extends HttpPathHandler {
 
     @Override
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-        final Method method = toMethodOrNull(request.getMethod());
-
-        HttpEndpointHandler handler = null;
-        if (method != null) {
-            handler = METHOD_LUT.get(method);
-        }
-
-        if (handler != null) {
-            handler.handle(request, response, context);
-        } else {
-            response.setCode(HttpStatus.SC_METHOD_NOT_ALLOWED);
-            response.setHeader("Allow", METHOD_LUT.keySet().stream().map(Enum::toString).collect(Collectors.joining(",")));
-        }
+        dispatchByMethod(request, response, context, METHOD_LUT);
     }
 
     /**

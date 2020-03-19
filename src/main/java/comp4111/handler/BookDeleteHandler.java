@@ -1,7 +1,10 @@
 package comp4111.handler;
 
 import comp4111.handler.impl.BookDeleteHandlerImpl;
-import org.apache.hc.core5.http.*;
+import org.apache.hc.core5.http.ClassicHttpRequest;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.HttpException;
+import org.apache.hc.core5.http.Method;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 
@@ -39,16 +42,7 @@ public abstract class BookDeleteHandler extends HttpEndpointHandler {
     @Override
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
         final var queryParams = parseQueryParams(request.getPath());
-        if (!queryParams.containsKey("token")) {
-            response.setCode(HttpStatus.SC_UNAUTHORIZED);
-            throw new IllegalArgumentException();
-        }
-
-        final var token = queryParams.get("token");
-        if (!tokenMgr.containsToken(token)) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
-            throw new IllegalArgumentException();
-        }
+        final var token = checkToken(queryParams, response);
 
         final var bookId = BookHandler.getIdFromRequest(request.getPath());
 

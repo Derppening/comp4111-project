@@ -45,23 +45,9 @@ public abstract class BooksPostHandler extends HttpEndpointHandler {
     @Override
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
         final var queryParams = parseQueryParams(request.getPath());
-        if (!queryParams.containsKey("token")) {
-            response.setCode(HttpStatus.SC_UNAUTHORIZED);
-            throw new IllegalArgumentException();
-        }
+        final var token = checkToken(queryParams, response);
 
-        final var token = queryParams.get("token");
-        if (!tokenMgr.containsToken(token)) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
-            throw new IllegalArgumentException();
-        }
-
-        if (request.getEntity() == null) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
-            response.setEntity(new StringEntity("Payload must be specified", ContentType.TEXT_PLAIN));
-            throw new IllegalArgumentException();
-        }
-        final var payload = request.getEntity().getContent().readAllBytes();
+        final var payload = getPayload(request, response);
 
         try {
             book = objectMapper.readValue(payload, Book.class);

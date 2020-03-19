@@ -48,19 +48,9 @@ public abstract class LoginPostHandler extends HttpEndpointHandler {
 
     @Override
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-        final Method method = toMethodOrNull(request.getMethod());
-        if (method == null || !method.equals(getHandleMethod())) {
-            response.setCode(HttpStatus.SC_METHOD_NOT_ALLOWED);
-            response.setHeader("Allow", getHandleMethod());
-            throw new IllegalArgumentException();
-        }
+        checkMethod(request, response);
 
-        if (request.getEntity() == null) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
-            response.setEntity(new StringEntity("Payload must be specified", ContentType.TEXT_PLAIN));
-            throw new IllegalArgumentException();
-        }
-        final var payload = request.getEntity().getContent().readAllBytes();
+        final var payload = getPayload(request, response);
 
         try {
             loginRequest = objectMapper.readValue(payload, LoginRequest.class);

@@ -42,16 +42,7 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
     @Override
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
         final var queryParams = parseQueryParams(request.getPath());
-        if (!queryParams.containsKey("token")) {
-            response.setCode(HttpStatus.SC_UNAUTHORIZED);
-            throw new IllegalArgumentException();
-        }
-
-        final var token = queryParams.get("token");
-        if (!tokenMgr.containsToken(token)) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
-            throw new IllegalArgumentException();
-        }
+        final var token = checkToken(queryParams, response);
 
         final var queryIdStr = queryParams.getOrDefault("id", null);
         if (queryIdStr != null) {
