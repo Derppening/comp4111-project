@@ -66,11 +66,12 @@ public class MainApplication {
      * A helper function.
      */
     private static void createDefaultUsers() {
-        if (!LoginUtils.userLogin("user001", "passwd001")) { // The database probably does not contain user credentials.
+        if (!LoginUtils.userLogin("user001", "pass001")) { // The database probably does not contain user credentials.
             for (int i = 1; i < 101; i++) {
                 String suffix = String.format("%03d", i);
-                LoginDataAccess.createUserAccount("user" + suffix, "passwd" + suffix);
+                LoginDataAccess.createUserAccount("user" + suffix, "pass" + suffix);
             }
+            LOGGER.info("The user accounts are recreated");
         }
     }
 }

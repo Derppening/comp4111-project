@@ -20,8 +20,8 @@ public class LoginRequestTest {
 
     @Test
     void givenJson_checkCanDeserialize() {
-        @Language("JSON") final var json = "{\"Username\": \"user001\", \"Password\": \"passwd001\"}";
-        final var expected = new LoginRequest("user001", "passwd001");
+        @Language("JSON") final var json = "{\"Username\": \"user001\", \"Password\": \"pass001\"}";
+        final var expected = new LoginRequest("user001", "pass001");
         final var actual = assertDoesNotThrow(() -> objectMapper.readValue(json, LoginRequest.class));
 
         assertEquals(expected.getUsername(), actual.getUsername());
@@ -31,7 +31,7 @@ public class LoginRequestTest {
     @Test
     void givenObj_checkCanSerialize() throws JsonProcessingException {
         final var expectedUsername = "user001";
-        final var expectedPassword = "passwd001";
+        final var expectedPassword = "pass001";
 
         final var obj = new LoginRequest(expectedUsername, expectedPassword);
 

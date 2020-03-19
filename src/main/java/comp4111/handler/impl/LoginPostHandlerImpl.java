@@ -5,6 +5,7 @@ import comp4111.controller.TokenManager;
 import comp4111.handler.LoginPostHandler;
 import comp4111.model.LoginResult;
 import comp4111.util.JacksonUtils;
+import comp4111.util.LoginUtils;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
@@ -24,9 +25,13 @@ public class LoginPostHandlerImpl extends LoginPostHandler {
             return;
         }
 
-        // TODO: Handle login request
-        LOGGER.warn("PLACEHOLDER: Assuming that login combination is correct");
+        if (!LoginUtils.userLogin(loginRequest.getUsername(), loginRequest.getPassword())) {
+            // The login is not successful (the username and password are invalid).
+            response.setCode(HttpStatus.SC_BAD_REQUEST);
+            return;
+        }
 
+        // The username and password are valid.
         final String token;
         synchronized (tokenMgr) {
             if (tokenMgr.containsUser(getLoginRequest().getUsername())) {
@@ -43,7 +48,7 @@ public class LoginPostHandlerImpl extends LoginPostHandler {
 
         final var loginResult = new LoginResult(token);
 
-        response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
+        response.setCode(HttpStatus.SC_OK);
         response.setEntity(new StringEntity(objectMapper.writeValueAsString(loginResult), ContentType.APPLICATION_JSON));
     }
 }
