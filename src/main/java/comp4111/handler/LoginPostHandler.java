@@ -17,6 +17,20 @@ import java.io.IOException;
 public abstract class LoginPostHandler extends HttpEndpointHandler {
 
     public static final String HANDLE_PATTERN = PATH_PREFIX + "/login";
+    private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
+
+        @NotNull
+        @Override
+        public String getHandlePattern() {
+            return HANDLE_PATTERN;
+        }
+
+        @NotNull
+        @Override
+        public Method getHandleMethod() {
+            return Method.POST;
+        }
+    };
 
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
@@ -30,20 +44,7 @@ public abstract class LoginPostHandler extends HttpEndpointHandler {
     @NotNull
     @Override
     public final HttpEndpoint getHandlerDefinition() {
-        return new HttpEndpoint() {
-
-            @NotNull
-            @Override
-            public String getHandlePattern() {
-                return HANDLE_PATTERN;
-            }
-
-            @NotNull
-            @Override
-            public Method getHandleMethod() {
-                return Method.POST;
-            }
-        };
+        return HANDLER_DEFINITION;
     }
 
     @Override

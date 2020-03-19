@@ -15,6 +15,20 @@ import java.io.IOException;
  */
 public abstract class BookDeleteHandler extends HttpEndpointHandler {
 
+    private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
+        @NotNull
+        @Override
+        public String getHandlePattern() {
+            return BookHandler.HANDLE_PATTERN;
+        }
+
+        @NotNull
+        @Override
+        public Method getHandleMethod() {
+            return Method.DELETE;
+        }
+    };
+
     private int bookId;
 
     @NotNull
@@ -24,19 +38,7 @@ public abstract class BookDeleteHandler extends HttpEndpointHandler {
 
     @Override
     public @NotNull HttpEndpoint getHandlerDefinition() {
-        return new HttpEndpoint() {
-            @NotNull
-            @Override
-            public String getHandlePattern() {
-                return BookHandler.HANDLE_PATTERN;
-            }
-
-            @NotNull
-            @Override
-            public Method getHandleMethod() {
-                return Method.DELETE;
-            }
-        };
+        return HANDLER_DEFINITION;
     }
 
     @Override

@@ -16,6 +16,14 @@ public abstract class BookHandler extends HttpPathHandler {
 
     public static final String HANDLE_PATTERN = PATH_PREFIX + "/book/";
 
+    private static final HttpPath HANDLER_DEFINITION = new HttpPath() {
+        @NotNull
+        @Override
+        public String getHandlePattern() {
+            return HANDLE_PATTERN + "*";
+        }
+    };
+
     @NotNull
     public static BookHandler getInstance() {
         return new BookHandlerImpl();
@@ -27,13 +35,7 @@ public abstract class BookHandler extends HttpPathHandler {
     @NotNull
     @Override
     public HttpPath getHandlerDefinition() {
-        return new HttpPath() {
-            @NotNull
-            @Override
-            public String getHandlePattern() {
-                return HANDLE_PATTERN + "*";
-            }
-        };
+        return HANDLER_DEFINITION;
     }
 
     @Override

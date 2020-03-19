@@ -27,17 +27,20 @@ public abstract class HttpPathHandler implements HttpRequestHandler, HttpPath {
      * @return The lookup table for matching a request sent with {@link Method} to its corresponding
      * {@link HttpEndpointHandler}. Can be {@code null} to indicate that a lookup table is not applicable to this
      * handler, for example if all requests should be handled the same regardless of its method.
+     * @implSpec This method should return the same value every invocation.
      */
     protected abstract Map<Method, HttpEndpointHandler> getMethodLut();
 
     /**
      * @return The handler definition, which may be any object which inherits from {@link HttpPath}.
+     * @implSpec This method should return the same value evey invocation.
      */
     @NotNull
     public abstract HttpPath getHandlerDefinition();
 
     /**
      * @return The path pattern that this class handles.
+     * @implSpec This method should return the same value every invocation.
      */
     @NotNull
     @Override

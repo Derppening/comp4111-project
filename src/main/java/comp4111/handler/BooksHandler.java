@@ -15,6 +15,13 @@ import java.io.IOException;
 public abstract class BooksHandler extends HttpPathHandler {
 
     public static final String HANDLE_PATTERN = PATH_PREFIX + "/books";
+    private static final HttpPath HANDLER_DEFINITION = new HttpPath() {
+        @NotNull
+        @Override
+        public String getHandlePattern() {
+            return HANDLE_PATTERN;
+        }
+    };
 
     @NotNull
     public static BooksHandler getInstance() {
@@ -26,13 +33,7 @@ public abstract class BooksHandler extends HttpPathHandler {
 
     @Override
     public @NotNull HttpPath getHandlerDefinition() {
-        return new HttpPath() {
-            @NotNull
-            @Override
-            public String getHandlePattern() {
-                return HANDLE_PATTERN;
-            }
-        };
+        return HANDLER_DEFINITION;
     }
 
     @Override

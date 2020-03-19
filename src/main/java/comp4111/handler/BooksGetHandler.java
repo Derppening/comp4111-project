@@ -12,6 +12,18 @@ import java.io.IOException;
  */
 public abstract class BooksGetHandler extends HttpEndpointHandler {
 
+    private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
+        @Override
+        public @NotNull String getHandlePattern() {
+            return BooksHandler.HANDLE_PATTERN;
+        }
+
+        @Override
+        public @NotNull Method getHandleMethod() {
+            return Method.GET;
+        }
+    };
+
     private Integer queryId;
     private String queryTitle;
     private String queryAuthor;
@@ -26,17 +38,7 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
 
     @Override
     public @NotNull HttpEndpoint getHandlerDefinition() {
-        return new HttpEndpoint() {
-            @Override
-            public @NotNull String getHandlePattern() {
-                return BooksHandler.HANDLE_PATTERN;
-            }
-
-            @Override
-            public @NotNull Method getHandleMethod() {
-                return Method.GET;
-            }
-        };
+        return HANDLER_DEFINITION;
     }
 
     @Override

@@ -12,6 +12,12 @@ import java.io.IOException;
 public abstract class TransactionHandler extends HttpPathHandler {
 
     public static final String HANDLE_PATTERN = PATH_PREFIX + "/transaction";
+    private static final HttpPath HANDLER_DEFINITION = new HttpPath() {
+        @Override
+        public @NotNull String getHandlePattern() {
+            return HANDLE_PATTERN;
+        }
+    };
 
     @NotNull
     public static TransactionHandler getInstance() {
@@ -23,12 +29,7 @@ public abstract class TransactionHandler extends HttpPathHandler {
 
     @Override
     public @NotNull HttpPath getHandlerDefinition() {
-        return new HttpPath() {
-            @Override
-            public @NotNull String getHandlePattern() {
-                return HANDLE_PATTERN;
-            }
-        };
+        return HANDLER_DEFINITION;
     }
 
     @Override

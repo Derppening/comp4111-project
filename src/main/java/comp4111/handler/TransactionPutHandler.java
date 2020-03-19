@@ -13,6 +13,18 @@ import java.io.IOException;
 
 public abstract class TransactionPutHandler extends HttpEndpointHandler {
 
+    private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
+        @Override
+        public @NotNull String getHandlePattern() {
+            return TransactionHandler.HANDLE_PATTERN;
+        }
+
+        @Override
+        public @NotNull Method getHandleMethod() {
+            return Method.PUT;
+        }
+    };
+
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
     private TransactionPutRequest putRequest;
@@ -24,17 +36,7 @@ public abstract class TransactionPutHandler extends HttpEndpointHandler {
 
     @Override
     public @NotNull HttpEndpoint getHandlerDefinition() {
-        return new HttpEndpoint() {
-            @Override
-            public @NotNull String getHandlePattern() {
-                return TransactionHandler.HANDLE_PATTERN;
-            }
-
-            @Override
-            public @NotNull Method getHandleMethod() {
-                return Method.PUT;
-            }
-        };
+        return HANDLER_DEFINITION;
     }
 
     @Override

@@ -16,6 +16,20 @@ import java.io.IOException;
  */
 public abstract class BooksPostHandler extends HttpEndpointHandler {
 
+    private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
+        @NotNull
+        @Override
+        public String getHandlePattern() {
+            return BooksHandler.HANDLE_PATTERN;
+        }
+
+        @NotNull
+        @Override
+        public Method getHandleMethod() {
+            return Method.POST;
+        }
+    };
+
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
     private Book book;
@@ -27,19 +41,7 @@ public abstract class BooksPostHandler extends HttpEndpointHandler {
 
     @Override
     public @NotNull HttpEndpoint getHandlerDefinition() {
-        return new HttpEndpoint() {
-            @NotNull
-            @Override
-            public String getHandlePattern() {
-                return BooksHandler.HANDLE_PATTERN;
-            }
-
-            @NotNull
-            @Override
-            public Method getHandleMethod() {
-                return Method.POST;
-            }
-        };
+        return HANDLER_DEFINITION;
     }
 
     @Override

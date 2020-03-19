@@ -16,6 +16,19 @@ import java.io.IOException;
 public abstract class LogoutGetHandler extends HttpEndpointHandler {
 
     public static final String HANDLE_PATTERN = PATH_PREFIX + "/logout";
+    private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
+        @NotNull
+        @Override
+        public Method getHandleMethod() {
+            return Method.GET;
+        }
+
+        @NotNull
+        @Override
+        public String getHandlePattern() {
+            return HANDLE_PATTERN;
+        }
+    };
 
     private String token;
 
@@ -27,19 +40,7 @@ public abstract class LogoutGetHandler extends HttpEndpointHandler {
     @NotNull
     @Override
     public HttpEndpoint getHandlerDefinition() {
-        return new HttpEndpoint() {
-            @NotNull
-            @Override
-            public Method getHandleMethod() {
-                return Method.GET;
-            }
-
-            @NotNull
-            @Override
-            public String getHandlePattern() {
-                return HANDLE_PATTERN;
-            }
-        };
+        return HANDLER_DEFINITION;
     }
 
     @Override
