@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class TransactionPostRequest {
@@ -25,14 +26,15 @@ public class TransactionPostRequest {
     @NotNull
     private final UUID transaction;
     @JsonProperty("Operation")
+    @NotNull
     private final Operation operation;
 
     public TransactionPostRequest(
             @NotNull @JsonProperty("Transaction") UUID uuid,
-            @JsonProperty("Operation") Operation operation
+            @NotNull @JsonProperty("Operation") Operation operation
     ) {
-        this.transaction = uuid;
-        this.operation = operation;
+        this.transaction = Objects.requireNonNull(uuid);
+        this.operation = Objects.requireNonNull(operation);
     }
 
     @NotNull
@@ -40,6 +42,7 @@ public class TransactionPostRequest {
         return transaction;
     }
 
+    @NotNull
     public Operation getOperation() {
         return operation;
     }

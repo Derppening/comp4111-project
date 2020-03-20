@@ -1,11 +1,11 @@
 package comp4111.handler;
 
-import comp4111.handler.impl.TransactionHandlerImpl;
+import comp4111.handler.impl.LogoutHandlerImpl;
 import org.jetbrains.annotations.NotNull;
 
-public abstract class TransactionHandler extends HttpPathHandler {
+public abstract class LogoutHandler extends HttpPathHandler {
 
-    public static final String HANDLE_PATTERN = PATH_PREFIX + "/transaction";
+    public static final String HANDLE_PATTERN = PATH_PREFIX + "/logout";
     private static final HttpPath HANDLER_DEFINITION = new HttpPath() {
         @Override
         public @NotNull String getHandlePattern() {
@@ -14,11 +14,11 @@ public abstract class TransactionHandler extends HttpPathHandler {
     };
 
     @NotNull
-    public static TransactionHandler getInstance() {
-        return new TransactionHandlerImpl();
+    public static LogoutHandler getInstance() {
+        return new LogoutHandlerImpl();
     }
 
-    protected TransactionHandler() {
+    protected LogoutHandler() {
     }
 
     @Override

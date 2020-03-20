@@ -1,14 +1,16 @@
 package comp4111.model;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import comp4111.util.JacksonUtils;
 import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class BookTest {
 
@@ -16,7 +18,14 @@ public class BookTest {
 
     @BeforeEach
     void setUp() {
-        objectMapper = new ObjectMapper();
+        objectMapper = JacksonUtils.getDefaultObjectMapper();
+    }
+
+    @Test
+    void givenEmptyJson_checkThrows() {
+        @Language("JSON") final var json = "{}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, Book.class));
     }
 
     @Test
@@ -39,6 +48,99 @@ public class BookTest {
         assertEquals(expected.getAuthor(), actual.getAuthor());
         assertEquals(expected.getPublisher(), actual.getPublisher());
         assertEquals(expected.getYear(), actual.getYear());
+    }
+
+    @Test
+    void givenJsonMissingTitle_checkThrows() {
+        @Language("JSON") final var json = "{" +
+                "\"Author\": \"Lewis Carroll\", " +
+                "\"Publisher\": \"Macmillan Publishers\", " +
+                "\"Year\": \"\"" +
+                "}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, Book.class));
+    }
+
+    @Test
+    void givenJsonMissingAuthor_checkThrows() {
+        @Language("JSON") final var json = "{" +
+                "\"Title\": \"Alice in Wonderland\", " +
+                "\"Publisher\": \"Macmillan Publishers\", " +
+                "\"Year\": 1865" +
+                "}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, Book.class));
+    }
+
+    @Test
+    void givenJsonMissingPublisher_checkThrows() {
+        @Language("JSON") final var json = "{" +
+                "\"Title\": \"Alice in Wonderland\", " +
+                "\"Author\": \"Lewis Carroll\", " +
+                "\"Year\": 1865" +
+                "}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, Book.class));
+    }
+
+    @Test
+    void givenJsonMissingYear_checkThrows() {
+        @Language("JSON") final var json = "{" +
+                "\"Title\": \"Alice in Wonderland\", " +
+                "\"Author\": \"Lewis Carroll\", " +
+                "\"Publisher\": \"Macmillan Publishers\"" +
+                "}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, Book.class));
+    }
+
+    @Test
+    void givenJsonNullTitle_checkThrows() {
+        @Language("JSON") final var json = "{" +
+                "\"Title\": null, " +
+                "\"Author\": \"Lewis Carroll\", " +
+                "\"Publisher\": \"Macmillan Publishers\", " +
+                "\"Year\": 1865" +
+                "}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, Book.class));
+    }
+
+    @Test
+    void givenJsonNullYear_checkThrows() {
+        @Language("JSON") final var json = "{" +
+                "\"Title\": \"Alice in the Wonderland\", " +
+                "\"Author\": \"Lewis Carroll\", " +
+                "\"Publisher\": \"Macmillan Publishers\", " +
+                "\"Year\": null" +
+                "}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, Book.class));
+    }
+
+    @Test
+    @Disabled("Jackson does not support strict type checking")
+    void givenJsonBadTitleType_checkThrows() {
+        @Language("JSON") final var json = "{" +
+                "\"Title\": 123, " +
+                "\"Author\": \"Lewis Carroll\", " +
+                "\"Publisher\": \"Macmillan Publishers\", " +
+                "\"Year\": 1865" +
+                "}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, Book.class));
+    }
+
+    @Test
+    void givenJsonBadYearType_checkThrows() {
+        @Language("JSON") final var json = "{" +
+                "\"Title\": \"Alice in Wonderland\", " +
+                "\"Author\": \"Lewis Carroll\", " +
+                "\"Publisher\": \"Macmillan Publishers\", " +
+                "\"Year\": \"abc\"" +
+                "}";
+
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, Book.class));
     }
 
     @Test

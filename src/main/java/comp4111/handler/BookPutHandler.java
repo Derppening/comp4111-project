@@ -1,8 +1,8 @@
 package comp4111.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import comp4111.controller.TokenManager;
 import comp4111.handler.impl.BookPutHandlerImpl;
+import comp4111.util.HttpUtils;
 import comp4111.util.JacksonUtils;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
@@ -16,8 +16,20 @@ import java.io.IOException;
  */
 public abstract class BookPutHandler extends HttpEndpointHandler {
 
+    private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
+        @Override
+        public @NotNull String getHandlePattern() {
+            return BookHandler.HANDLE_PATTERN;
+        }
+
+        @Override
+        public @NotNull Method getHandleMethod() {
+            return Method.PUT;
+        }
+    };
+    ;
+
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
-    private final TokenManager tokenMgr = TokenManager.getInstance();
 
     private int bookId;
     private Boolean available;
@@ -29,41 +41,17 @@ public abstract class BookPutHandler extends HttpEndpointHandler {
 
     @Override
     public @NotNull HttpEndpoint getHandlerDefinition() {
-        return new HttpEndpoint() {
-            @Override
-            public @NotNull String getHandlePattern() {
-                return BookHandler.HANDLE_PATTERN;
-            }
-
-            @Override
-            public @NotNull Method getHandleMethod() {
-                return Method.PUT;
-            }
-        };
+        return HANDLER_DEFINITION;
     }
 
     @Override
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-        final var queryParams = parseQueryParams(request.getPath());
-        if (!queryParams.containsKey("token")) {
-            response.setCode(HttpStatus.SC_UNAUTHORIZED);
-            throw new IllegalArgumentException();
-        }
-
-        final var token = queryParams.get("token");
-        if (!tokenMgr.containsToken(token)) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
-            throw new IllegalArgumentException();
-        }
+        final var queryParams = HttpUtils.parseQueryParams(request.getPath());
+        final var token = checkToken(queryParams, response);
 
         final var bookId = BookHandler.getIdFromRequest(request.getPath());
 
-        if (request.getEntity() == null) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
-            response.setEntity(new StringEntity("Payload must be specified", ContentType.TEXT_PLAIN));
-            throw new IllegalArgumentException();
-        }
-        final var payload = request.getEntity().getContent().readAllBytes();
+        final var payload = getPayload(request, response);
 
         final boolean available;
         try {

@@ -1,6 +1,10 @@
 package comp4111.example;
 
-import comp4111.handler.*;
+import comp4111.handler.HttpEndpoint;
+import comp4111.handler.HttpEndpointHandler;
+import comp4111.handler.HttpPath;
+import comp4111.handler.HttpPathHandler;
+import comp4111.util.HttpUtils;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
 import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
@@ -20,6 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 // Adapted from https://hc.apache.org/httpcomponents-core-5.0.x/httpcore5/examples/ClassicFileServerExample.java
@@ -82,10 +87,28 @@ public class SimpleGetServer {
     }
 
 
+    static class HttpRootHandler extends HttpPathHandler {
+        @Override
+        protected Map<Method, Supplier<HttpEndpointHandler>> getMethodLut() {
+            return Map.of(Method.GET, HttpRootGetHandler::new);
+        }
+
+        @Override
+        public @NotNull HttpPath getHandlerDefinition() {
+            return new HttpPath() {
+
+                @Override
+                public @NotNull String getHandlePattern() {
+                    return "/";
+                }
+            };
+        }
+    }
+
     /**
      * HTTP handler for responding to "/" path.
      */
-    static class HttpRootHandler extends HttpEndpointHandler {
+    static class HttpRootGetHandler extends HttpEndpointHandler {
 
         @Override
         public @NotNull HttpEndpoint getHandlerDefinition() {
@@ -104,7 +127,7 @@ public class SimpleGetServer {
 
         @Override
         public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) {
-            final Method method = toMethodOrNull(request.getMethod());
+            final Method method = HttpUtils.toMethodOrNull(request.getMethod());
             if (method == null || !method.equals(getHandleMethod())) {
                 response.setCode(HttpStatus.SC_METHOD_NOT_ALLOWED);
                 response.setHeader("Allow", getHandleMethod());
@@ -121,6 +144,11 @@ public class SimpleGetServer {
      * HTTP handler for responding to other paths which are not otherwise registered.
      */
     static class NotFoundHandler extends HttpPathHandler {
+
+        @Override
+        protected Map<Method, Supplier<HttpEndpointHandler>> getMethodLut() {
+            return null;
+        }
 
         @Override
         public @NotNull HttpPath getHandlerDefinition() {

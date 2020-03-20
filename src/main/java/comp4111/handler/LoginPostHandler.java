@@ -17,6 +17,20 @@ import java.io.IOException;
 public abstract class LoginPostHandler extends HttpEndpointHandler {
 
     public static final String HANDLE_PATTERN = PATH_PREFIX + "/login";
+    private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
+
+        @NotNull
+        @Override
+        public String getHandlePattern() {
+            return HANDLE_PATTERN;
+        }
+
+        @NotNull
+        @Override
+        public Method getHandleMethod() {
+            return Method.POST;
+        }
+    };
 
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
@@ -30,37 +44,14 @@ public abstract class LoginPostHandler extends HttpEndpointHandler {
     @NotNull
     @Override
     public final HttpEndpoint getHandlerDefinition() {
-        return new HttpEndpoint() {
-
-            @NotNull
-            @Override
-            public String getHandlePattern() {
-                return HANDLE_PATTERN;
-            }
-
-            @NotNull
-            @Override
-            public Method getHandleMethod() {
-                return Method.POST;
-            }
-        };
+        return HANDLER_DEFINITION;
     }
 
     @Override
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-        final Method method = toMethodOrNull(request.getMethod());
-        if (method == null || !method.equals(getHandleMethod())) {
-            response.setCode(HttpStatus.SC_METHOD_NOT_ALLOWED);
-            response.setHeader("Allow", getHandleMethod());
-            throw new IllegalArgumentException();
-        }
+        checkMethod(request, response);
 
-        if (request.getEntity() == null) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
-            response.setEntity(new StringEntity("Payload must be specified", ContentType.TEXT_PLAIN));
-            throw new IllegalArgumentException();
-        }
-        final var payload = request.getEntity().getContent().readAllBytes();
+        final var payload = getPayload(request, response);
 
         try {
             loginRequest = objectMapper.readValue(payload, LoginRequest.class);

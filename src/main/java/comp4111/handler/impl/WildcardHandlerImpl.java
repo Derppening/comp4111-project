@@ -1,12 +1,22 @@
 package comp4111.handler.impl;
 
+import comp4111.handler.HttpEndpointHandler;
 import comp4111.handler.WildcardHandler;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.Method;
 import org.apache.hc.core5.http.protocol.HttpContext;
 
+import java.util.Map;
+import java.util.function.Supplier;
+
 public class WildcardHandlerImpl extends WildcardHandler {
+
+    @Override
+    protected Map<Method, Supplier<HttpEndpointHandler>> getMethodLut() {
+        return null;
+    }
 
     @Override
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) {

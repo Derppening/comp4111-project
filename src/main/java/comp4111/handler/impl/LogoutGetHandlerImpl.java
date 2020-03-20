@@ -1,6 +1,5 @@
 package comp4111.handler.impl;
 
-import comp4111.controller.TokenManager;
 import comp4111.handler.LogoutGetHandler;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.ClassicHttpResponse;
@@ -11,8 +10,6 @@ import org.apache.hc.core5.http.protocol.HttpContext;
 import java.io.IOException;
 
 public class LogoutGetHandlerImpl extends LogoutGetHandler {
-
-    private final TokenManager tokenMgr = TokenManager.getInstance();
 
     @Override
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
