@@ -1,5 +1,6 @@
 package comp4111.handler.impl;
 
+import comp4111.dal.BooksPostDataAccess;
 import comp4111.handler.BooksPostHandler;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.ClassicHttpResponse;
@@ -19,8 +20,14 @@ public class BooksPostHandlerImpl extends BooksPostHandler {
             return;
         }
 
-        // TODO(Derppening): Handle ADD operation on db
-
-        response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
+        if (BooksPostDataAccess.getBook(book.getTitle()) == 0) {
+            // The book does not exist.
+            int bookId = BooksPostDataAccess.addBook(book.getTitle(), book.getAuthor(), book.getPublisher(), book.getYear());
+            response.setCode(HttpStatus.SC_CREATED);
+            response.setHeader("Location", "/books/" + bookId);
+        } else {
+            // TODO(davidtang1006): (!)
+            response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
+        }
     }
 }

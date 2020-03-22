@@ -43,7 +43,7 @@ public class LoginDataAccess {
          * Creates a {@link Credentials} object from a database row.
          *
          * @param rs {@link ResultSet} from the query.
-         * @return An object representing the record, with the ID.
+         * @return An object representing the record.
          */
         @NotNull
         static Credentials from(@NotNull ResultSet rs) {
@@ -75,8 +75,7 @@ public class LoginDataAccess {
      */
     public static String[] getHashedPwdAndSalt(@NotNull String username) {
         // Create a connection to a specific database in the MySQL server.
-        try (Connection con = DriverManager.getConnection(DatabaseConnection.MYSQL_URL + "/" + DatabaseConnection.DB_NAME,
-                DatabaseConnection.MYSQL_LOGIN, DatabaseConnection.MYSQL_PASSWORD)) {
+        try (Connection con = DatabaseConnection.getConnection()) {
             String[] result = new String[2];
             final var credentialsInDb = queryTable(con, "User_Credentials", Credentials::from);
             credentialsInDb.forEach(c -> {

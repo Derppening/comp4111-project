@@ -40,12 +40,22 @@ public class DatabaseConnection {
                 createDatabase(con, DB_NAME);
                 useDatabase(con, DB_NAME);
 
-                String tableSpec = "User_Credentials" +
-                        "(" +
+                String tableSpec = "User_Credentials (" +
                         "    username varchar(40)," +
                         "    hashed_password varchar(64)," +
                         "    salt varchar(32)," +
                         "    primary key(username)" +
+                        ");";
+                createTable(con, tableSpec);
+
+                tableSpec = "Book (" +
+                        "    id int not null auto_increment," +
+                        "    title varchar(80) unique," +
+                        "    author varchar(80)," +
+                        "    publisher varchar(80)," +
+                        "    year int," +
+                        "    available tinyint," +
+                        "    primary key(id)" +
                         ");";
                 createTable(con, tableSpec);
             }
@@ -53,6 +63,10 @@ public class DatabaseConnection {
             LOGGER.error("Error setting up the environment", e);
             System.exit(1);
         }
+    }
+
+    public static Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(MYSQL_URL + "/" + DB_NAME, MYSQL_LOGIN, MYSQL_PASSWORD);
     }
 
     public static void cleanUp() {
@@ -75,7 +89,7 @@ public class DatabaseConnection {
         // https://stackoverflow.com/a/838993
         // PreparedStatement is used here to prevent SQL injection attacks
         // Use '?' to indicate a parameter, which can then be substituted later.
-        try (PreparedStatement stmt = con.prepareStatement("select SCHEMA_NAME from information_schema.SCHEMATA where SCHEMA_NAME = ?")) {
+        try (PreparedStatement stmt = con.prepareStatement("select schema_name from information_schema.schemata where schema_name = ?")) {
             // The set* methods set the actual value of the parameters.
             // Note that the parameterIndex is 1-based.
             stmt.setString(1, dbName);
