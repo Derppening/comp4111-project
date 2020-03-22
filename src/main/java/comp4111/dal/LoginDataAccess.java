@@ -25,21 +25,6 @@ public class LoginDataAccess {
         }
 
         /**
-         * Converts this object to a SQL statement for insertion into a table.
-         *
-         * @param con Connection object to create the {@link PreparedStatement}.
-         * @param tableName Table name to insert the statement into.
-         * @return A {@link Statement} filled with the required information, ready for {@link PreparedStatement#execute())}.
-         */
-        private PreparedStatement toSQLStmt(@NotNull final Connection con, @NotNull final String tableName) throws SQLException {
-            PreparedStatement stmt = con.prepareStatement("insert into " + tableName + " values(?, ?, ?)");
-            stmt.setString(1, this.username);
-            stmt.setString(2, this.hashedPassword);
-            stmt.setString(3, this.salt);
-            return stmt;
-        }
-
-        /**
          * Creates a {@link Credentials} object from a database row.
          *
          * @param rs {@link ResultSet} from the query.
@@ -63,7 +48,13 @@ public class LoginDataAccess {
         final String hashedPassword = SecurityUtils.calculateHash(password, salt, "SHA-256");
         Credentials c = new Credentials(username, hashedPassword, salt);
 
-        try (PreparedStatement stmt = c.toSQLStmt(DatabaseConnection.con, "User_Credentials")) {
+        try (
+                Connection con = DatabaseConnection.getConnection();
+                PreparedStatement stmt = con.prepareStatement("insert into User_Credentials values(?, ?, ?)");
+        ) {
+            stmt.setString(1, c.username);
+            stmt.setString(2, c.hashedPassword);
+            stmt.setString(3, c.salt);
             stmt.execute();
         } catch (SQLException e) {
             e.printStackTrace();

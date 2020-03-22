@@ -103,20 +103,6 @@ public class DatabaseConnection {
     }
 
     /**
-     * Drops a database.
-     *
-     * @param con {@link Connection} to the SQL server.
-     * @param dbName Name of the database to drop.
-     */
-    private static void dropDatabase(@NotNull final Connection con, @NotNull final String dbName) throws SQLException {
-        try (Statement stmt = con.createStatement()) {
-            // https://www.w3schools.com/sql/sql_drop_db.asp
-            // Be careful with this.
-            stmt.execute("drop database " + dbName);
-        }
-    }
-
-    /**
      * Creates a database with the given name.
      *
      * @param con {@link Connection} to the SQL server.
