@@ -44,6 +44,8 @@ public abstract class BookDeleteHandler extends HttpEndpointHandler {
 
     @Override
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
+        checkMethod(request, response);
+
         final var queryParams = HttpUtils.parseQueryParams(request.getPath());
         final var token = checkToken(queryParams, response);
 
