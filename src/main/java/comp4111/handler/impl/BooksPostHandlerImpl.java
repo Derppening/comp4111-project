@@ -20,14 +20,15 @@ public class BooksPostHandlerImpl extends BooksPostHandler {
             return;
         }
 
-        if (BooksPostDataAccess.getBook(book.getTitle()) == 0) {
+        int bookId = BooksPostDataAccess.getBook(book.getTitle());
+        if (bookId == 0) {
             // The book does not exist.
-            int bookId = BooksPostDataAccess.addBook(book.getTitle(), book.getAuthor(), book.getPublisher(), book.getYear());
+            int newBookId = BooksPostDataAccess.addBook(book.getTitle(), book.getAuthor(), book.getPublisher(), book.getYear());
             response.setCode(HttpStatus.SC_CREATED);
-            response.setHeader("Location", "/books/" + bookId);
+            response.setHeader("Location", "/books/" + newBookId);
         } else {
-            // TODO(davidtang1006): (!)
-            response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
+            response.setCode(HttpStatus.SC_CONFLICT);
+            response.setHeader("Duplicate record", "/books/" + bookId);
         }
     }
 }
