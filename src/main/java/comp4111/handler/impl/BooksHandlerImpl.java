@@ -1,9 +1,6 @@
 package comp4111.handler.impl;
 
-import comp4111.handler.BooksGetHandler;
-import comp4111.handler.BooksHandler;
-import comp4111.handler.BooksPostHandler;
-import comp4111.handler.HttpEndpointHandler;
+import comp4111.handler.*;
 import org.apache.hc.core5.http.Method;
 import org.jetbrains.annotations.Nullable;
 
@@ -16,8 +13,10 @@ import java.util.stream.Collectors;
 public class BooksHandlerImpl extends BooksHandler {
 
     private static final Map<Method, Supplier<HttpEndpointHandler>> METHOD_LUT = List.<Supplier<HttpEndpointHandler>>of(
+            BooksDeleteHandler::getInstance,
             BooksGetHandler::getInstance,
-            BooksPostHandler::getInstance
+            BooksPostHandler::getInstance,
+            BooksPutHandler::getInstance
     ).stream().collect(Collectors.toUnmodifiableMap(it -> it.get().getHandleMethod(), Function.identity()));
 
     @Override

@@ -28,7 +28,6 @@ public class MainApplication {
             LoginHandler.getInstance(),
             LogoutHandler.getInstance(),
             BooksHandler.getInstance(),
-            BookHandler.getInstance(),
             TransactionHandler.getInstance()
     ).stream().collect(Collectors.toUnmodifiableMap(HttpPathHandler::getHandlePattern, Function.identity()));
 
