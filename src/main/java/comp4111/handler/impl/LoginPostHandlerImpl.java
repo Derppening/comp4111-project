@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import comp4111.handler.LoginPostHandler;
 import comp4111.model.LoginResult;
 import comp4111.util.JacksonUtils;
-import comp4111.util.LoginUtils;
+import comp4111.util.SecurityUtils;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
@@ -23,7 +23,7 @@ public class LoginPostHandlerImpl extends LoginPostHandler {
             return;
         }
 
-        if (!LoginUtils.userLogin(loginRequest.getUsername(), loginRequest.getPassword())) {
+        if (!SecurityUtils.userLogin(loginRequest.getUsername(), loginRequest.getPassword())) {
             // The login is not successful (the username and password are invalid).
             response.setCode(HttpStatus.SC_BAD_REQUEST);
             return;

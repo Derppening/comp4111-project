@@ -66,7 +66,7 @@ public class MainApplication {
      * A helper function.
      */
     private static void createDefaultUsers() {
-        if (!LoginUtils.userLogin("user001", "pass001")) { // The database probably does not contain user credentials.
+        if (!SecurityUtils.userLogin("user001", "pass001")) { // The database probably does not contain user credentials.
             for (int i = 1; i < 101; i++) {
                 String suffix = String.format("%03d", i);
                 LoginDataAccess.createUserAccount("user" + suffix, "pass" + suffix);

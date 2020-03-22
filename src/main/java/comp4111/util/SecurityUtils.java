@@ -1,5 +1,6 @@
 package comp4111.util;
 
+import comp4111.dal.LoginDataAccess;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.charset.StandardCharsets;
@@ -15,6 +16,17 @@ public class SecurityUtils {
     private static final Base64.Encoder BASE64_ENCODER = Base64.getUrlEncoder();
     @NotNull
     private static final Base64.Decoder BASE64_DECODER = Base64.getUrlDecoder();
+
+    /**
+     * @return {@code true} if the login is successful.
+     */
+    public static boolean userLogin(@NotNull String username, @NotNull String password) {
+        String[] list = LoginDataAccess.getHashedPwdAndSalt(username);
+        if (list == null) {
+            return false;
+        }
+        return list[0].equals(calculateHash(password, list[1], "SHA-256"));
+    }
 
     /**
      * @param byteArrayLength The length of the byte array
