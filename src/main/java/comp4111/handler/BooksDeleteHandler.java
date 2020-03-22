@@ -1,6 +1,6 @@
 package comp4111.handler;
 
-import comp4111.handler.impl.BookDeleteHandlerImpl;
+import comp4111.handler.impl.BooksDeleteHandlerImpl;
 import comp4111.util.HttpUtils;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.ClassicHttpResponse;
@@ -14,13 +14,13 @@ import java.io.IOException;
 /**
  * Endpoint handler for all {@code /book/*} DELETE requests.
  */
-public abstract class BookDeleteHandler extends HttpEndpointHandler {
+public abstract class BooksDeleteHandler extends HttpEndpointHandler {
 
     private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
         @NotNull
         @Override
         public String getHandlePattern() {
-            return BookHandler.HANDLE_PATTERN;
+            return BooksHandler.HANDLE_PATTERN + "/*";
         }
 
         @NotNull
@@ -33,8 +33,8 @@ public abstract class BookDeleteHandler extends HttpEndpointHandler {
     private int bookId;
 
     @NotNull
-    public static BookDeleteHandler getInstance() {
-        return new BookDeleteHandlerImpl();
+    public static BooksDeleteHandler getInstance() {
+        return new BooksDeleteHandlerImpl();
     }
 
     @Override
@@ -49,7 +49,7 @@ public abstract class BookDeleteHandler extends HttpEndpointHandler {
         final var queryParams = HttpUtils.parseQueryParams(request.getPath());
         final var token = checkToken(queryParams, response);
 
-        final var bookId = BookHandler.getIdFromRequest(request.getPath());
+        final var bookId = BooksHandler.getIdFromRequest(request.getPath());
 
         LOGGER.info("DELETE /book token=\"{}\" id={}", token, bookId);
     }

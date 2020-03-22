@@ -1,7 +1,7 @@
 package comp4111.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import comp4111.handler.impl.BookPutHandlerImpl;
+import comp4111.handler.impl.BooksPutHandlerImpl;
 import comp4111.util.HttpUtils;
 import comp4111.util.JacksonUtils;
 import org.apache.hc.core5.http.*;
@@ -12,14 +12,14 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 
 /**
- * Endpoint handler for all {@code /book/*} PUT requests.
+ * Endpoint handler for all {@code /books/*} PUT requests.
  */
-public abstract class BookPutHandler extends HttpEndpointHandler {
+public abstract class BooksPutHandler extends HttpEndpointHandler {
 
     private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
         @Override
         public @NotNull String getHandlePattern() {
-            return BookHandler.HANDLE_PATTERN;
+            return BooksHandler.HANDLE_PATTERN + "/*";
         }
 
         @Override
@@ -35,8 +35,8 @@ public abstract class BookPutHandler extends HttpEndpointHandler {
     private Boolean available;
 
     @NotNull
-    public static BookPutHandler getInstance() {
-        return new BookPutHandlerImpl();
+    public static BooksPutHandler getInstance() {
+        return new BooksPutHandlerImpl();
     }
 
     @Override
@@ -49,7 +49,7 @@ public abstract class BookPutHandler extends HttpEndpointHandler {
         final var queryParams = HttpUtils.parseQueryParams(request.getPath());
         final var token = checkToken(queryParams, response);
 
-        final var bookId = BookHandler.getIdFromRequest(request.getPath());
+        final var bookId = BooksHandler.getIdFromRequest(request.getPath());
 
         final var payload = getPayload(request, response);
 
