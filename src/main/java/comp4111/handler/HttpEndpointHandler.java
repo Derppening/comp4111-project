@@ -31,7 +31,7 @@ public abstract class HttpEndpointHandler implements HttpRequestHandler, HttpEnd
      * @return The path pattern that this class handles.
      */
     @Override
-    public @NotNull String getHandlePattern() {
+    public final @NotNull String getHandlePattern() {
         return getHandlerDefinition().getHandlePattern();
     }
 
@@ -52,7 +52,7 @@ public abstract class HttpEndpointHandler implements HttpRequestHandler, HttpEnd
      * @throws IllegalArgumentException if {@code request} is sent using an incompatible method. If this exception is
      *                                  thrown, the response code of {@code response} will be set appropriately
      */
-    protected void checkMethod(@NotNull ClassicHttpRequest request, @NotNull ClassicHttpResponse response) {
+    protected final void checkMethod(@NotNull ClassicHttpRequest request, @NotNull ClassicHttpResponse response) {
         final Method method = HttpUtils.toMethodOrNull(request.getMethod());
         if (method == null || !method.equals(getHandleMethod())) {
             response.setCode(HttpStatus.SC_METHOD_NOT_ALLOWED);
@@ -90,7 +90,7 @@ public abstract class HttpEndpointHandler implements HttpRequestHandler, HttpEnd
      *                                  this exception is throw, the response code of {@code response} will be set appropriately.
      */
     @NotNull
-    protected String checkToken(@NotNull Map<String, String> queryParams, @NotNull ClassicHttpResponse response) {
+    protected final String checkToken(@NotNull Map<String, String> queryParams, @NotNull ClassicHttpResponse response) {
         final var token = getToken(queryParams, response);
         if (!tokenMgr.containsToken(token)) {
             response.setCode(HttpStatus.SC_BAD_REQUEST);
