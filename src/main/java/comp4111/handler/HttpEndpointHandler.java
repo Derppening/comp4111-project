@@ -73,7 +73,7 @@ public abstract class HttpEndpointHandler implements HttpRequestHandler, HttpEnd
     @NotNull
     protected static String getToken(@NotNull Map<String, String> queryParams, @NotNull ClassicHttpResponse response) {
         if (!queryParams.containsKey("token")) {
-            response.setCode(HttpStatus.SC_UNAUTHORIZED);
+            response.setCode(HttpStatus.SC_BAD_REQUEST);
             throw new IllegalArgumentException();
         }
 
