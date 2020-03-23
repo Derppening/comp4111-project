@@ -1,5 +1,7 @@
 package comp4111.util;
 
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.Method;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -37,7 +39,7 @@ public class HttpUtils {
      * @return {@link Map} of the query key-value pairs.
      */
     @NotNull
-    public static Map<String, String> parseQueryParams(@NotNull String path) {
+    public static Map<String, String> parseQueryParams(@NotNull String path, ClassicHttpResponse response) {
         final var queryStartIndex = path.indexOf('?');
         if (queryStartIndex == -1) {
             return Collections.emptyMap();
@@ -52,6 +54,7 @@ public class HttpUtils {
 
             final var equalDelimiter = queryChunk.indexOf('=');
             if (equalDelimiter == -1) {
+                response.setCode(HttpStatus.SC_BAD_REQUEST);
                 throw new IllegalArgumentException("Malformed query string");
             }
             final var chunkKey = queryChunk.substring(0, equalDelimiter);

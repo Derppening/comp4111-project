@@ -47,7 +47,7 @@ public abstract class LogoutGetHandler extends HttpEndpointHandler {
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
         checkMethod(request, response);
 
-        final var queryParams = HttpUtils.parseQueryParams(request.getPath());
+        final var queryParams = HttpUtils.parseQueryParams(request.getPath(), response);
 
         token = getToken(queryParams, response);
 
