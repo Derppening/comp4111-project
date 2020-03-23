@@ -1,6 +1,9 @@
 package comp4111;
 
+import comp4111.handler.HttpEndpointHandler;
 import comp4111.handler.HttpPathHandler;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.URIScheme;
 import org.apache.hc.core5.http.impl.bootstrap.HttpRequester;
 import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
 import org.apache.hc.core5.http.impl.bootstrap.RequesterBootstrap;
@@ -17,12 +20,14 @@ import org.junit.jupiter.api.BeforeEach;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
  * Abstract class for setting up required {@link HttpServer} and {@link HttpRequester} for testing.
  *
  * Usage: Inherit from this class, and call {@link AbstractServerTest#registerAndStartServer(HttpPathHandler...)} before
- * testing connections to the server.
+ * testing connections to the server. If {@link BeforeEach} and {@link AfterEach} is used in the overriding class, call
+ * {@link AbstractServerTest#setUp()} and {@link AbstractServerTest#tearDown()} respectively.
  */
 public abstract class AbstractServerTest {
 
@@ -33,7 +38,7 @@ public abstract class AbstractServerTest {
     protected HttpRequester requester;
 
     @BeforeEach
-    void setUp() {
+    public void setUp() {
         serverBootstrap = ServerBootstrap.bootstrap()
                 .setSocketConfig(SocketConfig.custom().setSoTimeout(TIMEOUT).build())
                 .setExceptionListener(LoggingExceptionListener.INSTANCE)
@@ -54,14 +59,34 @@ public abstract class AbstractServerTest {
      * @param handlers Handlers to register to the server.
      */
     protected void registerAndStartServer(final HttpPathHandler... handlers) {
+        assumeFalse(server != null);
+
         Arrays.stream(handlers).forEach(handler -> serverBootstrap.register(handler.getHandlePattern(), handler));
         server = serverBootstrap.create();
 
         assertDoesNotThrow(() -> server.start());
     }
 
+    /**
+     * Registers a set of {@link HttpEndpointHandler} and starts the server.
+     *
+     * @param handlers Handlers to register to the server.
+     */
+    protected void registerAndStartServer(final HttpEndpointHandler... handlers) {
+        assumeFalse(server != null);
+
+        Arrays.stream(handlers).forEach(handler -> serverBootstrap.register(handler.getHandlePattern(), handler));
+        server = serverBootstrap.create();
+
+        assertDoesNotThrow(() -> server.start());
+    }
+
+    protected HttpHost getDefaultHttpHost(HttpServer server) {
+        return new HttpHost(URIScheme.HTTP.toString(), "localhost", server.getLocalPort());
+    }
+
     @AfterEach
-    void tearDown() {
+    public void tearDown() {
         if (server != null) {
             server.close(CloseMode.IMMEDIATE);
         }
