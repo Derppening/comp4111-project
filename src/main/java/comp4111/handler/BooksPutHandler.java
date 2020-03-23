@@ -57,10 +57,16 @@ public abstract class BooksPutHandler extends HttpEndpointHandler {
 
         try {
             final var rootNode = objectMapper.readTree(payload);
-            available = rootNode.get("Available").asBoolean();
+            final var node = rootNode.get("Available");
+            if (!node.isBoolean()) {
+                throw new IllegalArgumentException();
+            }
+            available = node.asBoolean();
         } catch (Exception e) {
             response.setCode(HttpStatus.SC_BAD_REQUEST);
-            response.setEntity(new StringEntity(e.getLocalizedMessage(), ContentType.TEXT_HTML));
+            if (e.getLocalizedMessage() != null) {
+                response.setEntity(new StringEntity(e.getLocalizedMessage(), ContentType.TEXT_PLAIN));
+            }
             throw new IllegalArgumentException(e);
         }
 
