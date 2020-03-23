@@ -25,7 +25,7 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
         }
     };
 
-    private Integer queryId;
+    private Long queryId;
     private String queryTitle;
     private String queryAuthor;
     private String queryLimit;
@@ -50,7 +50,7 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
         final var queryIdStr = queryParams.getOrDefault("id", null);
         if (queryIdStr != null) {
             try {
-                queryId = Integer.parseInt(queryIdStr);
+                queryId = Long.parseLong(queryIdStr);
             } catch (NumberFormatException e) {
                 response.setCode(HttpStatus.SC_BAD_REQUEST);
                 throw new IllegalArgumentException(e);
@@ -66,7 +66,7 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
         LOGGER.info("POST /books token=\"{}\"", token);
     }
 
-    protected Integer getQueryId() {
+    protected Long getQueryId() {
         return queryId;
     }
 

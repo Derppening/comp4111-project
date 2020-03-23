@@ -31,7 +31,7 @@ public abstract class BooksPutHandler extends HttpEndpointHandler {
 
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
-    private int bookId;
+    private long bookId;
     private Boolean available;
 
     @NotNull
@@ -66,7 +66,7 @@ public abstract class BooksPutHandler extends HttpEndpointHandler {
         LOGGER.info("PUT /book token={} id={} Available={}", token, bookId, available);
     }
 
-    protected int getBookId() {
+    protected long getBookId() {
         return bookId;
     }
 

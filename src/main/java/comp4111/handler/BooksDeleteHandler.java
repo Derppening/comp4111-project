@@ -30,7 +30,7 @@ public abstract class BooksDeleteHandler extends HttpEndpointHandler {
         }
     };
 
-    private int bookId;
+    private long bookId;
 
     @NotNull
     public static BooksDeleteHandler getInstance() {
@@ -54,7 +54,7 @@ public abstract class BooksDeleteHandler extends HttpEndpointHandler {
         LOGGER.info("DELETE /book token=\"{}\" id={}", token, bookId);
     }
 
-    protected int getBookId() {
+    protected long getBookId() {
         return bookId;
     }
 }
