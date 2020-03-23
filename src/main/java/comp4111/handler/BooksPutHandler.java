@@ -63,7 +63,7 @@ public abstract class BooksPutHandler extends HttpEndpointHandler {
             throw new IllegalArgumentException(e);
         }
 
-        LOGGER.info("PUT /book token={} id={} Available={}", token, bookId, available);
+        LOGGER.info("PUT /books token={} id={} Available={}", token, bookId, available);
     }
 
     protected long getBookId() {

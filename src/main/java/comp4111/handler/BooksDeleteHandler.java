@@ -51,7 +51,9 @@ public abstract class BooksDeleteHandler extends HttpEndpointHandler {
 
         bookId = BooksHandler.getIdFromRequest(request.getPath());
 
-        LOGGER.info("DELETE /book token=\"{}\" id={}", token, bookId);
+        // TODO(Derppening): Consider shortcutting when bookId <= 0
+
+        LOGGER.info("DELETE /books token=\"{}\" id={}", token, bookId);
     }
 
     protected long getBookId() {
