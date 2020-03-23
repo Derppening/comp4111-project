@@ -49,7 +49,7 @@ public abstract class BooksDeleteHandler extends HttpEndpointHandler {
         final var queryParams = HttpUtils.parseQueryParams(request.getPath());
         final var token = checkToken(queryParams, response);
 
-        final var bookId = BooksHandler.getIdFromRequest(request.getPath());
+        bookId = BooksHandler.getIdFromRequest(request.getPath());
 
         LOGGER.info("DELETE /book token=\"{}\" id={}", token, bookId);
     }
