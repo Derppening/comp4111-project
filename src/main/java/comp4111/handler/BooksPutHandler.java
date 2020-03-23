@@ -49,7 +49,7 @@ public abstract class BooksPutHandler extends HttpEndpointHandler {
         final var queryParams = HttpUtils.parseQueryParams(request.getPath(), response);
         final var token = checkToken(queryParams, response);
 
-        final var bookId = BooksHandler.getIdFromRequest(request.getPath());
+        final var bookId = BooksHandler.getIdFromRequest(request.getPath(), response);
 
         final var payload = getPayload(request, response);
 
