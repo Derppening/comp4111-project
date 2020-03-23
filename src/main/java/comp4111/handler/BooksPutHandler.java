@@ -51,11 +51,10 @@ public abstract class BooksPutHandler extends HttpEndpointHandler {
         final var queryParams = HttpUtils.parseQueryParams(request.getPath(), response);
         final var token = checkToken(queryParams, response);
 
-        final var bookId = BooksHandler.getIdFromRequest(request.getPath(), response);
+        bookId = BooksHandler.getIdFromRequest(request.getPath(), response);
 
         final var payload = getPayload(request, response);
 
-        final boolean available;
         try {
             final var rootNode = objectMapper.readTree(payload);
             available = rootNode.get("Available").asBoolean();
