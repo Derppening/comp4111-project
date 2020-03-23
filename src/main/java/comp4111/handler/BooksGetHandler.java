@@ -45,6 +45,8 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
 
     @Override
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
+        checkMethod(request, response);
+
         final var queryParams = HttpUtils.parseQueryParams(request.getPath(), response);
         final var token = checkToken(queryParams, response);
 
