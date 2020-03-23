@@ -25,11 +25,11 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
         }
     };
 
-    // TODO: Use long + -1 to indicate invalid
+    // TODO: Use -1 to indicate invalid
     private Long queryId;
     private String queryTitle;
     private String queryAuthor;
-    private String queryLimit;
+    private Long queryLimit;
     private String querySort;
     private String queryOrder;
 
@@ -61,10 +61,19 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
         }
         queryTitle = queryParams.getOrDefault("title", null);
         queryAuthor = queryParams.getOrDefault("author", null);
-        queryLimit = queryParams.getOrDefault("limit", null);
-        // TODO: sort+order must be specified together?
+        final var queryLimitStr = queryParams.getOrDefault("limit", null);
+        if (queryLimitStr != null) {
+            try {
+                queryLimit = Long.parseLong(queryLimitStr);
+            } catch (NumberFormatException e) {
+                response.setCode(HttpStatus.SC_BAD_REQUEST);
+                throw new IllegalArgumentException(e);
+            }
+        }
         querySort = queryParams.getOrDefault("sortby", null);
         queryOrder = queryParams.getOrDefault("order", null);
+
+        // TODO(Derppening): Early check whether limit, sortby and order parameters are correct
 
         LOGGER.info("POST /books token=\"{}\"", token);
     }
@@ -81,7 +90,7 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
         return queryAuthor;
     }
 
-    protected String getQueryLimit() {
+    protected Long getQueryLimit() {
         return queryLimit;
     }
 
