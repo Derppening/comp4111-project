@@ -25,6 +25,7 @@ public class LoginPostHandlerImpl extends LoginPostHandler {
         // TODO: Handle login request
         LOGGER.warn("PLACEHOLDER: Assuming that login combination is correct");
 
+        final var tokenMgr = getTokenMgr();
         final String token;
         synchronized (tokenMgr) {
             if (tokenMgr.containsUser(getLoginRequest().getUsername())) {

@@ -19,7 +19,10 @@ public abstract class HttpEndpointHandler implements HttpRequestHandler, HttpEnd
 
     protected final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 
-    protected final TokenManager tokenMgr = TokenManager.getInstance();
+    @NotNull
+    protected TokenManager getTokenMgr() {
+        return TokenManager.getInstance();
+    }
 
     /**
      * @return The handler definition, which may be any object which inherits from {@link HttpEndpoint}.
@@ -92,7 +95,7 @@ public abstract class HttpEndpointHandler implements HttpRequestHandler, HttpEnd
     @NotNull
     protected final String checkToken(@NotNull Map<String, String> queryParams, @NotNull ClassicHttpResponse response) {
         final var token = getToken(queryParams, response);
-        if (!tokenMgr.containsToken(token)) {
+        if (!getTokenMgr().containsToken(token)) {
             response.setCode(HttpStatus.SC_BAD_REQUEST);
             throw new IllegalArgumentException();
         }

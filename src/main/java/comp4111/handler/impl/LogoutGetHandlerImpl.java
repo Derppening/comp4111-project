@@ -19,7 +19,7 @@ public class LogoutGetHandlerImpl extends LogoutGetHandler {
             return;
         }
 
-        if (tokenMgr.removeToken(getToken())) {
+        if (getTokenMgr().removeToken(getToken())) {
             response.setCode(HttpStatus.SC_OK);
         } else {
             response.setCode(HttpStatus.SC_BAD_REQUEST);
