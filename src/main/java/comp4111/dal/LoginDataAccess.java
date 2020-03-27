@@ -11,9 +11,11 @@ import java.util.List;
 import java.util.function.Function;
 
 public class LoginDataAccess {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginDataAccess.class);
 
     private static class Credentials {
+
         private String username;
         private String hashedPassword;
         private String salt;

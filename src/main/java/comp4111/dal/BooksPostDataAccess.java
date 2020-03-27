@@ -11,9 +11,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 public class BooksPostDataAccess {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(BooksPostDataAccess.class);
 
     private static class Book {
+
         private int id;
         private String title;
         private String author;
@@ -21,8 +23,8 @@ public class BooksPostDataAccess {
         private int year;
         private boolean available;
 
-        private Book(@NotNull int id, @NotNull String title, @NotNull String author,
-                     @NotNull String publisher, @NotNull int year, @NotNull boolean available) {
+        private Book(int id, @NotNull String title, @NotNull String author,
+                     @NotNull String publisher, int year, boolean available) {
             this.id = id;
             this.title = title;
             this.author = author;
@@ -31,7 +33,7 @@ public class BooksPostDataAccess {
             this.available = available;
         }
 
-        private Book(@NotNull String title, @NotNull String author, @NotNull String publisher, @NotNull int year) {
+        private Book(@NotNull String title, @NotNull String author, @NotNull String publisher, int year) {
             this.title = title;
             this.author = author;
             this.publisher = publisher;

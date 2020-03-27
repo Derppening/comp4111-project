@@ -44,4 +44,3 @@ public abstract class BooksHandler extends HttpPathHandler {
         return Long.parseLong(path.substring(startIdx, endIdx));
     }
 }
-

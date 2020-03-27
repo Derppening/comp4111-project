@@ -94,7 +94,7 @@ public class TransactionPostRequestTest {
     @Test
     void givenCancelJson_checkCanDeserialize() {
         @Language("JSON") final var json = "{" +
-                "\"Transaction\":  \"" + uuid.toString() +"\", " +
+                "\"Transaction\":  \"" + uuid.toString() + "\", " +
                 "\"Operation\": \"cancel\"" +
                 "}";
         final var expected = new TransactionPostRequest(uuid, TransactionPostRequest.Operation.CANCEL);

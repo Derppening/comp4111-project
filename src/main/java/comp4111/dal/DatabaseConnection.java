@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.*;
 
 public class DatabaseConnection {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(comp4111.example.DatabaseTestApplication.class);
 
     /**

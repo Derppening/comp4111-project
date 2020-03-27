@@ -39,6 +39,7 @@ public class DatabaseTestApplication {
      * Sample class for database storage.
      */
     private static class Person {
+
         private Integer id = null;
         private String name;
         private int age;
