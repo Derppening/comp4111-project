@@ -30,7 +30,7 @@ public abstract class BooksDeleteHandler extends HttpEndpointHandler {
         }
     };
 
-    private int bookId;
+    private long bookId;
 
     @NotNull
     public static BooksDeleteHandler getInstance() {
@@ -46,15 +46,17 @@ public abstract class BooksDeleteHandler extends HttpEndpointHandler {
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
         checkMethod(request, response);
 
-        final var queryParams = HttpUtils.parseQueryParams(request.getPath());
+        final var queryParams = HttpUtils.parseQueryParams(request.getPath(), response);
         final var token = checkToken(queryParams, response);
 
-        final var bookId = BooksHandler.getIdFromRequest(request.getPath());
+        bookId = BooksHandler.getIdFromRequest(request.getPath(), response);
 
-        LOGGER.info("DELETE /book token=\"{}\" id={}", token, bookId);
+        // TODO(Derppening): Consider shortcutting when bookId <= 0
+
+        LOGGER.info("DELETE /books token=\"{}\" id={}", token, bookId);
     }
 
-    protected int getBookId() {
+    protected long getBookId() {
         return bookId;
     }
 }

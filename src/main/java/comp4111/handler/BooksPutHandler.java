@@ -30,7 +30,7 @@ public abstract class BooksPutHandler extends HttpEndpointHandler {
 
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
-    private int bookId;
+    private long bookId;
     private Boolean available;
 
     @NotNull
@@ -45,27 +45,34 @@ public abstract class BooksPutHandler extends HttpEndpointHandler {
 
     @Override
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-        final var queryParams = HttpUtils.parseQueryParams(request.getPath());
+        checkMethod(request, response);
+
+        final var queryParams = HttpUtils.parseQueryParams(request.getPath(), response);
         final var token = checkToken(queryParams, response);
 
-        final var bookId = BooksHandler.getIdFromRequest(request.getPath());
+        bookId = BooksHandler.getIdFromRequest(request.getPath(), response);
 
         final var payload = getPayload(request, response);
 
-        final boolean available;
         try {
             final var rootNode = objectMapper.readTree(payload);
-            available = rootNode.get("Available").asBoolean();
+            final var node = rootNode.get("Available");
+            if (!node.isBoolean()) {
+                throw new IllegalArgumentException();
+            }
+            available = node.asBoolean();
         } catch (Exception e) {
             response.setCode(HttpStatus.SC_BAD_REQUEST);
-            response.setEntity(new StringEntity(e.getLocalizedMessage(), ContentType.TEXT_HTML));
+            if (e.getLocalizedMessage() != null) {
+                response.setEntity(new StringEntity(e.getLocalizedMessage(), ContentType.TEXT_PLAIN));
+            }
             throw new IllegalArgumentException(e);
         }
 
-        LOGGER.info("PUT /book token={} id={} Available={}", token, bookId, available);
+        LOGGER.info("PUT /books token={} id={} Available={}", token, bookId, available);
     }
 
-    protected int getBookId() {
+    protected long getBookId() {
         return bookId;
     }
 

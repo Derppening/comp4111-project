@@ -30,6 +30,7 @@ public class LoginPostHandlerImpl extends LoginPostHandler {
         }
 
         // The username and password are valid.
+        final var tokenMgr = getTokenMgr();
         final String token;
         synchronized (tokenMgr) {
             if (tokenMgr.containsUser(getLoginRequest().getUsername())) {

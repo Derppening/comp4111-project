@@ -1,0 +1,27 @@
+version: "2.4"
+services:
+  infer:
+    build: infer
+    image: infer
+    container_name: infer
+    environment:
+      - TZ=Asia/Hong_Kong
+    volumes:
+      - type: bind
+        source: ../../
+        target: /mnt
+        read_only: true
+      - type: volume
+        source: gradle_cache
+        target: /root/.gradle
+        volume:
+          nocopy: true
+    stdin_open: true
+    tty: true
+    restart: "unless-stopped"
+    command: /bin/bash -c 'cp -r /mnt /root/project; cd /root/project; exec /bin/bash'
+# cpus/mem_limit not set because infer is intended to be a foreground container
+
+volumes:
+  gradle_cache:
+    driver: local
