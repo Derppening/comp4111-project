@@ -20,10 +20,10 @@ public class BooksPostHandlerImpl extends BooksPostHandler {
             return;
         }
 
-        int bookId = BooksPostDataAccess.getBook(book.getTitle());
+        long bookId = BooksPostDataAccess.getBook(book.getTitle());
         if (bookId == 0) {
             // The book does not exist.
-            int newBookId = BooksPostDataAccess.addBook(book.getTitle(), book.getAuthor(), book.getPublisher(), book.getYear());
+            long newBookId = BooksPostDataAccess.addBook(book.getTitle(), book.getAuthor(), book.getPublisher(), book.getYear());
             response.setCode(HttpStatus.SC_CREATED);
             response.setHeader("Location", "/books/" + newBookId);
         } else {

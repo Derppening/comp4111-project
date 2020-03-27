@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 public class BooksPostDataAccess {
@@ -16,7 +16,7 @@ public class BooksPostDataAccess {
 
     private static class Book {
 
-        private int id;
+        private long id;
         private String title;
         private String author;
         private String publisher;
@@ -67,7 +67,7 @@ public class BooksPostDataAccess {
         }
     }
 
-    public static int addBook(String title, String author, String publisher, int year) {
+    public static long addBook(String title, String author, String publisher, int year) {
         Book b = new Book(title, author, publisher, year);
 
         try (
@@ -91,16 +91,16 @@ public class BooksPostDataAccess {
     /**
      * @return The ID of the book or {@code 0} if the book does not exist.
      */
-    public static int getBook(String title) {
+    public static long getBook(String title) {
         try (Connection con = DatabaseConnection.getConnection()) {
-            AtomicInteger result = new AtomicInteger();
+            AtomicLong result = new AtomicLong();
             final var bookInDb = queryTableWithExtension(con, "Book", "where title = '" + title + "'", Book::from);
             bookInDb.forEach(b -> {
                 // There should be only one result.
                 result.set(b.id);
             });
 
-            return result.intValue();
+            return result.longValue();
         } catch (SQLException e) {
             LOGGER.error("Error querying the table", e);
         }

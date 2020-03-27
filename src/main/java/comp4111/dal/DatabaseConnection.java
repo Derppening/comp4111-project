@@ -50,7 +50,7 @@ public class DatabaseConnection {
                 createTable(con, tableSpec);
 
                 tableSpec = "Book (" +
-                        "    id int not null auto_increment," +
+                        "    id bigint not null auto_increment," +
                         "    title varchar(80) unique," +
                         "    author varchar(80)," +
                         "    publisher varchar(80)," +
