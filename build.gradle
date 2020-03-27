@@ -12,26 +12,40 @@ plugins {
 
     // Apply the application plugin to add support for building a CLI application.
     id 'application'
+
+    id "net.foragerr.jmeter" version "1.1.0-4.0"
 }
 
 repositories {
     // Use jcenter for resolving dependencies.
     // You can declare any Maven/Ivy/file repository here.
-    jcenter()
+    mavenCentral()
 }
 
 dependencies {
-    // https://mvnrepository.com/artifact/org.apache.httpcomponents/httpcore
+    // https://mvnrepository.com/artifact/org.apache.httpcomponents.core5/httpcore5
     implementation group: 'org.apache.httpcomponents.core5', name: 'httpcore5', version: '5.0'
 
     // https://mvnrepository.com/artifact/mysql/mysql-connector-java
     implementation group: 'mysql', name: 'mysql-connector-java', version: '8.0.19'
 
-    // https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core
-    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.13.0'
+    // https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-api
+    runtimeOnly group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.13.1'
+
+    // https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-slf4j-impl
+    runtimeOnly group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.13.1'
+
+    // https://mvnrepository.com/artifact/org.slf4j/slf4j-api
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.30'
 
     // https://mvnrepository.com/artifact/org.jetbrains/annotations
     implementation group: 'org.jetbrains', name: 'annotations', version: '19.0.0'
+
+    // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.10.2'
+
+    // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.2'
 
     // Use JUnit Jupiter API for testing.
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
@@ -56,4 +70,16 @@ java {
 test {
     // Use junit platform for unit tests
     useJUnitPlatform()
+}
+
+// So, I found a Gradle plugin that integrates JMeter support into Gradle, however...
+// It is very old, being unsupported since 2018, and supports only up to JMeter 4.0.
+// Adding to the PITA, generating reports do not work because the generated XML is missing.
+// Unless someone has the time to tinker with the Gradle plugin, I will just leave it as it.
+//
+// All generated stuff are in build/jmeter-report.
+// Execute using the task `:jmRun`.
+jmeter {
+    enableReports = false
+    enableExtendedReports = false
 }
