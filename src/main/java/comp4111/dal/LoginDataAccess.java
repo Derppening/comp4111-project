@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
+import java.util.ArrayList;
 
 public class LoginDataAccess extends Credentials {
 
@@ -38,7 +39,8 @@ public class LoginDataAccess extends Credentials {
         // Create a connection to a specific database in the MySQL server.
         try (Connection con = DatabaseConnection.getConnection()) {
             String[] result = new String[2];
-            final var credentialsInDb = QueryUtils.queryTable(con, "User_Credentials", "", Credentials::toCredentials);
+            final var credentialsInDb = QueryUtils.queryTable(con, "User_Credentials",
+                    "", new ArrayList<>(), Credentials::toCredentials);
             credentialsInDb.forEach(c -> {
                 if (c.getUsername().equals(username)) {
                     // There should only be one set.

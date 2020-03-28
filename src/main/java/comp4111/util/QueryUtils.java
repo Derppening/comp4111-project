@@ -2,10 +2,7 @@ package comp4111.util;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -23,12 +20,28 @@ public class QueryUtils {
      * @return {@link List} of rows, converted into Java objects.
      */
     public static <T> List<T> queryTable(@NotNull final Connection con, @NotNull String tableName,
-                                         @NotNull String ext, @NotNull Function<ResultSet, T> transform) throws SQLException {
+                                         @NotNull String ext, @NotNull List<Object> params,
+                                         @NotNull Function<ResultSet, T> transform) throws SQLException {
         final var list = new ArrayList<T>();
-        try (Statement stmt = con.createStatement()) {
-            // https://www.w3schools.com/sql/sql_select.asp
-            final var rs = ext.equals("") ? stmt.executeQuery("select * from " + tableName) :
-                    stmt.executeQuery("select * from " + tableName + " " + ext);
+        try (
+                // https://www.w3schools.com/sql/sql_select.asp
+                PreparedStatement stmt = ext.equals("") ? con.prepareStatement("select * from " + tableName) :
+                        con.prepareStatement("select * from " + tableName + " " + ext)
+        ) {
+            final ResultSet rs;
+            if (ext.equals("")) {
+                rs = stmt.executeQuery();
+            } else {
+                int index = 1;
+                for (Object p : params) {
+                    if (p instanceof Long) {
+                        stmt.setLong(index++, (Long) p);
+                    } else if (p instanceof String) {
+                        stmt.setString(index++, (String) p);
+                    }
+                }
+                rs = stmt.executeQuery();
+            }
             while (rs.next()) {
                 list.add(transform.apply(rs));
             }

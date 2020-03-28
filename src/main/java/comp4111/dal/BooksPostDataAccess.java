@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class BooksPostDataAccess extends Book {
@@ -39,7 +41,9 @@ public class BooksPostDataAccess extends Book {
     public static long getBook(String title) {
         try (Connection con = DatabaseConnection.getConnection()) {
             AtomicLong result = new AtomicLong();
-            final var bookInDb = QueryUtils.queryTable(con, "Book", "where title = '" + title + "'", Book::toBook);
+            List<Object> params = new ArrayList<>();
+            params.add(title);
+            final var bookInDb = QueryUtils.queryTable(con, "Book", "where title = ?", params, Book::toBook);
             bookInDb.forEach(b -> {
                 // There should be only one result.
                 result.set(b.getId());

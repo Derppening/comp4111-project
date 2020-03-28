@@ -17,16 +17,20 @@ public class BooksGetDataAccess extends Book {
 
     public static BooksGetResult getBooks(Long queryId, String queryTitle, String queryAuthor,
                                           Integer queryLimit, String querySort, String queryOrder) {
+        List<Object> params = new ArrayList<>();
         List<String> list = new ArrayList<>();
         if (queryId != null) {
-            list.add("id = " + queryId);
+            list.add("id = ?");
+            params.add(queryId);
         }
         if (queryTitle != null) {
             // https://stackoverflow.com/a/2876802
-            list.add("lower(title) like '%" + queryTitle + "%'");
+            list.add("lower(title) like ?");
+            params.add("%" + queryTitle + "%");
         }
         if (queryAuthor != null) {
-            list.add("lower(author) like '%" + queryAuthor + "%'");
+            list.add("lower(author) like ?");
+            params.add("%" + queryAuthor + "%");
         }
         String chunk1 = list.isEmpty() ? "" : "where " + String.join(" or ", list);
 
@@ -58,7 +62,7 @@ public class BooksGetDataAccess extends Book {
 
         try (Connection con = DatabaseConnection.getConnection()) {
             final var booksInDb = QueryUtils.queryTable(con, "Book",
-                    String.join(" ", chunk1, chunk2).trim(),
+                    String.join(" ", chunk1, chunk2).trim(), params,
                     Book::toJsonBook
             );
             if (queryLimit == null) {
