@@ -63,6 +63,6 @@ public class SecurityUtils {
         } catch (final NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
-        return null;
+        return "";
     }
 }

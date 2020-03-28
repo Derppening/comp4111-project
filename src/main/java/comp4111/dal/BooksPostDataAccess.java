@@ -1,5 +1,6 @@
 package comp4111.dal;
 
+import comp4111.dal.model.Book;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,78 +11,25 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
-public class BooksPostDataAccess {
+public class BooksPostDataAccess extends Book {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BooksPostDataAccess.class);
-
-    private static class Book {
-
-        private long id;
-        private String title;
-        private String author;
-        private String publisher;
-        private int year;
-        private boolean available;
-
-        private Book(int id, @NotNull String title, @NotNull String author,
-                     @NotNull String publisher, int year, boolean available) {
-            this.id = id;
-            this.title = title;
-            this.author = author;
-            this.publisher = publisher;
-            this.year = year;
-            this.available = available;
-        }
-
-        private Book(@NotNull String title, @NotNull String author, @NotNull String publisher, int year) {
-            this.title = title;
-            this.author = author;
-            this.publisher = publisher;
-            this.year = year;
-            this.available = true;
-        }
-
-        /**
-         * Creates a {@link Book} object from a database row.
-         *
-         * @param rs {@link ResultSet} from the query.
-         * @return An object representing the record, with the ID.
-         */
-        @NotNull
-        static Book from(@NotNull ResultSet rs) {
-            try {
-                assert (!rs.isClosed() && !rs.isBeforeFirst() && !rs.isAfterLast());
-
-                final Book b = new Book(
-                        rs.getInt(1),
-                        rs.getString(2),
-                        rs.getString(3),
-                        rs.getString(4),
-                        rs.getInt(5),
-                        rs.getBoolean(6)
-                );
-                return b;
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
 
     public static long addBook(String title, String author, String publisher, int year) {
         Book b = new Book(title, author, publisher, year);
 
         try (
                 Connection con = DatabaseConnection.getConnection();
-                PreparedStatement stmt = con.prepareStatement("insert into Book values(null, ?, ?, ?, ?, ?)");
+                PreparedStatement stmt = con.prepareStatement("insert into Book values(null, ?, ?, ?, ?, ?)")
         ) {
-            stmt.setString(1, b.title);
-            stmt.setString(2, b.author);
-            stmt.setString(3, b.publisher);
-            stmt.setInt(4, b.year);
-            stmt.setBoolean(5, b.available);
+            stmt.setString(1, b.getTitle());
+            stmt.setString(2, b.getAuthor());
+            stmt.setString(3, b.getPublisher());
+            stmt.setInt(4, b.getYear());
+            stmt.setBoolean(5, b.isAvailable());
             stmt.execute();
 
-            return getBook(b.title);
+            return getBook(b.getTitle());
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -94,10 +42,10 @@ public class BooksPostDataAccess {
     public static long getBook(String title) {
         try (Connection con = DatabaseConnection.getConnection()) {
             AtomicLong result = new AtomicLong();
-            final var bookInDb = queryTableWithExtension(con, "Book", "where title = '" + title + "'", Book::from);
+            final var bookInDb = queryTableWithExtension(con, "Book", "where title = '" + title + "'", Book::toBook);
             bookInDb.forEach(b -> {
                 // There should be only one result.
-                result.set(b.id);
+                result.set(b.getId());
             });
 
             return result.longValue();

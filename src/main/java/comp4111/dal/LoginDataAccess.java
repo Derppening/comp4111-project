@@ -1,5 +1,6 @@
 package comp4111.dal;
 
+import comp4111.dal.model.Credentials;
 import comp4111.util.SecurityUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -10,40 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-public class LoginDataAccess {
+public class LoginDataAccess extends Credentials {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginDataAccess.class);
-
-    private static class Credentials {
-
-        private String username;
-        private String hashedPassword;
-        private String salt;
-
-        private Credentials(@NotNull String username, @NotNull String hashedPassword, @NotNull String salt) {
-            this.username = username;
-            this.hashedPassword = hashedPassword;
-            this.salt = salt;
-        }
-
-        /**
-         * Creates a {@link Credentials} object from a database row.
-         *
-         * @param rs {@link ResultSet} from the query.
-         * @return An object representing the record.
-         */
-        @NotNull
-        static Credentials from(@NotNull ResultSet rs) {
-            try {
-                assert (!rs.isClosed() && !rs.isBeforeFirst() && !rs.isAfterLast());
-
-                final Credentials c = new Credentials(rs.getString(1), rs.getString(2), rs.getString(3));
-                return c;
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
 
     public static void createUserAccount(@NotNull final String username, @NotNull final String password) {
         final String salt = SecurityUtils.generateRandomBase64String(24);
@@ -52,11 +22,11 @@ public class LoginDataAccess {
 
         try (
                 Connection con = DatabaseConnection.getConnection();
-                PreparedStatement stmt = con.prepareStatement("insert into User_Credentials values(?, ?, ?)");
+                PreparedStatement stmt = con.prepareStatement("insert into User_Credentials values(?, ?, ?)")
         ) {
-            stmt.setString(1, c.username);
-            stmt.setString(2, c.hashedPassword);
-            stmt.setString(3, c.salt);
+            stmt.setString(1, c.getUsername());
+            stmt.setString(2, c.getHashedPassword());
+            stmt.setString(3, c.getSalt());
             stmt.execute();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -70,12 +40,12 @@ public class LoginDataAccess {
         // Create a connection to a specific database in the MySQL server.
         try (Connection con = DatabaseConnection.getConnection()) {
             String[] result = new String[2];
-            final var credentialsInDb = queryTable(con, "User_Credentials", Credentials::from);
+            final var credentialsInDb = queryTable(con, "User_Credentials", Credentials::toCredentials);
             credentialsInDb.forEach(c -> {
-                if (c.username.equals(username)) {
+                if (c.getUsername().equals(username)) {
                     // There should only be one set.
-                    result[0] = c.hashedPassword;
-                    result[1] = c.salt;
+                    result[0] = c.getHashedPassword();
+                    result[1] = c.getSalt();
                 }
             });
             if (result[0] == null && result[1] == null) {

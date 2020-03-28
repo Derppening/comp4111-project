@@ -1,5 +1,6 @@
 package comp4111.dal;
 
+import comp4111.dal.model.Book;
 import comp4111.model.BooksGetResult;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -13,60 +14,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-public class BooksGetDataAccess {
+public class BooksGetDataAccess extends Book {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BooksGetDataAccess.class);
-
-    private static class Book {
-
-        private long id;
-        private String title;
-        private String author;
-        private String publisher;
-        private int year;
-        private boolean available;
-
-        private Book(int id, @NotNull String title, @NotNull String author,
-                     @NotNull String publisher, int year, boolean available) {
-            this.id = id;
-            this.title = title;
-            this.author = author;
-            this.publisher = publisher;
-            this.year = year;
-            this.available = available;
-        }
-
-        private Book(@NotNull String title, @NotNull String author, @NotNull String publisher, int year) {
-            this.title = title;
-            this.author = author;
-            this.publisher = publisher;
-            this.year = year;
-            this.available = true;
-        }
-
-        /**
-         * Creates a {@link comp4111.model.Book} object from a database row.
-         *
-         * @param rs {@link ResultSet} from the query.
-         * @return An object representing the record.
-         */
-        @NotNull
-        static comp4111.model.Book toJsonBook(@NotNull ResultSet rs) {
-            try {
-                assert (!rs.isClosed() && !rs.isBeforeFirst() && !rs.isAfterLast());
-
-                final comp4111.model.Book b = new comp4111.model.Book(
-                        rs.getString(2),
-                        rs.getString(3),
-                        rs.getString(4),
-                        rs.getInt(5)
-                );
-                return b;
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
 
     public static BooksGetResult getBooks(Long queryId, String queryTitle, String queryAuthor,
                                           Integer queryLimit, String querySort, String queryOrder) {
@@ -117,7 +67,7 @@ public class BooksGetDataAccess {
             if (queryLimit == null) {
                 return new BooksGetResult(booksInDb);
             } else {
-                return new BooksGetResult(booksInDb.subList(0, queryLimit.intValue()));
+                return new BooksGetResult(booksInDb.subList(0, queryLimit));
             }
         } catch (SQLException e) {
             LOGGER.error("Error querying the table", e);
