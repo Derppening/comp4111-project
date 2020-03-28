@@ -33,7 +33,7 @@ public abstract class BooksPostHandler extends HttpEndpointHandler {
 
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
-    protected Book book;
+    private Book book;
 
     @NotNull
     public static BooksPostHandler getInstance() {

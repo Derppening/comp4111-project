@@ -23,7 +23,7 @@ public class LoginPostHandlerImpl extends LoginPostHandler {
             return;
         }
 
-        if (!SecurityUtils.userLogin(loginRequest.getUsername(), loginRequest.getPassword())) {
+        if (!SecurityUtils.userLogin(getLoginRequest().getUsername(), getLoginRequest().getPassword())) {
             // The login is not successful (the username and password are invalid).
             response.setCode(HttpStatus.SC_BAD_REQUEST);
             return;

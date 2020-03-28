@@ -25,7 +25,6 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
         }
     };
 
-    // TODO: Use -1 to indicate invalid
     private Long queryId;
     private String queryTitle;
     private String queryAuthor;

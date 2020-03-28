@@ -34,7 +34,7 @@ public abstract class LoginPostHandler extends HttpEndpointHandler {
 
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
-    protected LoginRequest loginRequest;
+    private LoginRequest loginRequest;
 
     @NotNull
     public static LoginPostHandler getInstance() {
