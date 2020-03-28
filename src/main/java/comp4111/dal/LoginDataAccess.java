@@ -1,15 +1,13 @@
 package comp4111.dal;
 
 import comp4111.dal.model.Credentials;
+import comp4111.util.QueryUtils;
 import comp4111.util.SecurityUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Function;
 
 public class LoginDataAccess extends Credentials {
 
@@ -40,7 +38,7 @@ public class LoginDataAccess extends Credentials {
         // Create a connection to a specific database in the MySQL server.
         try (Connection con = DatabaseConnection.getConnection()) {
             String[] result = new String[2];
-            final var credentialsInDb = queryTable(con, "User_Credentials", Credentials::toCredentials);
+            final var credentialsInDb = QueryUtils.queryTable(con, "User_Credentials", "", Credentials::toCredentials);
             credentialsInDb.forEach(c -> {
                 if (c.getUsername().equals(username)) {
                     // There should only be one set.
@@ -57,26 +55,5 @@ public class LoginDataAccess extends Credentials {
             LOGGER.error("Error querying the table", e);
         }
         return null;
-    }
-
-    /**
-     * Queries all entries of a table, converting them into Java objects.
-     *
-     * @param con {@link Connection} to the database.
-     * @param tableName Name of the table to query.
-     * @param transform Transformation function to convert a {@link ResultSet} row into a Java object.
-     * @param <T> Type of the object in Java.
-     * @return {@link List} of rows, converted into Java objects.
-     */
-    private static <T> List<T> queryTable(@NotNull final Connection con, @NotNull String tableName, @NotNull Function<ResultSet, T> transform) throws SQLException {
-        final var list = new ArrayList<T>();
-        try (Statement stmt = con.createStatement()) {
-            // https://www.w3schools.com/sql/sql_select.asp
-            final var rs = stmt.executeQuery("select * from " + tableName);
-            while (rs.next()) {
-                list.add(transform.apply(rs));
-            }
-        }
-        return list;
     }
 }
