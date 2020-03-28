@@ -1,5 +1,6 @@
 package comp4111.handler.impl;
 
+import comp4111.dal.BooksDeleteDataAccess;
 import comp4111.handler.BooksDeleteHandler;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.ClassicHttpResponse;
@@ -19,8 +20,12 @@ public class BooksDeleteHandlerImpl extends BooksDeleteHandler {
             return;
         }
 
-        // TODO: Handle DELETE operation on db
-
-        response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
+        boolean isSuccessful = BooksDeleteDataAccess.deleteBook(getBookId());
+        if (isSuccessful) {
+            response.setCode(HttpStatus.SC_OK);
+        } else {
+            response.setCode(HttpStatus.SC_NOT_FOUND);
+            response.setReasonPhrase("No book record");
+        }
     }
 }
