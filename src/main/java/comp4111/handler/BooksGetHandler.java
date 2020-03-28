@@ -49,6 +49,12 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
         final var queryParams = HttpUtils.parseQueryParams(request.getPath(), response);
         final var token = checkToken(queryParams, response);
 
+        // This handles the requests like GET /BookManagementService/books/1?token=FWb66_FtRZZWwRA0xnT9x06zhB6nBA93.
+        long tempId = BooksHandler.getIdFromRequestWithoutException(request.getPath(), response);
+        if (tempId > 0) {
+            queryId = tempId;
+        }
+
         final var queryIdStr = queryParams.getOrDefault("id", null);
         if (queryIdStr != null) {
             try {
