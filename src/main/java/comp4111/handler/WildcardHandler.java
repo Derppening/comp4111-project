@@ -19,7 +19,6 @@ public abstract class WildcardHandler extends HttpPathHandler {
     @Override
     public @NotNull HttpPath getHandlerDefinition() {
         return new HttpPath() {
-
             @Override
             public @NotNull String getHandlePattern() {
                 return "*";

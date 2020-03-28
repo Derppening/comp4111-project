@@ -16,7 +16,7 @@ public abstract class BooksHandler extends HttpPathHandler {
         @NotNull
         @Override
         public String getHandlePattern() {
-            return HANDLE_PATTERN;
+            return HANDLE_PATTERN + "*";
         }
     };
 

@@ -2,6 +2,7 @@ package comp4111.dal;
 
 import comp4111.dal.model.Book;
 import comp4111.util.QueryUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,7 +15,7 @@ public class BooksPostDataAccess extends Book {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BooksPostDataAccess.class);
 
-    public static long addBook(String title, String author, String publisher, int year) {
+    public static long addBook(@NotNull String title, String author, String publisher, int year) {
         Book b = new Book(title, author, publisher, year);
 
         try (
