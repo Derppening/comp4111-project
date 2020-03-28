@@ -19,32 +19,26 @@ public class BooksPutDataAccess extends Book {
      * @return {@code 0} for 200 response, {@code 1} for 400 response, {@code 2} for 404 response.
      */
     public static int updateBook(long id, boolean available) {
-        if (!available) {
-            // The action is book loaning.
-            List<Book> book = getBook(id);
-            if (book.isEmpty()) {
-                return 2;
-            } else if (! book.get(0).isAvailable()) {
-                return 1;
-            } else {
-                try (
-                        Connection con = DatabaseConnection.getConnection();
-                        PreparedStatement stmt = con.prepareStatement("update Book " +
-                                "set available = ? " +
-                                "where id = ?")
-                ) {
-                    stmt.setBoolean(1, false);
-                    stmt.setLong(2, id);
-                    return stmt.executeUpdate() > 0 ? 0 : 1;
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-                return 1;
-            }
+        List<Book> book = getBook(id);
+        if (book.isEmpty()) {
+            return 2;
+        } else if (book.get(0).isAvailable() == available) {
+            return 1;
         } else {
-            // The action is book returning.
+            try (
+                    Connection con = DatabaseConnection.getConnection();
+                    PreparedStatement stmt = con.prepareStatement("update Book " +
+                            "set available = ? " +
+                            "where id = ?")
+            ) {
+                stmt.setBoolean(1, available);
+                stmt.setLong(2, id);
+                return stmt.executeUpdate() > 0 ? 0 : 1;
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            return 1;
         }
-        return 1;
     }
 
     public static List<Book> getBook(Long id) {
