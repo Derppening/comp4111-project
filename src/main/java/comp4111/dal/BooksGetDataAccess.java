@@ -69,7 +69,7 @@ public class BooksGetDataAccess {
     }
 
     public static BooksGetResult getBooks(Long queryId, String queryTitle, String queryAuthor,
-                                          Long queryLimit, String querySort, String queryOrder) {
+                                          Integer queryLimit, String querySort, String queryOrder) {
         List<String> list = new ArrayList<>();
         if (queryId != null) {
             list.add("id = " + queryId);

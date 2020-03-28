@@ -28,7 +28,7 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
     private Long queryId;
     private String queryTitle;
     private String queryAuthor;
-    private Long queryLimit;
+    private Integer queryLimit;
     private String querySort;
     private String queryOrder;
 
@@ -63,7 +63,7 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
         final var queryLimitStr = queryParams.getOrDefault("limit", null);
         if (queryLimitStr != null) {
             try {
-                queryLimit = Long.parseLong(queryLimitStr);
+                queryLimit = Integer.parseInt(queryLimitStr);
             } catch (NumberFormatException e) {
                 response.setCode(HttpStatus.SC_BAD_REQUEST);
                 throw new IllegalArgumentException(e);
@@ -89,7 +89,7 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
         return queryAuthor;
     }
 
-    protected Long getQueryLimit() {
+    protected Integer getQueryLimit() {
         return queryLimit;
     }
 
