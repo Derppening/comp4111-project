@@ -88,6 +88,7 @@ public class SimpleGetServer {
 
 
     static class HttpRootHandler extends HttpPathHandler {
+
         @Override
         protected Map<Method, Supplier<HttpEndpointHandler>> getMethodLut() {
             return Map.of(Method.GET, HttpRootGetHandler::new);

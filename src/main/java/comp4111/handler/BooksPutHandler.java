@@ -27,7 +27,6 @@ public abstract class BooksPutHandler extends HttpEndpointHandler {
             return Method.PUT;
         }
     };
-    ;
 
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 

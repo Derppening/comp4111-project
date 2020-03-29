@@ -1,10 +1,9 @@
 package comp4111.controller;
 
+import comp4111.util.SecurityUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.security.SecureRandom;
-import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -47,11 +46,6 @@ public class TokenManager {
         return INSTANCE;
     }
 
-    @NotNull
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-    @NotNull
-    private static final Base64.Encoder BASE64_ENCODER = Base64.getUrlEncoder();
-
     private final Map<@NotNull String, @NotNull String> inFlightTokens;
 
     TokenManager(@NotNull Map<String, String> backingMap) {
@@ -66,9 +60,7 @@ public class TokenManager {
      */
     @Nullable
     public String newToken(@NotNull String user) {
-        final byte[] bytes = new byte[24];
-        SECURE_RANDOM.nextBytes(bytes);
-        final var token = BASE64_ENCODER.encodeToString(bytes);
+        final String token = SecurityUtils.generateRandomBase64String(24);
 
         final boolean isSuccessful;
         synchronized (inFlightTokens) {

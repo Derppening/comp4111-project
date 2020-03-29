@@ -7,8 +7,6 @@ import java.util.Objects;
 
 public class Book {
 
-    // TODO: id?
-
     @JsonProperty("Title")
     @NotNull
     private final String title;
@@ -24,11 +22,10 @@ public class Book {
     @JsonProperty("Year")
     private final int year;
 
-    public Book(
-            @NotNull @JsonProperty("Title") String title,
-            @NotNull @JsonProperty("Author") String author,
-            @NotNull @JsonProperty("Publisher") String publisher,
-            @JsonProperty("Year") int year) {
+    public Book(@NotNull @JsonProperty("Title") String title,
+                @NotNull @JsonProperty("Author") String author,
+                @NotNull @JsonProperty("Publisher") String publisher,
+                @JsonProperty("Year") int year) {
         this.title = Objects.requireNonNull(title);
         this.author = Objects.requireNonNull(author);
         this.publisher = Objects.requireNonNull(publisher);

@@ -12,8 +12,6 @@ plugins {
 
     // Apply the application plugin to add support for building a CLI application.
     id 'application'
-
-    id "net.foragerr.jmeter" version "1.1.0-4.0"
 }
 
 repositories {
@@ -70,16 +68,4 @@ java {
 test {
     // Use junit platform for unit tests
     useJUnitPlatform()
-}
-
-// So, I found a Gradle plugin that integrates JMeter support into Gradle, however...
-// It is very old, being unsupported since 2018, and supports only up to JMeter 4.0.
-// Adding to the PITA, generating reports do not work because the generated XML is missing.
-// Unless someone has the time to tinker with the Gradle plugin, I will just leave it as it.
-//
-// All generated stuff are in build/jmeter-report.
-// Execute using the task `:jmRun`.
-jmeter {
-    enableReports = false
-    enableExtendedReports = false
 }

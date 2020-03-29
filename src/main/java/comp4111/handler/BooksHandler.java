@@ -16,7 +16,7 @@ public abstract class BooksHandler extends HttpPathHandler {
         @NotNull
         @Override
         public String getHandlePattern() {
-            return HANDLE_PATTERN;
+            return HANDLE_PATTERN + "*";
         }
     };
 
@@ -50,5 +50,15 @@ public abstract class BooksHandler extends HttpPathHandler {
             throw new IllegalArgumentException(e);
         }
     }
-}
 
+    static long getIdFromRequestWithoutException(@NotNull String path, ClassicHttpResponse response) {
+        final var startIdx = (HANDLE_PATTERN + "/").length();
+        final var endIdx = path.indexOf('?') != -1 ? path.indexOf('?') : path.length();
+
+        try {
+            return Long.parseLong(path.substring(startIdx, endIdx));
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+}
