@@ -47,7 +47,7 @@ public abstract class TransactionPostHandler extends HttpEndpointHandler {
         final var queryParams = HttpUtils.parseQueryParams(request.getPath(), response);
         final var token = checkToken(queryParams, response);
 
-        if (request.getEntity() == null) {
+        if (request.getEntity().getContent().available() == 0) {
             LOGGER.info("POST /transaction token=\"{}\"", token);
         } else {
             final var payload = request.getEntity().getContent().readAllBytes();

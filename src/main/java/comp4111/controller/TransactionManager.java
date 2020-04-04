@@ -32,7 +32,7 @@ public class TransactionManager {
      * map, such as for mocking and testing.
      *
      * @param backingMap The map to use for storing transaction IDs.
-     * @param listCreator The supplier to use for creating lists to store transation details.
+     * @param listCreator The supplier to use for creating lists to store transaction details.
      * @return The singleton instance of this class.
      */
     @NotNull

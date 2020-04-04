@@ -3,6 +3,7 @@ package comp4111.handler.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import comp4111.controller.TransactionManager;
+import comp4111.dal.TransactionPostDataAccess;
 import comp4111.handler.TransactionPostHandler;
 import comp4111.model.TransactionPostRequest;
 import comp4111.model.TransactionPostResult;
@@ -36,9 +37,13 @@ public class TransactionPostHandlerImpl extends TransactionPostHandler {
     }
 
     private void handleTransactionIdRequest(@NotNull ClassicHttpResponse response) {
-        final var uuid = transactionMgr.newTransaction();
+        final int id = TransactionPostDataAccess.startNewTransaction();
+        final var transactionResponse = new TransactionPostResult(id);
 
-        final var transactionResponse = new TransactionPostResult(uuid);
+        if (id == 0) {
+            response.setCode(HttpStatus.SC_TOO_MANY_REQUESTS);
+            return;
+        }
 
         try {
             response.setEntity(new StringEntity(objectMapper.writeValueAsString(transactionResponse), ContentType.APPLICATION_JSON));

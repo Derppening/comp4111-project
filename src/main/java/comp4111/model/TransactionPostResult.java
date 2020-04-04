@@ -1,17 +1,13 @@
 package comp4111.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.UUID;
 
 public class TransactionPostResult {
 
     @JsonProperty("Transaction")
-    @NotNull
-    private final UUID transaction;
+    private final int transaction;
 
-    public TransactionPostResult(@NotNull @JsonProperty("Transaction") UUID uuid) {
-        this.transaction = uuid;
+    public TransactionPostResult(@JsonProperty("Transaction") int id) {
+        this.transaction = id;
     }
 }
