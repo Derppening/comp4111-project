@@ -7,6 +7,7 @@ import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.Method;
 import org.apache.hc.core5.http.protocol.HttpContext;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 import java.util.function.Supplier;
@@ -14,6 +15,7 @@ import java.util.function.Supplier;
 public class WildcardHandlerImpl extends WildcardHandler {
 
     @Override
+    @Nullable
     protected Map<Method, Supplier<HttpEndpointHandler>> getMethodLut() {
         return null;
     }

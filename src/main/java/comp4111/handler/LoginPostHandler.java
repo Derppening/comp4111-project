@@ -8,8 +8,10 @@ import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * Endpoint handler for all {@code /login} POST requests.
@@ -34,6 +36,7 @@ public abstract class LoginPostHandler extends HttpEndpointHandler {
 
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
+    @Nullable
     private LoginRequest loginRequest;
 
     @NotNull
@@ -64,7 +67,8 @@ public abstract class LoginPostHandler extends HttpEndpointHandler {
         LOGGER.info("POST /login Username=\"{}\" Password=\"{}\"", loginRequest.getUsername(), loginRequest.getPassword());
     }
 
+    @NotNull
     protected LoginRequest getLoginRequest() {
-        return loginRequest;
+        return Objects.requireNonNull(loginRequest);
     }
 }

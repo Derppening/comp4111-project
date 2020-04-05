@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -42,7 +43,7 @@ public abstract class HttpPathHandler implements HttpRequestHandler, HttpPath {
 
     @Override
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-        dispatchByMethod(request, response, context, getMethodLut());
+        dispatchByMethod(request, response, context, Objects.requireNonNull(getMethodLut()));
     }
 
     /**

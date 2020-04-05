@@ -8,8 +8,10 @@ import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * Endpoint handler for all {@code /books/*} PUT requests.
@@ -31,6 +33,7 @@ public abstract class BooksPutHandler extends HttpEndpointHandler {
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
     private long bookId;
+    @Nullable
     private Boolean available;
 
     @NotNull
@@ -76,7 +79,8 @@ public abstract class BooksPutHandler extends HttpEndpointHandler {
         return bookId;
     }
 
+    @NotNull
     protected Boolean getAvailable() {
-        return available;
+        return Objects.requireNonNull(available);
     }
 }
