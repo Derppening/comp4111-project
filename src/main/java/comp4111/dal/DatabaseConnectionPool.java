@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -16,10 +17,12 @@ import java.util.TimerTask;
 public class DatabaseConnectionPool {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseConnectionPool.class);
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private List<Connection> connectionPool;
     private List<Connection> usedConnections = new ArrayList<>();
-    private List<Timer> timers = new ArrayList<>();
+    private List<Long> transactionIds = new ArrayList<>(); // This should be in sync with usedConnections
+    private List<Timer> timers = new ArrayList<>(); // This should be in sync with usedConnections
     private static final int INITIAL_POOL_SIZE = 10;
 
     public DatabaseConnectionPool(@NotNull String url, @NotNull String database, @NotNull String user, @NotNull String password) throws SQLException {
@@ -66,10 +69,13 @@ public class DatabaseConnectionPool {
             Connection connection = connectionPool
                     .remove(connectionPool.size() - 1);
 
+            Long transactionId = Math.abs(SECURE_RANDOM.nextLong());
+
             Timer timer = new Timer();
             timer.schedule(new TimerTaskImpl(connection), 90000);
 
             usedConnections.add(connection);
+            transactionIds.add(transactionId);
             timers.add(timer);
             return connection;
         }
@@ -82,6 +88,8 @@ public class DatabaseConnectionPool {
         timer.cancel();
         timers.remove(timer);
 
+        transactionIds.remove(index);
+
         connectionPool.add(connection);
         usedConnections.remove(connection);
     }
@@ -89,13 +97,15 @@ public class DatabaseConnectionPool {
     /**
      * @return {@code 0} for invalid {@link Connection}
      */
-    public int getUsedConnectionId(Connection connection) {
-        return usedConnections.indexOf(connection) + 1;
+    public Long getUsedConnectionId(Connection connection) {
+        return transactionIds.get(usedConnections.indexOf(connection));
     }
 
-    public Connection getUsedConnection(int id) {
+    public Connection getUsedConnection(Long id) {
         try {
-            return usedConnections.get(id - 1);
+            int index = transactionIds.indexOf(id);
+
+            return usedConnections.get(index);
         } catch (IndexOutOfBoundsException e) {
             return null;
         }

@@ -21,8 +21,9 @@ public class TransactionPutRequest {
         }
     }
 
+    @NotNull
     @JsonProperty("Transaction")
-    private final int transaction;
+    private final Long transaction;
     @JsonProperty("Book")
     private final long id;
     @JsonProperty("Action")
@@ -30,7 +31,7 @@ public class TransactionPutRequest {
     private final Action action;
 
     public TransactionPutRequest(
-            @JsonProperty("Transaction") int transaction,
+            @NotNull @JsonProperty("Transaction") Long transaction,
             @JsonProperty("Book") long bookId,
             @NotNull @JsonProperty("Action") Action action
     ) {
@@ -39,7 +40,8 @@ public class TransactionPutRequest {
         this.action = Objects.requireNonNull(action);
     }
 
-    public int getTransaction() {
+    @NotNull
+    public Long getTransaction() {
         return transaction;
     }
 

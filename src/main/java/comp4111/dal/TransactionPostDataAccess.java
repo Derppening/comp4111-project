@@ -14,24 +14,24 @@ public class TransactionPostDataAccess {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionPostDataAccess.class);
 
-    public static int startNewTransaction() {
+    public static Long startNewTransaction() {
         try {
             Connection con = connectionPool.getConnection();
             if (con == null) {
-                return 0;
+                return 0L;
             }
 
             return connectionPool.getUsedConnectionId(con);
         } catch (Exception e) {
             LOGGER.error("Error starting a new transaction", e);
         }
-        return 0;
+        return 0L;
     }
 
-    public static boolean commitOrCancelTransaction(int transaction, @NotNull TransactionPostRequest.Operation operation) {
+    public static boolean commitOrCancelTransaction(Long transaction, @NotNull TransactionPostRequest.Operation operation) {
         try {
             Connection con = connectionPool.getUsedConnection(transaction);
-            if (con == null) {
+            if (con == null || transaction == null) {
                 return false;
             }
 

@@ -17,7 +17,7 @@ public class TransactionPutDataAccess {
     /**
      * @return {@code 0} for 200 response, {@code 1} for 400 response, {@code 2} for 404 response.
      */
-    public static int pushAction(int transaction, long bookId, @NotNull TransactionPutRequest.Action action) {
+    public static int pushAction(@NotNull Long transaction, long bookId, @NotNull TransactionPutRequest.Action action) {
         try {
             Connection con = connectionPool.getUsedConnection(transaction);
             if (con == null) {

@@ -21,21 +21,23 @@ public class TransactionPostRequest {
         }
     }
 
+    @NotNull
     @JsonProperty("Transaction")
-    private final int transaction;
+    private final Long transaction;
     @JsonProperty("Operation")
     @NotNull
     private final Operation operation;
 
     public TransactionPostRequest(
-            @JsonProperty("Transaction") int id,
+            @NotNull @JsonProperty("Transaction") Long id,
             @NotNull @JsonProperty("Operation") Operation operation
     ) {
-        this.transaction = id;
+        this.transaction = Objects.requireNonNull(id);
         this.operation = Objects.requireNonNull(operation);
     }
 
-    public int getTransaction() {
+    @NotNull
+    public Long getTransaction() {
         return transaction;
     }
 

@@ -13,6 +13,7 @@ import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class TransactionPostHandlerImpl extends TransactionPostHandler {
 
@@ -35,7 +36,7 @@ public class TransactionPostHandlerImpl extends TransactionPostHandler {
     }
 
     private void handleTransactionIdRequest(@NotNull ClassicHttpResponse response) {
-        final int id = TransactionPostDataAccess.startNewTransaction();
+        final Long id = TransactionPostDataAccess.startNewTransaction();
         final var transactionResponse = new TransactionPostResult(id);
 
         if (id == 0) {
@@ -54,7 +55,7 @@ public class TransactionPostHandlerImpl extends TransactionPostHandler {
 
     private void handleTransactionCommitRequest(@NotNull TransactionPostRequest request, @NotNull ClassicHttpResponse response) {
         final boolean isSuccessful = TransactionPostDataAccess.commitOrCancelTransaction(
-                getTxRequest().getTransaction(),
+                Objects.requireNonNull(getTxRequest()).getTransaction(),
                 getTxRequest().getOperation()
         );
 
