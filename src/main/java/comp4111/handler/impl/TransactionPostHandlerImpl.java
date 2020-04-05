@@ -2,7 +2,6 @@ package comp4111.handler.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import comp4111.controller.TransactionManager;
 import comp4111.dal.TransactionPostDataAccess;
 import comp4111.handler.TransactionPostHandler;
 import comp4111.model.TransactionPostRequest;
@@ -17,7 +16,6 @@ import java.io.IOException;
 
 public class TransactionPostHandlerImpl extends TransactionPostHandler {
 
-    private final TransactionManager transactionMgr = TransactionManager.getInstance();
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
     @Override
@@ -55,10 +53,15 @@ public class TransactionPostHandlerImpl extends TransactionPostHandler {
     }
 
     private void handleTransactionCommitRequest(@NotNull TransactionPostRequest request, @NotNull ClassicHttpResponse response) {
-        final var transactionList = transactionMgr.getAndEraseTransaction(request);
+        final boolean isSuccessful = TransactionPostDataAccess.commitOrCancelTransaction(
+                getTxRequest().getTransaction(),
+                getTxRequest().getOperation()
+        );
 
-        // TODO: Pass transactionList to DB
-
-        response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
+        if (isSuccessful) {
+            response.setCode(HttpStatus.SC_OK);
+        } else {
+            response.setCode(HttpStatus.SC_BAD_REQUEST);
+        }
     }
 }
