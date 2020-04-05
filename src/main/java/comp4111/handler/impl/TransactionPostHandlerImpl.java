@@ -41,7 +41,7 @@ public class TransactionPostHandlerImpl extends TransactionPostHandler {
         final var transactionResponse = new TransactionPostResult(id);
 
         if (id == 0) {
-            response.setCode(HttpStatus.SC_TOO_MANY_REQUESTS);
+            response.setCode(HttpStatus.SC_BAD_REQUEST);
             return;
         }
 

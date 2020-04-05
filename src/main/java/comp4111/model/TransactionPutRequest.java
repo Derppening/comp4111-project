@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
-import java.util.UUID;
 
 public class TransactionPutRequest {
 
@@ -23,8 +22,7 @@ public class TransactionPutRequest {
     }
 
     @JsonProperty("Transaction")
-    @NotNull
-    private final UUID transaction;
+    private final int transaction;
     @JsonProperty("Book")
     private final long id;
     @JsonProperty("Action")
@@ -32,17 +30,16 @@ public class TransactionPutRequest {
     private final Action action;
 
     public TransactionPutRequest(
-            @NotNull @JsonProperty("Transaction") UUID uuid,
+            @JsonProperty("Transaction") int transaction,
             @JsonProperty("Book") long bookId,
             @NotNull @JsonProperty("Action") Action action
     ) {
-        this.transaction = Objects.requireNonNull(uuid);
+        this.transaction = transaction;
         this.id = bookId;
         this.action = Objects.requireNonNull(action);
     }
 
-    @NotNull
-    public UUID getTransaction() {
+    public int getTransaction() {
         return transaction;
     }
 

@@ -36,7 +36,7 @@ public class DatabaseConnection {
         try {
             // The connection is supposed to be closed in MainApplication.
             con = DriverManager.getConnection(MYSQL_URL, MYSQL_LOGIN, MYSQL_PASSWORD);
-            connectionPool = new DatabaseConnectionPool(MYSQL_URL, MYSQL_LOGIN, MYSQL_PASSWORD);
+            connectionPool = new DatabaseConnectionPool(MYSQL_URL, DB_NAME, MYSQL_LOGIN, MYSQL_PASSWORD);
             if (!databaseExists(con, DB_NAME)) {
                 createDatabase(con, DB_NAME);
                 useDatabase(con, DB_NAME);

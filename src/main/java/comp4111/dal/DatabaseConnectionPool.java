@@ -15,15 +15,15 @@ public class DatabaseConnectionPool {
     private List<Connection> usedConnections = new ArrayList<>();
     private static final int INITIAL_POOL_SIZE = 10;
 
-    public DatabaseConnectionPool(String url, String user, String password) throws SQLException {
+    public DatabaseConnectionPool(String url, String database, String user, String password) throws SQLException {
         connectionPool = new ArrayList<>(INITIAL_POOL_SIZE);
         for (int i = 0; i < INITIAL_POOL_SIZE; i++) {
-            connectionPool.add(createConnection(url, user, password));
+            connectionPool.add(createConnection(url, database, user, password));
         }
     }
 
-    private static Connection createConnection(String url, String user, String password) throws SQLException {
-        return DriverManager.getConnection(url, user, password);
+    private static Connection createConnection(String url, String database, String user, String password) throws SQLException {
+        return DriverManager.getConnection(url + "/" + database, user, password);
     }
 
     public Connection getConnection() {
@@ -36,9 +36,9 @@ public class DatabaseConnectionPool {
         return null;
     }
 
-    public boolean releaseConnection(@NotNull Connection connection) {
+    public void releaseConnection(@NotNull Connection connection) {
         connectionPool.add(connection);
-        return usedConnections.remove(connection);
+        usedConnections.remove(connection);
     }
 
     /**
