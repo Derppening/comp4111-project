@@ -3,6 +3,7 @@ package comp4111.dal;
 import comp4111.dal.model.Book;
 import comp4111.model.BooksGetResult;
 import comp4111.util.QueryUtils;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,8 +16,12 @@ public class BooksGetDataAccess extends Book {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BooksGetDataAccess.class);
 
-    public static BooksGetResult getBooks(Long queryId, String queryTitle, String queryAuthor,
-                                          Integer queryLimit, String querySort, String queryOrder) {
+    public static BooksGetResult getBooks(@Nullable Long queryId,
+                                          @Nullable String queryTitle,
+                                          @Nullable String queryAuthor,
+                                          @Nullable Integer queryLimit,
+                                          @Nullable String querySort,
+                                          @Nullable String queryOrder) {
         List<Object> params = new ArrayList<>();
         List<String> list = new ArrayList<>();
         if (queryId != null) {
@@ -40,14 +45,14 @@ public class BooksGetDataAccess extends Book {
                 // queryOrder is also null.
                 chunk2 = "";
             } else if (queryOrder == null) {
-                if (querySort.equals("id") || querySort.equals("title") || querySort.equals("author")) {
+                if (querySort.equals("id") || querySort.equals("title") || querySort.equals("author") || querySort.equals("year")) {
                     chunk2 = "order by " + querySort;
                 } else {
                     // The query is invalid.
                     return null;
                 }
             } else {
-                if ((querySort.equals("id") || querySort.equals("title") || querySort.equals("author")) &&
+                if ((querySort.equals("id") || querySort.equals("title") || querySort.equals("author") || querySort.equals("year")) &&
                         (queryOrder.equals("asc") || queryOrder.equals("desc"))) {
                     chunk2 = "order by " + querySort + " " + queryOrder;
                 } else {

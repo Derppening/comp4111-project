@@ -2,7 +2,7 @@ package comp4111.handler.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import comp4111.controller.TransactionManager;
+import comp4111.dal.TransactionPostDataAccess;
 import comp4111.handler.TransactionPostHandler;
 import comp4111.model.TransactionPostRequest;
 import comp4111.model.TransactionPostResult;
@@ -13,10 +13,10 @@ import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class TransactionPostHandlerImpl extends TransactionPostHandler {
 
-    private final TransactionManager transactionMgr = TransactionManager.getInstance();
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
     @Override
@@ -36,9 +36,13 @@ public class TransactionPostHandlerImpl extends TransactionPostHandler {
     }
 
     private void handleTransactionIdRequest(@NotNull ClassicHttpResponse response) {
-        final var uuid = transactionMgr.newTransaction();
+        final Long id = TransactionPostDataAccess.startNewTransaction();
+        final var transactionResponse = new TransactionPostResult(id);
 
-        final var transactionResponse = new TransactionPostResult(uuid);
+        if (id == 0) {
+            response.setCode(HttpStatus.SC_BAD_REQUEST);
+            return;
+        }
 
         try {
             response.setEntity(new StringEntity(objectMapper.writeValueAsString(transactionResponse), ContentType.APPLICATION_JSON));
@@ -50,10 +54,15 @@ public class TransactionPostHandlerImpl extends TransactionPostHandler {
     }
 
     private void handleTransactionCommitRequest(@NotNull TransactionPostRequest request, @NotNull ClassicHttpResponse response) {
-        final var transactionList = transactionMgr.getAndEraseTransaction(request);
+        final boolean isSuccessful = TransactionPostDataAccess.commitOrCancelTransaction(
+                Objects.requireNonNull(getTxRequest()).getTransaction(),
+                getTxRequest().getOperation()
+        );
 
-        // TODO: Pass transactionList to DB
-
-        response.setCode(HttpStatus.SC_NOT_IMPLEMENTED);
+        if (isSuccessful) {
+            response.setCode(HttpStatus.SC_OK);
+        } else {
+            response.setCode(HttpStatus.SC_BAD_REQUEST);
+        }
     }
 }

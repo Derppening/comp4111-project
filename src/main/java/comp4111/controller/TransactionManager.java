@@ -23,7 +23,7 @@ public class TransactionManager {
      * @return The singleton instance of this class.
      */
     @NotNull
-    public static TransactionManager getInstance() {
+    public synchronized static TransactionManager getInstance() {
         return getInstance(null, null);
     }
 
@@ -32,18 +32,16 @@ public class TransactionManager {
      * map, such as for mocking and testing.
      *
      * @param backingMap The map to use for storing transaction IDs.
-     * @param listCreator The supplier to use for creating lists to store transation details.
+     * @param listCreator The supplier to use for creating lists to store transaction details.
      * @return The singleton instance of this class.
      */
     @NotNull
-    static TransactionManager getInstance(@Nullable Map<UUID, List<TransactionPutRequest>> backingMap, @Nullable Supplier<List<TransactionPutRequest>> listCreator) {
-        synchronized (TransactionManager.class) {
-            if (INSTANCE == null) {
-                final var map = backingMap != null ? backingMap : DEFAULT_MAP_SUPPLIER.get();
-                final var listSupplier = listCreator != null ? listCreator : DEFAULT_TRANSACTION_LIST_SUPPLIER;
+    synchronized static TransactionManager getInstance(@Nullable Map<UUID, List<TransactionPutRequest>> backingMap, @Nullable Supplier<List<TransactionPutRequest>> listCreator) {
+        if (INSTANCE == null) {
+            final var map = backingMap != null ? backingMap : DEFAULT_MAP_SUPPLIER.get();
+            final var listSupplier = listCreator != null ? listCreator : DEFAULT_TRANSACTION_LIST_SUPPLIER;
 
-                INSTANCE = new TransactionManager(map, listSupplier);
-            }
+            INSTANCE = new TransactionManager(map, listSupplier);
         }
 
         return INSTANCE;
@@ -65,7 +63,7 @@ public class TransactionManager {
      * @return UUID of the transaction.
      */
     @NotNull
-    public UUID newTransaction() {
+    public synchronized UUID newTransaction() {
         final var uuid = UUID.randomUUID();
         inFlightTransactions.put(uuid, listCreator.get());
 
@@ -78,7 +76,7 @@ public class TransactionManager {
      * @param putRequest The PUT request of the transaction.
      * @return {@code true} if the operation was successful.
      */
-    public boolean addTransactionPlan(@NotNull final TransactionPutRequest putRequest) {
+    public synchronized boolean addTransactionPlan(@NotNull final TransactionPutRequest putRequest) {
         final var uuid = putRequest.getTransaction();
 
         final var transaction = inFlightTransactions.get(uuid);
@@ -99,7 +97,7 @@ public class TransactionManager {
      * transaction in the calling method.
      */
     @Deprecated
-    public boolean performTransaction(@NotNull final TransactionPostRequest postRequest) {
+    public synchronized boolean performTransaction(@NotNull final TransactionPostRequest postRequest) {
         final var transaction = getAndEraseTransaction(postRequest);
         if (transaction == null) {
             return false;
@@ -125,7 +123,7 @@ public class TransactionManager {
      * @return The transaction associated with the POST request, or {@code null} if the transaction does not exist.
      */
     @Nullable
-    public List<TransactionPutRequest> getAndEraseTransaction(@NotNull final TransactionPostRequest postRequest) {
+    public synchronized List<TransactionPutRequest> getAndEraseTransaction(@NotNull final TransactionPostRequest postRequest) {
         final var uuid = postRequest.getTransaction();
 
         return inFlightTransactions.remove(uuid);

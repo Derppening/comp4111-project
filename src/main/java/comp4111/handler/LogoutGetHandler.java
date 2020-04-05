@@ -8,8 +8,10 @@ import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.Method;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * Endpoint handler for all {@code /logout} GET requests.
@@ -30,6 +32,7 @@ public abstract class LogoutGetHandler extends HttpEndpointHandler {
         }
     };
 
+    @Nullable
     private String token;
 
     @NotNull
@@ -54,7 +57,8 @@ public abstract class LogoutGetHandler extends HttpEndpointHandler {
         LOGGER.info("GET /logout token=\"{}\"", token);
     }
 
+    @NotNull
     public String getToken() {
-        return token;
+        return Objects.requireNonNull(token);
     }
 }
