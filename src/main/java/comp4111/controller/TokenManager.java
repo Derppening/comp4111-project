@@ -58,19 +58,13 @@ public class TokenManager {
      */
     @Nullable
     public synchronized String newToken(@NotNull String user) {
-        final String token = SecurityUtils.generateRandomBase64String(24);
-
-        final boolean isSuccessful;
-        synchronized (inFlightTokens) {
-            if (containsUser(user)) {
-                isSuccessful = false;
-            } else {
-                inFlightTokens.put(token, user);
-                isSuccessful = true;
-            }
+        if (containsUser(user)) {
+            return null;
         }
 
-        return isSuccessful ? token : null;
+        final String token = SecurityUtils.generateRandomBase64String(24);
+        inFlightTokens.put(token, user);
+        return token;
     }
 
     /**
