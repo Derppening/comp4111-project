@@ -12,6 +12,7 @@ RUN echo "deb http://deb.debian.org/debian stretch-backports main" >> /etc/apt/s
       cmake \
       curl \
       git \
+      less \
       libc6-dev \
       libsqlite3-dev \
       opam \
@@ -19,8 +20,7 @@ RUN echo "deb http://deb.debian.org/debian stretch-backports main" >> /etc/apt/s
       pkg-config \
       python2.7 \
       zlib1g-dev && \
-    apt-get -t stretch-backports install --yes --no-install-recommends openjdk-11-jdk-headless && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get -t stretch-backports install --yes --no-install-recommends openjdk-11-jdk-headless
 
 RUN VERSION=0.17.0; \
     curl -sSL "https://github.com/facebook/infer/releases/download/v$VERSION/infer-linux64-v$VERSION.tar.xz" \
