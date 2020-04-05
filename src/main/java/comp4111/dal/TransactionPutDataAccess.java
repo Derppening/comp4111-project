@@ -20,6 +20,10 @@ public class TransactionPutDataAccess {
     public static int pushAction(int transaction, long bookId, @NotNull TransactionPutRequest.Action action) {
         try {
             Connection con = connectionPool.getUsedConnection(transaction);
+            if (con == null) {
+                return 1;
+            }
+
             int transactionPutResult;
             if (action == TransactionPutRequest.Action.LOAN) {
                 transactionPutResult = BooksPutDataAccess.updateBook(con, bookId, false);

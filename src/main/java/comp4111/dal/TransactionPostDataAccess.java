@@ -21,7 +21,6 @@ public class TransactionPostDataAccess {
                 return 0;
             }
 
-            con.setAutoCommit(false);
             return connectionPool.getUsedConnectionId(con);
         } catch (Exception e) {
             LOGGER.error("Error starting a new transaction", e);
@@ -32,6 +31,10 @@ public class TransactionPostDataAccess {
     public static boolean commitOrCancelTransaction(int transaction, @NotNull TransactionPostRequest.Operation operation) {
         try {
             Connection con = connectionPool.getUsedConnection(transaction);
+            if (con == null) {
+                return false;
+            }
+
             if (operation == TransactionPostRequest.Operation.COMMIT) {
                 con.commit();
             } else {

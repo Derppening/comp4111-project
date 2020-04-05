@@ -15,7 +15,7 @@ public class DatabaseConnectionPool {
     private List<Connection> usedConnections = new ArrayList<>();
     private static final int INITIAL_POOL_SIZE = 10;
 
-    public DatabaseConnectionPool(String url, String database, String user, String password) throws SQLException {
+    public DatabaseConnectionPool(@NotNull String url, @NotNull String database, @NotNull String user, @NotNull String password) throws SQLException {
         connectionPool = new ArrayList<>(INITIAL_POOL_SIZE);
         for (int i = 0; i < INITIAL_POOL_SIZE; i++) {
             connectionPool.add(createConnection(url, database, user, password));
@@ -23,7 +23,15 @@ public class DatabaseConnectionPool {
     }
 
     private static Connection createConnection(String url, String database, String user, String password) throws SQLException {
-        return DriverManager.getConnection(url + "/" + database, user, password);
+        Connection con = DriverManager.getConnection(url + "/" + database, user, password);
+
+        con.setAutoCommit(false);
+        // https://dev.mysql.com/doc/refman/5.7/en/set-transaction.html
+        // The default isolation level is repeatable read.
+        // https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html
+        // Dirty reads are prevented. This is all we need.
+
+        return con;
     }
 
     public Connection getConnection() {
@@ -49,6 +57,10 @@ public class DatabaseConnectionPool {
     }
 
     public Connection getUsedConnection(int id) {
-        return usedConnections.get(id - 1);
+        try {
+            return usedConnections.get(id - 1);
+        } catch (IndexOutOfBoundsException e) {
+            return null;
+        }
     }
 }
