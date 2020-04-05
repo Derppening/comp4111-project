@@ -22,7 +22,7 @@ public class TokenManager {
      * @return The singleton instance of this class.
      */
     @NotNull
-    public static TokenManager getInstance() {
+    public synchronized static TokenManager getInstance() {
         return getInstance(null);
     }
 
@@ -34,13 +34,11 @@ public class TokenManager {
      * @return The singleton instance of this class.
      */
     @NotNull
-    static TokenManager getInstance(@Nullable Map<String, String> backingMap) {
-        synchronized (TokenManager.class) {
-            if (INSTANCE == null) {
-                final var map = backingMap != null ? backingMap : DEFAULT_MAP_SUPPLIER.get();
+    static synchronized TokenManager getInstance(@Nullable Map<String, String> backingMap) {
+        if (INSTANCE == null) {
+            final var map = backingMap != null ? backingMap : DEFAULT_MAP_SUPPLIER.get();
 
-                INSTANCE = new TokenManager(map);
-            }
+            INSTANCE = new TokenManager(map);
         }
 
         return INSTANCE;
@@ -59,7 +57,7 @@ public class TokenManager {
      * @return The token generated for the user, or {@code null} if a token is already generated for the user.
      */
     @Nullable
-    public String newToken(@NotNull String user) {
+    public synchronized String newToken(@NotNull String user) {
         final String token = SecurityUtils.generateRandomBase64String(24);
 
         final boolean isSuccessful;
@@ -78,14 +76,14 @@ public class TokenManager {
     /**
      * @return Whether the token is present.
      */
-    public boolean containsToken(@NotNull String token) {
+    public synchronized boolean containsToken(@NotNull String token) {
         return inFlightTokens.containsKey(token);
     }
 
     /**
      * @return Whether the user has generated a token.
      */
-    public boolean containsUser(@NotNull String user) {
+    public synchronized boolean containsUser(@NotNull String user) {
         return inFlightTokens.containsValue(user);
     }
 
@@ -95,7 +93,7 @@ public class TokenManager {
      * @param token Token to remove.
      * @return {@code true} if the token was present in the cache and has been removed.
      */
-    public boolean removeToken(@NotNull String token) {
+    public synchronized boolean removeToken(@NotNull String token) {
         return inFlightTokens.remove(token) != null;
     }
 }
