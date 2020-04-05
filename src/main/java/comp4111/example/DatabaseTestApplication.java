@@ -2,12 +2,14 @@ package comp4111.example;
 
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
 public class DatabaseTestApplication {
@@ -40,6 +42,7 @@ public class DatabaseTestApplication {
      */
     private static class Person {
 
+        @Nullable
         private Integer id = null;
         private String name;
         private int age;
@@ -54,7 +57,7 @@ public class DatabaseTestApplication {
         }
 
         public int getId() {
-            return id;
+            return Objects.requireNonNull(id);
         }
 
         public String getName() {

@@ -5,6 +5,7 @@ import comp4111.util.HttpUtils;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 
@@ -25,11 +26,17 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
         }
     };
 
+    @Nullable
     private Long queryId;
+    @Nullable
     private String queryTitle;
+    @Nullable
     private String queryAuthor;
+    @Nullable
     private Integer queryLimit;
+    @Nullable
     private String querySort;
+    @Nullable
     private String queryOrder;
 
     @NotNull
@@ -83,26 +90,32 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
         LOGGER.info("POST /books token=\"{}\"", token);
     }
 
+    @Nullable
     protected Long getQueryId() {
         return queryId;
     }
 
+    @Nullable
     protected String getQueryTitle() {
         return queryTitle;
     }
 
+    @Nullable
     protected String getQueryAuthor() {
         return queryAuthor;
     }
 
+    @Nullable
     protected Integer getQueryLimit() {
         return queryLimit;
     }
 
+    @Nullable
     protected String getQuerySort() {
         return querySort;
     }
 
+    @Nullable
     protected String getQueryOrder() {
         return queryOrder;
     }

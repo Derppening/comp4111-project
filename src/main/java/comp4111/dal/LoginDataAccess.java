@@ -4,10 +4,13 @@ import comp4111.dal.model.Credentials;
 import comp4111.util.QueryUtils;
 import comp4111.util.SecurityUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
 
 public class LoginDataAccess extends Credentials {
@@ -35,6 +38,7 @@ public class LoginDataAccess extends Credentials {
     /**
      * @return 1. the hashed password and 2. the salt.
      */
+    @Nullable
     public static String[] getHashedPwdAndSalt(@NotNull String username) {
         // Create a connection to a specific database in the MySQL server.
         try (Connection con = DatabaseConnection.getConnection()) {

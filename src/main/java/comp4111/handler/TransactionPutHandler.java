@@ -9,8 +9,10 @@ import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public abstract class TransactionPutHandler extends HttpEndpointHandler {
 
@@ -28,6 +30,7 @@ public abstract class TransactionPutHandler extends HttpEndpointHandler {
 
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
+    @Nullable
     private TransactionPutRequest putRequest;
 
     @NotNull
@@ -64,7 +67,8 @@ public abstract class TransactionPutHandler extends HttpEndpointHandler {
                 putRequest.getAction());
     }
 
+    @NotNull
     protected TransactionPutRequest getPutRequest() {
-        return putRequest;
+        return Objects.requireNonNull(putRequest);
     }
 }

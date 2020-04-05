@@ -9,8 +9,10 @@ import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * Endpoint handler for all {@code /books} POST requests.
@@ -33,6 +35,7 @@ public abstract class BooksPostHandler extends HttpEndpointHandler {
 
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
+    @Nullable
     private Book book;
 
     @NotNull
@@ -70,7 +73,8 @@ public abstract class BooksPostHandler extends HttpEndpointHandler {
                 book.getYear());
     }
 
+    @NotNull
     protected Book getBook() {
-        return book;
+        return Objects.requireNonNull(book);
     }
 }
