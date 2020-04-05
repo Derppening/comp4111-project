@@ -45,14 +45,14 @@ public class BooksGetDataAccess extends Book {
                 // queryOrder is also null.
                 chunk2 = "";
             } else if (queryOrder == null) {
-                if (querySort.equals("id") || querySort.equals("title") || querySort.equals("author")) {
+                if (querySort.equals("id") || querySort.equals("title") || querySort.equals("author") || querySort.equals("year")) {
                     chunk2 = "order by " + querySort;
                 } else {
                     // The query is invalid.
                     return null;
                 }
             } else {
-                if ((querySort.equals("id") || querySort.equals("title") || querySort.equals("author")) &&
+                if ((querySort.equals("id") || querySort.equals("title") || querySort.equals("author") || querySort.equals("year")) &&
                         (queryOrder.equals("asc") || queryOrder.equals("desc"))) {
                     chunk2 = "order by " + querySort + " " + queryOrder;
                 } else {
