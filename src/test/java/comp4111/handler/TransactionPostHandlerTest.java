@@ -18,10 +18,8 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class TransactionPostHandlerTest extends AbstractServerTest {
@@ -31,7 +29,7 @@ public class TransactionPostHandlerTest extends AbstractServerTest {
     private TransactionPostHandler handler;
     private ObjectMapper objectMapper;
     private String token;
-    private UUID tx;
+    private Long transactionId;
 
     @BeforeEach
     public void setUp() {
@@ -57,7 +55,7 @@ public class TransactionPostHandlerTest extends AbstractServerTest {
         tokenMgr = TokenManager.getInstance();
         token = tokenMgr.newToken("user001");
         txMgr = TransactionManager.getInstance();
-        tx = txMgr.newTransaction();
+        transactionId = txMgr.newTransaction();
 
         objectMapper = new ObjectMapper();
 
@@ -141,7 +139,7 @@ public class TransactionPostHandlerTest extends AbstractServerTest {
     @Test
     void givenMissingOperationRequest_checkBadRequest() throws Exception {
         @Language("JSON") final var payload = "{" +
-                "\"Transaction\": \"" + tx + "\"" +
+                "\"Transaction\": \"" + transactionId + "\"" +
                 "}";
 
         final var target = getDefaultHttpHost(server);
@@ -172,7 +170,7 @@ public class TransactionPostHandlerTest extends AbstractServerTest {
     @Test
     void givenNullOperationRequest_checkBadRequest() throws Exception {
         @Language("JSON") final var payload = "{" +
-                "\"Transaction\": " + tx + ", " +
+                "\"Transaction\": " + transactionId + ", " +
                 "\"Operation\": null" +
                 "}";
 
@@ -206,7 +204,7 @@ public class TransactionPostHandlerTest extends AbstractServerTest {
     @Test
     void givenBadOperationRequest_checkBadRequest() throws Exception {
         @Language("JSON") final var payload = "{" +
-                "\"Transaction\": " + tx + ", " +
+                "\"Transaction\": " + transactionId + ", " +
                 "\"Operation\": \"dance\"" +
                 "}";
 
@@ -221,7 +219,7 @@ public class TransactionPostHandlerTest extends AbstractServerTest {
 
     @Test
     void givenGoodCommitRequest_checkOK() throws Exception {
-        final var postRequest = new TransactionPostRequest(tx, TransactionPostRequest.Operation.COMMIT);
+        final var postRequest = new TransactionPostRequest(transactionId, TransactionPostRequest.Operation.COMMIT);
         final var payload = objectMapper.writeValueAsString(postRequest);
 
         final var target = getDefaultHttpHost(server);
@@ -230,6 +228,7 @@ public class TransactionPostHandlerTest extends AbstractServerTest {
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
         try (final var response = requester.execute(target, request, TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
+            assertNotNull(handler.getTxRequest());
             assertEquals(postRequest.getTransaction(), handler.getTxRequest().getTransaction());
             assertEquals(postRequest.getOperation(), handler.getTxRequest().getOperation());
         }
@@ -237,7 +236,7 @@ public class TransactionPostHandlerTest extends AbstractServerTest {
 
     @Test
     void givenGoodCancelRequest_checkOK() throws Exception {
-        final var postRequest = new TransactionPostRequest(tx, TransactionPostRequest.Operation.CANCEL);
+        final var postRequest = new TransactionPostRequest(transactionId, TransactionPostRequest.Operation.CANCEL);
         final var payload = objectMapper.writeValueAsString(postRequest);
 
         final var target = getDefaultHttpHost(server);
@@ -246,6 +245,7 @@ public class TransactionPostHandlerTest extends AbstractServerTest {
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
         try (final var response = requester.execute(target, request, TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
+            assertNotNull(handler.getTxRequest());
             assertEquals(postRequest.getTransaction(), handler.getTxRequest().getTransaction());
             assertEquals(postRequest.getOperation(), handler.getTxRequest().getOperation());
         }
@@ -255,8 +255,8 @@ public class TransactionPostHandlerTest extends AbstractServerTest {
     public void tearDown() {
         super.tearDown();
 
-        txMgr.getAndEraseTransaction(new TransactionPostRequest(tx, TransactionPostRequest.Operation.CANCEL));
-        tx = null;
+        txMgr.getAndEraseTransaction(new TransactionPostRequest(transactionId, TransactionPostRequest.Operation.CANCEL));
+        transactionId = null;
         tokenMgr.removeToken(token);
         token = null;
         objectMapper = null;

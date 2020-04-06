@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -31,7 +30,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
     private TransactionPutHandler handler;
     private ObjectMapper objectMapper;
     private String token;
-    private UUID tx;
+    private Long transactionId;
 
     @BeforeEach
     public void setUp() {
@@ -57,7 +56,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
         tokenMgr = TokenManager.getInstance();
         token = tokenMgr.newToken("user001");
         txMgr = TransactionManager.getInstance();
-        tx = txMgr.newTransaction();
+        transactionId = txMgr.newTransaction();
 
         objectMapper = new ObjectMapper();
 
@@ -141,7 +140,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
     @Test
     void givenMissingBookRequest_checkBadRequest() throws Exception {
         @Language("JSON") final var payload = "{" +
-                "\"Transaction\": \"" + tx + "\", " +
+                "\"Transaction\": \"" + transactionId + "\", " +
                 "\"Action\": \"loan\"" +
                 "}";
 
@@ -157,7 +156,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
     @Test
     void givenMissingActionRequest_checkBadRequest() throws Exception {
         @Language("JSON") final var payload = "{" +
-                "\"Transaction\": \"" + tx + "\", " +
+                "\"Transaction\": \"" + transactionId + "\", " +
                 "\"Book\": 1" +
                 "}";
 
@@ -190,7 +189,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
     @Test
     void givenNullBookRequest_checkBadRequest() throws Exception {
         @Language("JSON") final var payload = "{" +
-                "\"Transaction\": \"" + tx + "\", " +
+                "\"Transaction\": \"" + transactionId + "\", " +
                 "\"Book\": null," +
                 "\"Action\": \"loan\"" +
                 "}";
@@ -207,7 +206,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
     @Test
     void givenNullActionRequest_checkBadRequest() throws Exception {
         @Language("JSON") final var payload = "{" +
-                "\"Transaction\": \"" + tx + "\", " +
+                "\"Transaction\": \"" + transactionId + "\", " +
                 "\"Book\": 1," +
                 "\"Action\": null" +
                 "}";
@@ -245,7 +244,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
     @Test
     void givenBadBookRequest_checkBadRequest() throws Exception {
         @Language("JSON") final var payload = "{" +
-                "\"Transaction\": \"" + tx + "\", " +
+                "\"Transaction\": \"" + transactionId + "\", " +
                 "\"Book\": \"abc\"," +
                 "\"Action\": \"loan\"" +
                 "}";
@@ -262,7 +261,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
     @Test
     void givenBadActionRequest_checkBadRequest() throws Exception {
         @Language("JSON") final var payload = "{" +
-                "\"Transaction\": \"" + tx + "\", " +
+                "\"Transaction\": \"" + transactionId + "\", " +
                 "\"Book\": 1," +
                 "\"Action\": \"dance\"" +
                 "}";
@@ -278,7 +277,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
 
     @Test
     void givenGoodLoanRequest_checkOK() throws Exception {
-        final var putRequest = new TransactionPutRequest(tx, 1, TransactionPutRequest.Action.LOAN);
+        final var putRequest = new TransactionPutRequest(transactionId, 1, TransactionPutRequest.Action.LOAN);
         final var payload = objectMapper.writeValueAsString(putRequest);
 
         final var target = getDefaultHttpHost(server);
@@ -295,7 +294,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
 
     @Test
     void givenGoodReturnRequest_checkOK() throws Exception {
-        final var putRequest = new TransactionPutRequest(tx, 1, TransactionPutRequest.Action.RETURN);
+        final var putRequest = new TransactionPutRequest(transactionId, 1, TransactionPutRequest.Action.RETURN);
         final var payload = objectMapper.writeValueAsString(putRequest);
 
         final var target = getDefaultHttpHost(server);
@@ -314,8 +313,8 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
     public void tearDown() {
         super.tearDown();
 
-        txMgr.getAndEraseTransaction(new TransactionPostRequest(tx, TransactionPostRequest.Operation.CANCEL));
-        tx = null;
+        txMgr.getAndEraseTransaction(new TransactionPostRequest(transactionId, TransactionPostRequest.Operation.CANCEL));
+        transactionId = null;
         tokenMgr.removeToken(token);
         token = null;
         objectMapper = null;

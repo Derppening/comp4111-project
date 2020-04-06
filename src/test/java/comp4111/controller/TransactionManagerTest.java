@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+import java.util.Random;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -16,12 +16,15 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class TransactionManagerTest {
 
-    private Map<UUID, List<TransactionPutRequest>> backingMap;
+    private Random random;
+    private Map<Long, List<TransactionPutRequest>> backingMap;
     private Supplier<List<TransactionPutRequest>> transactionListSupplier;
     private TransactionManager transactionMgr;
+    private Long transactionId;
 
     @BeforeEach
     void setUp() {
+        random = new Random();
         backingMap = TransactionManager.DEFAULT_MAP_SUPPLIER.get();
         transactionListSupplier = TransactionManager.DEFAULT_TRANSACTION_LIST_SUPPLIER;
         transactionMgr = new TransactionManager(backingMap, transactionListSupplier);
@@ -99,9 +102,9 @@ public class TransactionManagerTest {
 
     @Test
     void givenEmptyMapAndBadToken_tryAddTransaction() {
-        final var uuid = UUID.randomUUID();
+        transactionId = random.nextLong();
 
-        final var request = new TransactionPutRequest(uuid, 1, TransactionPutRequest.Action.RETURN);
+        final var request = new TransactionPutRequest(transactionId, 1, TransactionPutRequest.Action.RETURN);
         assertFalse(transactionMgr.addTransactionPlan(request));
     }
 
@@ -111,9 +114,9 @@ public class TransactionManagerTest {
         transactionMgr.newTransaction();
         transactionMgr.newTransaction();
 
-        final var uuid = UUID.randomUUID();
+        transactionId = random.nextLong();
 
-        final var request = new TransactionPutRequest(uuid, 1, TransactionPutRequest.Action.RETURN);
+        final var request = new TransactionPutRequest(transactionId, 1, TransactionPutRequest.Action.RETURN);
         assertFalse(transactionMgr.addTransactionPlan(request));
     }
 
@@ -157,8 +160,8 @@ public class TransactionManagerTest {
 
     @Test
     void givenTokenNotExists_tryPopTransactionPlan() {
-        final var transaction = UUID.randomUUID();
-        final var postRequest = new TransactionPostRequest(transaction, TransactionPostRequest.Operation.COMMIT);
+        transactionId = (long) random.nextInt(Integer.MAX_VALUE);
+        final var postRequest = new TransactionPostRequest(transactionId, TransactionPostRequest.Operation.COMMIT);
 
         assertNull(transactionMgr.getAndEraseTransaction(postRequest));
     }
@@ -193,5 +196,6 @@ public class TransactionManagerTest {
         transactionMgr = null;
         transactionListSupplier = null;
         backingMap = null;
+        random = null;
     }
 }
