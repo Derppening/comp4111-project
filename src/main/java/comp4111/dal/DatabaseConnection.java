@@ -40,7 +40,7 @@ public class DatabaseConnection {
                 createDatabase(con, DB_NAME);
                 useDatabase(con, DB_NAME);
 
-                String tableSpec = "User_Credentials (" +
+                @Language(value = "SQL", prefix = "create table ") String tableSpec = "User_Credentials (" +
                         "    username varchar(40)," +
                         "    hashed_password varchar(64)," +
                         "    salt varchar(32)," +
