@@ -109,6 +109,18 @@ public class TransactionPostHandlerTest extends AbstractServerTest {
     }
 
     @Test
+    void givenZeroLengthPayloadRequest_checkOK() throws Exception {
+        final var target = getDefaultHttpHost(server);
+        final var context = HttpCoreContext.create();
+        final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?token=" + token);
+        request.setEntity(new StringEntity("", ContentType.APPLICATION_JSON));
+        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+            assertEquals(HttpStatus.SC_OK, response.getCode());
+            assertNull(handler.getTxRequest());
+        }
+    }
+
+    @Test
     void givenEmptyPayloadRequest_checkBadRequest() throws Exception {
         @Language("JSON") final var payload = "{}";
 
