@@ -70,7 +70,7 @@ public class BooksGetDataAccess extends Book {
                     String.join(" ", chunk1, chunk2).trim(), params,
                     Book::toJsonBook
             );
-            if (queryLimit == null) {
+            if (queryLimit == null || booksInDb.size() <= queryLimit) {
                 return new BooksGetResult(booksInDb);
             } else {
                 return new BooksGetResult(booksInDb.subList(0, queryLimit));
