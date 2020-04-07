@@ -57,7 +57,7 @@ dependencies {
 
 application {
     // Define the main class for the application.
-    mainClassName = 'comp4111.App'
+    mainClassName = 'comp4111.MainApplication'
 }
 
 java {
