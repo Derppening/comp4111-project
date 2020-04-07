@@ -33,7 +33,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
     private Long transactionId;
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws Exception {
         super.setUp();
 
         handler = new TransactionPutHandler() {
@@ -310,7 +310,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
     }
 
     @AfterEach
-    public void tearDown() {
+    public void tearDown() throws Exception {
         super.tearDown();
 
         txMgr.getAndEraseTransaction(new TransactionPostRequest(transactionId, TransactionPostRequest.Operation.CANCEL));

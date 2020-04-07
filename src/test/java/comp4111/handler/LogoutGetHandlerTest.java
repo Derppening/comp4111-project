@@ -21,7 +21,7 @@ public class LogoutGetHandlerTest extends AbstractServerTest {
     private String token;
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws Exception {
         super.setUp();
 
         handler = new LogoutGetHandler() {
@@ -75,7 +75,7 @@ public class LogoutGetHandlerTest extends AbstractServerTest {
     }
 
     @AfterEach
-    public void tearDown() {
+    public void tearDown() throws Exception {
         super.tearDown();
 
         tokenMgr.removeToken(token);

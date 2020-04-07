@@ -2,8 +2,7 @@ package comp4111;
 
 import comp4111.handler.HttpEndpointHandler;
 import comp4111.handler.HttpPathHandler;
-import org.apache.hc.core5.http.HttpHost;
-import org.apache.hc.core5.http.URIScheme;
+import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.impl.bootstrap.HttpRequester;
 import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
 import org.apache.hc.core5.http.impl.bootstrap.RequesterBootstrap;
@@ -14,6 +13,7 @@ import org.apache.hc.core5.testing.classic.LoggingConnPoolListener;
 import org.apache.hc.core5.testing.classic.LoggingExceptionListener;
 import org.apache.hc.core5.testing.classic.LoggingHttp1StreamListener;
 import org.apache.hc.core5.util.Timeout;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -38,7 +38,7 @@ public abstract class AbstractServerTest {
     protected HttpRequester requester;
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws Exception {
         serverBootstrap = ServerBootstrap.bootstrap()
                 .setSocketConfig(SocketConfig.custom().setSoTimeout(TIMEOUT).build())
                 .setExceptionListener(LoggingExceptionListener.INSTANCE)
@@ -86,7 +86,7 @@ public abstract class AbstractServerTest {
     }
 
     @AfterEach
-    public void tearDown() {
+    public void tearDown() throws Exception {
         if (server != null) {
             server.close(CloseMode.IMMEDIATE);
         }

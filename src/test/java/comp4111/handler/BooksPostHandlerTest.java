@@ -28,7 +28,7 @@ public class BooksPostHandlerTest extends AbstractServerTest {
     private String token;
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws Exception {
         super.setUp();
 
         handler = new BooksPostHandler() {
@@ -278,7 +278,7 @@ public class BooksPostHandlerTest extends AbstractServerTest {
     }
 
     @AfterEach
-    public void tearDown() {
+    public void tearDown() throws Exception {
         super.tearDown();
 
         tokenMgr.removeToken(token);

@@ -32,7 +32,7 @@ public class TransactionPostHandlerTest extends AbstractServerTest {
     private Long transactionId;
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws Exception {
         super.setUp();
 
         handler = new TransactionPostHandler() {
@@ -264,7 +264,7 @@ public class TransactionPostHandlerTest extends AbstractServerTest {
     }
 
     @AfterEach
-    public void tearDown() {
+    public void tearDown() throws Exception {
         super.tearDown();
 
         txMgr.getAndEraseTransaction(new TransactionPostRequest(transactionId, TransactionPostRequest.Operation.CANCEL));

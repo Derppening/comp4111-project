@@ -24,7 +24,7 @@ public class LoginPostHandlerTest extends AbstractServerTest {
     private ObjectMapper objectMapper;
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws Exception {
         super.setUp();
 
         handler = new LoginPostHandler() {
@@ -147,7 +147,7 @@ public class LoginPostHandlerTest extends AbstractServerTest {
     }
 
     @AfterEach
-    public void tearDown() {
+    public void tearDown() throws Exception {
         super.tearDown();
 
         objectMapper = null;
