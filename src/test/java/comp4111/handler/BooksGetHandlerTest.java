@@ -55,7 +55,7 @@ public class BooksGetHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(Method.POST, handler.getHandlePattern());
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getCode());
             assertEquals(handler.getHandleMethod().toString(), response.getHeader("Allow").getValue());
         }
@@ -66,7 +66,7 @@ public class BooksGetHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern());
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -80,7 +80,7 @@ public class BooksGetHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?token=" + badToken);
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -90,7 +90,7 @@ public class BooksGetHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?token=" + token);
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
             assertNull(handler.getQueryId());
             assertNull(handler.getQueryTitle());
@@ -106,7 +106,7 @@ public class BooksGetHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?id=1&token=" + token);
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
             assertEquals(1, handler.getQueryId());
             assertNull(handler.getQueryTitle());
@@ -122,7 +122,7 @@ public class BooksGetHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?title=Alice&token=" + token);
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
             assertNull(handler.getQueryId());
             assertEquals("Alice", handler.getQueryTitle());
@@ -138,7 +138,7 @@ public class BooksGetHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?author=Lewis&token=" + token);
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
             assertNull(handler.getQueryId());
             assertNull(handler.getQueryTitle());
@@ -154,7 +154,7 @@ public class BooksGetHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?limit=10&token=" + token);
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
             assertNull(handler.getQueryId());
             assertNull(handler.getQueryTitle());
@@ -171,7 +171,7 @@ public class BooksGetHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?sortby=id&token=" + token);
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
             assertNull(handler.getQueryId());
             assertNull(handler.getQueryTitle());
@@ -188,7 +188,7 @@ public class BooksGetHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?order=asc&token=" + token);
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
             assertNull(handler.getQueryId());
             assertNull(handler.getQueryTitle());
@@ -204,7 +204,7 @@ public class BooksGetHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?author=Lewis&id=5&token=" + token);
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
             assertEquals(5, handler.getQueryId());
             assertNull(handler.getQueryTitle());
@@ -220,7 +220,7 @@ public class BooksGetHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?limit=10&sortby=id&order=desc&token=" + token);
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
             assertNull(handler.getQueryId());
             assertNull(handler.getQueryTitle());

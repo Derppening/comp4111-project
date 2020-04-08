@@ -1,9 +1,10 @@
 package comp4111;
 
-import comp4111.dal.*;
+import comp4111.dal.DatabaseConnection;
+import comp4111.dal.LoginDataAccess;
 import comp4111.handler.*;
-import comp4111.util.*;
 import comp4111.listener.GenericExceptionListener;
+import comp4111.util.SecurityUtils;
 import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
 import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
 import org.apache.hc.core5.http.io.SocketConfig;
@@ -23,7 +24,7 @@ public class MainApplication {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MainApplication.class);
 
-    private static final Map<String, HttpPathHandler> PATTERN_HANDLER = List.of(
+    static final Map<String, HttpPathHandler> PATTERN_HANDLER = List.of(
             WildcardHandler.getInstance(),
             LoginHandler.getInstance(),
             LogoutHandler.getInstance(),
@@ -64,7 +65,7 @@ public class MainApplication {
     /**
      * A helper function.
      */
-    private static void createDefaultUsers() {
+    static void createDefaultUsers() {
         if (!SecurityUtils.userLogin("user001", "pass001")) { // The database probably does not contain user credentials.
             for (int i = 1; i < 101; i++) {
                 String suffix = String.format("%03d", i);

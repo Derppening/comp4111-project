@@ -68,7 +68,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(Method.GET, handler.getHandlePattern());
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getCode());
             assertEquals(handler.getHandleMethod().toString(), response.getHeader("Allow").getValue());
         }
@@ -79,7 +79,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern());
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -93,7 +93,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern());
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -103,7 +103,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern());
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -116,7 +116,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?token=" + token);
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -132,7 +132,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?token=" + token);
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -148,7 +148,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?token=" + token);
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -164,7 +164,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?token=" + token);
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -181,7 +181,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?token=" + token);
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -198,7 +198,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?token=" + token);
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -215,7 +215,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?token=" + token);
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -236,7 +236,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?token=" + token);
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -253,7 +253,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?token=" + token);
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -270,7 +270,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?token=" + token);
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -284,7 +284,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?token=" + token);
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
             assertEquals(putRequest.getTransaction(), handler.getPutRequest().getTransaction());
             assertEquals(putRequest.getId(), handler.getPutRequest().getId());
@@ -301,7 +301,7 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?token=" + token);
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
             assertEquals(putRequest.getTransaction(), handler.getPutRequest().getTransaction());
             assertEquals(putRequest.getId(), handler.getPutRequest().getId());

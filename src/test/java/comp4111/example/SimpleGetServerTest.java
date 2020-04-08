@@ -20,7 +20,7 @@ public class SimpleGetServerTest extends AbstractServerTest {
         final var target = new HttpHost(URIScheme.HTTP.id, "localhost", server.getLocalPort());
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(Method.GET, rootHandler.getHandlePattern());
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
             final var body = EntityUtils.toString(response.getEntity());
             assertTrue(body.contains("Hello World!"));
@@ -35,7 +35,7 @@ public class SimpleGetServerTest extends AbstractServerTest {
         final var target = new HttpHost(URIScheme.HTTP.id, "localhost", server.getLocalPort());
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(Method.POST, rootHandler.getHandlePattern());
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getCode());
         }
     }
@@ -48,7 +48,7 @@ public class SimpleGetServerTest extends AbstractServerTest {
         final var target = new HttpHost(URIScheme.HTTP.id, "localhost", server.getLocalPort());
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(Method.GET, "/unknown-path");
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_NOT_FOUND, response.getCode());
         }
     }
@@ -61,7 +61,7 @@ public class SimpleGetServerTest extends AbstractServerTest {
         final var target = new HttpHost(URIScheme.HTTP.id, "localhost", server.getLocalPort());
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(Method.POST, "/unknown-path");
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_NOT_FOUND, response.getCode());
         }
     }
