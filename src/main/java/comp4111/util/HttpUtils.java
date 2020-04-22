@@ -1,11 +1,11 @@
 package comp4111.util;
 
-import org.apache.hc.core5.http.ClassicHttpResponse;
-import org.apache.hc.core5.http.HttpStatus;
-import org.apache.hc.core5.http.Method;
+import org.apache.hc.core5.http.*;
+import org.apache.hc.core5.http.message.BasicHttpRequest;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -64,5 +64,57 @@ public class HttpUtils {
             path = nextDelimiter != -1 ? path.substring(nextDelimiter + 1) : "";
         }
         return params;
+    }
+
+    /**
+     * Retrieves the hostname of this server from a request.
+     *
+     * Implementation is referenced from {@link BasicHttpRequest#getUri()}.
+     *
+     * @param request The HTTP request.
+     * @return String representation of the server hostname.
+     */
+    @NotNull
+    public static String getServerHostnameFromRequest(@NotNull HttpRequest request) {
+        final var buf = new StringBuilder();
+        if (request.getAuthority() != null) {
+            buf.append(request.getScheme() != null ? request.getScheme() : URIScheme.HTTP.id).append("://");
+            buf.append(request.getAuthority().getHostName());
+            if (request.getAuthority().getPort() >= 0) {
+                buf.append(":").append(request.getAuthority().getPort());
+            }
+            if (request.getPath() == null) {
+                buf.append("/");
+            } else if (buf.length() > 0 && !request.getPath().startsWith("/")) {
+                buf.append("/");
+            }
+        }
+        return buf.toString();
+    }
+
+    /**
+     * Retrieves the string representation of a request URI.
+     *
+     * This method does not convert the URI into a {@link java.net.URI} instance, and therefore does not throw
+     * {@link java.net.URISyntaxException}.
+     *
+     * Implementation is referenced from {@link BasicHttpRequest#getUri()}.
+     *
+     * @param request The HTTP request.
+     * @return String representation of {@link BasicHttpRequest#getUri()}.
+     */
+    @NotNull
+    public static String getRequestUriString(@NotNull HttpRequest request) {
+        try {
+            return request.getUri().toString();
+        } catch (URISyntaxException e) {
+            final var buf = new StringBuilder();
+            buf.append(getServerHostnameFromRequest(request));
+            if (request.getPath() != null) {
+                buf.append(request.getPath());
+            }
+
+            return buf.toString();
+        }
     }
 }

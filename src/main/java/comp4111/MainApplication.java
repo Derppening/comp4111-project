@@ -24,7 +24,7 @@ public class MainApplication {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MainApplication.class);
 
-    static final Map<String, HttpPathHandler> PATTERN_HANDLER = List.of(
+    public static final Map<String, HttpPathHandler> PATTERN_HANDLER = List.of(
             WildcardHandler.getInstance(),
             LoginHandler.getInstance(),
             LogoutHandler.getInstance(),
@@ -65,7 +65,7 @@ public class MainApplication {
     /**
      * A helper function.
      */
-    static void createDefaultUsers() {
+    public static void createDefaultUsers() {
         if (!SecurityUtils.userLogin("user001", "pass001")) { // The database probably does not contain user credentials.
             for (int i = 1; i < 101; i++) {
                 String suffix = String.format("%03d", i);
