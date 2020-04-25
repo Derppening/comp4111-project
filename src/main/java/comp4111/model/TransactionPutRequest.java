@@ -35,7 +35,7 @@ public class TransactionPutRequest {
             @JsonProperty("Book") long bookId,
             @NotNull @JsonProperty("Action") Action action
     ) {
-        this.transaction = transaction;
+        this.transaction = Objects.requireNonNull(transaction);
         this.id = bookId;
         this.action = Objects.requireNonNull(action);
     }

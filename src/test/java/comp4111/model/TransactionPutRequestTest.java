@@ -7,19 +7,21 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.UUID;
+import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TransactionPutRequestTest {
 
+    private Random random;
     private ObjectMapper objectMapper;
-    private UUID uuid;
+    private Long transactionId;
 
     @BeforeEach
     void setUp() {
+        random = new Random();
         objectMapper = JacksonUtils.getDefaultObjectMapper();
-        uuid = UUID.randomUUID();
+        transactionId = (long) random.nextInt(Integer.MAX_VALUE);
     }
 
     @Test
@@ -42,7 +44,7 @@ public class TransactionPutRequestTest {
     @Test
     void givenJsonMissingBook_checkThrows() {
         @Language("JSON") final var json = "{" +
-                "\"Transaction\": \"" + uuid.toString() + "\", " +
+                "\"Transaction\": \"" + transactionId + "\", " +
                 "\"Action\": \"loan\"" +
                 "}";
 
@@ -52,7 +54,7 @@ public class TransactionPutRequestTest {
     @Test
     void givenJsonMissingAction_checkThrows() {
         @Language("JSON") final var json = "{" +
-                "\"Transaction\": \"" + uuid.toString() + "\", " +
+                "\"Transaction\": \"" + transactionId + "\", " +
                 "\"Book\": 1" +
                 "}";
 
@@ -62,7 +64,7 @@ public class TransactionPutRequestTest {
     @Test
     void givenJsonBadBookType_checkThrows() {
         @Language("JSON") final var json = "{" +
-                "\"Transaction\": \"" + uuid.toString() + "\", " +
+                "\"Transaction\": \"" + transactionId + "\", " +
                 "\"Book\": \"abc\", " +
                 "\"Action\": \"loan\"" +
                 "}";
@@ -73,7 +75,7 @@ public class TransactionPutRequestTest {
     @Test
     void givenJsonBadActionType_checkThrows() {
         @Language("JSON") final var json = "{" +
-                "\"Transaction\": \"" + uuid.toString() + "\", " +
+                "\"Transaction\": \"" + transactionId + "\", " +
                 "\"Book\": 1, " +
                 "\"Action\": \"dance\"" +
                 "}";
@@ -95,7 +97,7 @@ public class TransactionPutRequestTest {
     @Test
     void givenJsonNullBook_checkThrows() {
         @Language("JSON") final var json = "{" +
-                "\"Transaction\": \"" + uuid.toString() + "\", " +
+                "\"Transaction\": \"" + transactionId + "\", " +
                 "\"Book\": null, " +
                 "\"Action\": \"loan\"" +
                 "}";
@@ -106,7 +108,7 @@ public class TransactionPutRequestTest {
     @Test
     void givenJsonNullAction_checkThrows() {
         @Language("JSON") final var json = "{" +
-                "\"Transaction\": \"" + uuid.toString() + "\", " +
+                "\"Transaction\": \"" + transactionId + "\", " +
                 "\"Book\": 1, " +
                 "\"Action\": null" +
                 "}";
@@ -117,11 +119,11 @@ public class TransactionPutRequestTest {
     @Test
     void givenLoanJson_checkCanDeserialize() {
         @Language("JSON") final var json = "{" +
-                "\"Transaction\": \"" + uuid.toString() + "\", " +
+                "\"Transaction\": " + transactionId + ", " +
                 "\"Book\": 1, " +
                 "\"Action\": \"loan\"" +
                 "}";
-        final var expected = new TransactionPutRequest(uuid, 1, TransactionPutRequest.Action.LOAN);
+        final var expected = new TransactionPutRequest(transactionId, 1, TransactionPutRequest.Action.LOAN);
         final var actual = assertDoesNotThrow(() -> objectMapper.readValue(json, TransactionPutRequest.class));
 
         assertEquals(expected.getTransaction(), actual.getTransaction());
@@ -132,11 +134,11 @@ public class TransactionPutRequestTest {
     @Test
     void givenReturnJson_checkCanDeserialize() {
         @Language("JSON") final var json = "{" +
-                "\"Transaction\": \"" + uuid.toString() + "\", " +
+                "\"Transaction\": " + transactionId + ", " +
                 "\"Book\": 1, " +
                 "\"Action\": \"return\"" +
                 "}";
-        final var expected = new TransactionPutRequest(uuid, 1, TransactionPutRequest.Action.RETURN);
+        final var expected = new TransactionPutRequest(transactionId, 1, TransactionPutRequest.Action.RETURN);
         final var actual = assertDoesNotThrow(() -> objectMapper.readValue(json, TransactionPutRequest.class));
 
         assertEquals(expected.getTransaction(), actual.getTransaction());
@@ -146,7 +148,8 @@ public class TransactionPutRequestTest {
 
     @AfterEach
     void tearDown() {
-        uuid = null;
+        transactionId = null;
         objectMapper = null;
+        random = null;
     }
 }

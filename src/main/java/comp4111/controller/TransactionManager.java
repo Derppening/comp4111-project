@@ -13,7 +13,7 @@ import java.util.function.Supplier;
  */
 public class TransactionManager {
 
-    static final Supplier<Map<UUID, List<TransactionPutRequest>>> DEFAULT_MAP_SUPPLIER = () -> Collections.synchronizedMap(new HashMap<>());
+    static final Supplier<Map<Long, List<TransactionPutRequest>>> DEFAULT_MAP_SUPPLIER = () -> Collections.synchronizedMap(new HashMap<>());
     static final Supplier<List<TransactionPutRequest>> DEFAULT_TRANSACTION_LIST_SUPPLIER = () -> Collections.synchronizedList(new ArrayList<>());
 
     @Nullable
@@ -36,7 +36,7 @@ public class TransactionManager {
      * @return The singleton instance of this class.
      */
     @NotNull
-    synchronized static TransactionManager getInstance(@Nullable Map<UUID, List<TransactionPutRequest>> backingMap, @Nullable Supplier<List<TransactionPutRequest>> listCreator) {
+    synchronized static TransactionManager getInstance(@Nullable Map<Long, List<TransactionPutRequest>> backingMap, @Nullable Supplier<List<TransactionPutRequest>> listCreator) {
         if (INSTANCE == null) {
             final var map = backingMap != null ? backingMap : DEFAULT_MAP_SUPPLIER.get();
             final var listSupplier = listCreator != null ? listCreator : DEFAULT_TRANSACTION_LIST_SUPPLIER;
@@ -48,11 +48,13 @@ public class TransactionManager {
     }
 
     @NotNull
-    private final Map<@NotNull UUID, @NotNull List<TransactionPutRequest>> inFlightTransactions;
+    private final Map<@NotNull Long, @NotNull List<TransactionPutRequest>> inFlightTransactions;
     @NotNull
     private final Supplier<@NotNull List<@NotNull TransactionPutRequest>> listCreator;
+    @NotNull
+    private final Random random = new Random();
 
-    TransactionManager(@NotNull Map<UUID, List<TransactionPutRequest>> backingMap, @NotNull Supplier<List<TransactionPutRequest>> listCreator) {
+    TransactionManager(@NotNull Map<Long, List<TransactionPutRequest>> backingMap, @NotNull Supplier<List<TransactionPutRequest>> listCreator) {
         this.inFlightTransactions = backingMap;
         this.listCreator = listCreator;
     }
@@ -63,11 +65,11 @@ public class TransactionManager {
      * @return UUID of the transaction.
      */
     @NotNull
-    public synchronized UUID newTransaction() {
-        final var uuid = UUID.randomUUID();
-        inFlightTransactions.put(uuid, listCreator.get());
+    public synchronized Long newTransaction() {
+        final var id = random.nextLong();
+        inFlightTransactions.put(id, listCreator.get());
 
-        return uuid;
+        return id;
     }
 
     /**

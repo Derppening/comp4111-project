@@ -2,21 +2,24 @@ package comp4111;
 
 import comp4111.handler.HttpEndpointHandler;
 import comp4111.handler.HttpPathHandler;
-import org.apache.hc.core5.http.HttpHost;
-import org.apache.hc.core5.http.URIScheme;
+import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.impl.bootstrap.HttpRequester;
 import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
 import org.apache.hc.core5.http.impl.bootstrap.RequesterBootstrap;
 import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
 import org.apache.hc.core5.http.io.SocketConfig;
+import org.apache.hc.core5.http.message.BasicClassicHttpRequest;
+import org.apache.hc.core5.http.protocol.HttpCoreContext;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.testing.classic.LoggingConnPoolListener;
 import org.apache.hc.core5.testing.classic.LoggingExceptionListener;
 import org.apache.hc.core5.testing.classic.LoggingHttp1StreamListener;
 import org.apache.hc.core5.util.Timeout;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
+import java.io.IOException;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -31,26 +34,35 @@ import static org.junit.jupiter.api.Assumptions.assumeFalse;
  */
 public abstract class AbstractServerTest {
 
-    protected static final Timeout TIMEOUT = Timeout.ofSeconds(10);
+    protected static final Timeout CLIENT_TIMEOUT = Timeout.DISABLED;
+    protected static final Timeout SERVER_TIMEOUT = Timeout.ofSeconds(10);
 
     private ServerBootstrap serverBootstrap;
     protected HttpServer server;
     protected HttpRequester requester;
 
-    @BeforeEach
-    public void setUp() {
-        serverBootstrap = ServerBootstrap.bootstrap()
-                .setSocketConfig(SocketConfig.custom().setSoTimeout(TIMEOUT).build())
-                .setExceptionListener(LoggingExceptionListener.INSTANCE)
-                .setStreamListener(LoggingHttp1StreamListener.INSTANCE);
-        requester = RequesterBootstrap.bootstrap()
+    private HttpRequester createDefaultRequester() {
+        return createDefaultRequester(CLIENT_TIMEOUT);
+    }
+
+    private HttpRequester createDefaultRequester(Timeout socketTimeout) {
+        return RequesterBootstrap.bootstrap()
                 .setSslContext(null)
-                .setSocketConfig(SocketConfig.custom().setSoTimeout(TIMEOUT).build())
+                .setSocketConfig(SocketConfig.custom().setSoTimeout(socketTimeout).build())
                 .setMaxTotal(2)
                 .setDefaultMaxPerRoute(2)
                 .setStreamListener(LoggingHttp1StreamListener.INSTANCE)
                 .setConnPoolListener(LoggingConnPoolListener.INSTANCE)
                 .create();
+    }
+
+    @BeforeEach
+    public void setUp() throws Exception {
+        serverBootstrap = ServerBootstrap.bootstrap()
+                .setSocketConfig(SocketConfig.custom().setSoTimeout(SERVER_TIMEOUT).build())
+                .setExceptionListener(LoggingExceptionListener.INSTANCE)
+                .setStreamListener(LoggingHttp1StreamListener.INSTANCE);
+        requester = createDefaultRequester(SERVER_TIMEOUT);
     }
 
     /**
@@ -85,8 +97,19 @@ public abstract class AbstractServerTest {
         return new HttpHost(URIScheme.HTTP.toString(), "localhost", server.getLocalPort());
     }
 
+    protected ClassicHttpResponse makeRequest(Method method, String path, @Nullable HttpEntity entity) throws HttpException, IOException {
+        final var requester = createDefaultRequester();
+
+        final var target = getDefaultHttpHost(server);
+        final var context = HttpCoreContext.create();
+        final ClassicHttpRequest request = new BasicClassicHttpRequest(method, path);
+        request.setEntity(entity);
+
+        return requester.execute(target, request, SERVER_TIMEOUT, context);
+    }
+
     @AfterEach
-    public void tearDown() {
+    public void tearDown() throws Exception {
         if (server != null) {
             server.close(CloseMode.IMMEDIATE);
         }

@@ -6,24 +6,26 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.UUID;
+import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TransactionPostResultTest {
 
+    private Random random;
     private ObjectMapper objectMapper;
-    private UUID uuid;
+    private Long transactionId;
 
     @BeforeEach
     void setUp() {
+        random = new Random();
         objectMapper = new ObjectMapper();
-        uuid = UUID.randomUUID();
+        transactionId = (long) random.nextInt(Integer.MAX_VALUE);
     }
 
     @Test
     void givenObj_checkCanSerialize() throws JsonProcessingException {
-        final var obj = new TransactionPostResult(uuid);
+        final var obj = new TransactionPostResult(transactionId);
 
         final var actualJson = assertDoesNotThrow(() -> objectMapper.writeValueAsString(obj));
 
@@ -33,14 +35,15 @@ public class TransactionPostResultTest {
 
         final var transactionNode = reparsedJson.get("Transaction");
 
-        assertTrue(transactionNode.isTextual());
+        assertTrue(transactionNode.isIntegralNumber());
 
-        assertEquals(uuid.toString(), transactionNode.textValue());
+        assertEquals(transactionId, transactionNode.longValue());
     }
 
     @AfterEach
     void tearDown() {
-        uuid = null;
+        transactionId = null;
         objectMapper = null;
+        random = null;
     }
 }

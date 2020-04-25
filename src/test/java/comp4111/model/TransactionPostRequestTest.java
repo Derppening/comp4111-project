@@ -8,19 +8,21 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.UUID;
+import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TransactionPostRequestTest {
 
+    private Random random;
     private ObjectMapper objectMapper;
-    private UUID uuid;
+    private Long transactionId;
 
     @BeforeEach
     void setUp() {
+        random = new Random();
         objectMapper = JacksonUtils.getDefaultObjectMapper();
-        uuid = UUID.randomUUID();
+        transactionId = (long) random.nextInt(Integer.MAX_VALUE);
     }
 
     @Test
@@ -42,7 +44,7 @@ public class TransactionPostRequestTest {
     @Test
     void givenJsonMissingOperation_checkThrows() {
         @Language("JSON") final var json = "{" +
-                "\"Transaction\":  \"" + uuid.toString() + "\"" +
+                "\"Transaction\":  \"" + transactionId + "\"" +
                 "}";
 
         assertThrows(JsonMappingException.class, () -> objectMapper.readValue(json, TransactionPostRequest.class));
@@ -51,7 +53,7 @@ public class TransactionPostRequestTest {
     @Test
     void givenJsonBadOperation_checkThrows() {
         @Language("JSON") final var json = "{" +
-                "\"Transaction\":  \"" + uuid.toString() + "\", " +
+                "\"Transaction\":  \"" + transactionId + "\", " +
                 "\"Operation\": \"dance\"" +
                 "}";
 
@@ -71,7 +73,7 @@ public class TransactionPostRequestTest {
     @Test
     void givenJsonNullOperation_checkThrows() {
         @Language("JSON") final var json = "{" +
-                "\"Transaction\":  \"" + uuid.toString() + "\", " +
+                "\"Transaction\":  \"" + transactionId + "\", " +
                 "\"Operation\": null" +
                 "}";
 
@@ -81,10 +83,10 @@ public class TransactionPostRequestTest {
     @Test
     void givenCommitJson_checkCanDeserialize() {
         @Language("JSON") final var json = "{" +
-                "\"Transaction\":  \"" + uuid.toString() + "\", " +
+                "\"Transaction\":  " + transactionId + ", " +
                 "\"Operation\": \"commit\"" +
                 "}";
-        final var expected = new TransactionPostRequest(uuid, TransactionPostRequest.Operation.COMMIT);
+        final var expected = new TransactionPostRequest(transactionId, TransactionPostRequest.Operation.COMMIT);
         final var actual = assertDoesNotThrow(() -> objectMapper.readValue(json, TransactionPostRequest.class));
 
         assertEquals(expected.getTransaction(), actual.getTransaction());
@@ -94,10 +96,10 @@ public class TransactionPostRequestTest {
     @Test
     void givenCancelJson_checkCanDeserialize() {
         @Language("JSON") final var json = "{" +
-                "\"Transaction\":  \"" + uuid.toString() + "\", " +
+                "\"Transaction\":  " + transactionId + ", " +
                 "\"Operation\": \"cancel\"" +
                 "}";
-        final var expected = new TransactionPostRequest(uuid, TransactionPostRequest.Operation.CANCEL);
+        final var expected = new TransactionPostRequest(transactionId, TransactionPostRequest.Operation.CANCEL);
         final var actual = assertDoesNotThrow(() -> objectMapper.readValue(json, TransactionPostRequest.class));
 
         assertEquals(expected.getTransaction(), actual.getTransaction());
@@ -106,7 +108,8 @@ public class TransactionPostRequestTest {
 
     @AfterEach
     void tearDown() {
-        uuid = null;
+        transactionId = null;
         objectMapper = null;
+        random = null;
     }
 }

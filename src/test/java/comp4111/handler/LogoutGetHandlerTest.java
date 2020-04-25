@@ -21,7 +21,7 @@ public class LogoutGetHandlerTest extends AbstractServerTest {
     private String token;
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws Exception {
         super.setUp();
 
         handler = new LogoutGetHandler() {
@@ -47,7 +47,7 @@ public class LogoutGetHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(Method.POST, handler.getHandlePattern() + "?token=" + token);
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getCode());
             assertEquals(handler.getHandleMethod().toString(), response.getHeader("Allow").getValue());
         }
@@ -58,7 +58,7 @@ public class LogoutGetHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern());
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -68,14 +68,14 @@ public class LogoutGetHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?token=" + token);
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
             assertEquals(token, handler.getToken());
         }
     }
 
     @AfterEach
-    public void tearDown() {
+    public void tearDown() throws Exception {
         super.tearDown();
 
         tokenMgr.removeToken(token);

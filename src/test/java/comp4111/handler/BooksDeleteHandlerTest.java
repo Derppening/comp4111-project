@@ -24,7 +24,7 @@ public class BooksDeleteHandlerTest extends AbstractServerTest {
     private String token;
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws Exception {
         super.setUp();
 
         handler = new BooksDeleteHandler() {
@@ -55,7 +55,7 @@ public class BooksDeleteHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(Method.GET, BooksHandler.HANDLE_PATTERN + "/1?token=" + token);
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getCode());
             assertEquals(handler.getHandleMethod().toString(), response.getHeader("Allow").getValue());
         }
@@ -66,7 +66,7 @@ public class BooksDeleteHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), BooksHandler.HANDLE_PATTERN + "?token=" + token);
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertNotEquals(HttpStatus.SC_OK, response.getCode());
         }
     }
@@ -76,7 +76,7 @@ public class BooksDeleteHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), BooksHandler.HANDLE_PATTERN + "/1");
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -90,7 +90,7 @@ public class BooksDeleteHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), BooksHandler.HANDLE_PATTERN + "/1?token=" + badToken);
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -100,7 +100,7 @@ public class BooksDeleteHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), BooksHandler.HANDLE_PATTERN + "/a?token=" + token);
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -110,14 +110,14 @@ public class BooksDeleteHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), BooksHandler.HANDLE_PATTERN + "/1?token=" + token);
-        try (final var response = requester.execute(target, request, TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
             assertEquals(1, handler.getBookId());
         }
     }
 
     @AfterEach
-    public void tearDown() {
+    public void tearDown() throws Exception {
         super.tearDown();
 
         tokenMgr.removeToken(token);

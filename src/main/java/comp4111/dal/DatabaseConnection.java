@@ -14,19 +14,19 @@ public class DatabaseConnection {
     /**
      * The URL to the MySQL database.
      */
-    static final String MYSQL_URL = "jdbc:mysql://localhost:3306";
+    public static final String MYSQL_URL = "jdbc:mysql://localhost:3306";
     /**
      * The username used to login.
      */
-    static final String MYSQL_LOGIN = "root";
+    public static final String MYSQL_LOGIN = "root";
     /**
      * The password of the user.
      */
-    static final String MYSQL_PASSWORD = "comp4111";
+    public static final String MYSQL_PASSWORD = "comp4111";
     /**
      * The name of the database.
      */
-    static final String DB_NAME = "comp4111";
+    public static final String DB_NAME = "comp4111";
 
     static Connection con;
     static DatabaseConnectionPool connectionPool;
@@ -40,7 +40,7 @@ public class DatabaseConnection {
                 createDatabase(con, DB_NAME);
                 useDatabase(con, DB_NAME);
 
-                String tableSpec = "User_Credentials (" +
+                @Language(value = "SQL", prefix = "create table ") String tableSpec = "User_Credentials (" +
                         "    username varchar(40)," +
                         "    hashed_password varchar(64)," +
                         "    salt varchar(32)," +
