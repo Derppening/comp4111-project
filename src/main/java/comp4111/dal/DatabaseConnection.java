@@ -47,7 +47,6 @@ public class DatabaseConnection {
     }
 
     static Connection con;
-    static DatabaseConnectionPool connectionPool;
 
     public static void setConfig() {
         // Create a connection to the MySQL server.
@@ -77,7 +76,6 @@ public class DatabaseConnection {
                         ");";
                 createTable(con, tableSpec);
             }
-            connectionPool = new DatabaseConnectionPool(MYSQL_URL, DB_NAME, MYSQL_LOGIN, MYSQL_PASSWORD);
         } catch (Exception e) {
             LOGGER.error("Error setting up the environment", e);
             System.exit(1);
