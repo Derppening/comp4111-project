@@ -69,3 +69,8 @@ test {
     // Use junit platform for unit tests
     useJUnitPlatform()
 }
+
+wrapper {
+    gradleVersion = "6.2.2"
+    distributionType = Wrapper.DistributionType.ALL
+}
