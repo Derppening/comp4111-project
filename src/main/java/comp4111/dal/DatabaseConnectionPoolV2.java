@@ -165,7 +165,7 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
 
     public long getIdForTransaction(int timeout) throws SQLException {
         final var connection = findOrNewConnection();
-        return connection.getIdForTransaction(timeout, false);
+        return connection.getIdForTransaction(timeout);
     }
 
     @SuppressWarnings("unchecked")

@@ -58,7 +58,11 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         return obj;
     }
 
-    public synchronized long getIdForTransaction(int timeout, boolean isOneTime) throws SQLException {
+    public synchronized long getIdForTransaction(int timeout) throws SQLException {
+        return getIdForTransaction(timeout, false);
+    }
+
+    private synchronized long getIdForTransaction(int timeout, boolean isOneTime) throws SQLException {
         bindConnection(timeout, isOneTime);
 
         if (txInfo == null) {
