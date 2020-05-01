@@ -37,14 +37,14 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     }
 
     public Object execStmt(@NotNull ConnectionFunction block) throws SQLException {
-        openConnection(true, 0);
+        getIdForTransaction(0);
         final var obj = block.accept(connection);
-        closeConnection();
+        commit();
         return obj;
     }
 
     public long getIdForTransaction(int timeout) throws SQLException {
-        openConnection(false, timeout);
+        bindConnection(timeout);
 
         if (txId == NULL_TRANSACTION_ID) {
             throw new IllegalStateException("Transaction ID should be valid");
@@ -70,9 +70,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
             isCommitted = true;
         }
 
-        opInitTime = null;
-        lastUsedTime = Instant.now();
-        txId = NULL_TRANSACTION_ID;
+        unbindConnection();
 
         return isCommitted;
     }
@@ -85,13 +83,10 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         Objects.requireNonNull(opInitTime, "Attempted to rollback an idle connection");
 
         connection.rollback();
-        opInitTime = null;
-        lastUsedTime = Instant.now();
-        txId = NULL_TRANSACTION_ID;
+        unbindConnection();
     }
 
-    @NotNull
-    private Connection openConnection(boolean shouldAutoCommit, int timeout) throws SQLException {
+    private void bindConnection(int timeout) throws SQLException {
         if (timeout < 0) {
             throw new IllegalArgumentException("Timeout must be a non-negative value");
         }
@@ -105,21 +100,14 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         this.timeout = timeout;
         opInitTime = Instant.now();
         lastUsedTime = null;
-        if (!shouldAutoCommit) {
-            txId = Math.abs(SECURE_RANDOM.nextLong());
-        }
-        connection.setAutoCommit(shouldAutoCommit);
-
-        return connection;
+        txId = Math.abs(SECURE_RANDOM.nextLong());
+        connection.setAutoCommit(false);
     }
 
-    private void closeConnection() throws SQLException {
-        if (!connection.getAutoCommit()) {
-            throw new IllegalStateException("Attempted to close a connection which requires manual commit");
-        }
-
+    private void unbindConnection() {
         opInitTime = null;
         lastUsedTime = Instant.now();
+        txId = NULL_TRANSACTION_ID;
     }
 
     @NotNull
