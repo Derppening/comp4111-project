@@ -16,17 +16,32 @@ import java.util.Objects;
 public class DatabaseConnectionV2 implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseConnectionV2.class);
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     static final long NULL_TRANSACTION_ID = -1;
 
     private final Connection connection;
-    private int timeout = -1;
-    @Nullable
-    private Instant opInitTime = null;
+    private boolean isClosed = false;
+
     @Nullable
     private Instant lastUsedTime = null;
-    private long txId = NULL_TRANSACTION_ID;
-    private boolean isClosed = false;
+
+    @Nullable
+    private TransactionInfo txInfo = null;
+
+    private static class TransactionInfo {
+
+        private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
+        public final int timeout;
+        public final long txId;
+
+        @NotNull
+        public final Instant initTime = Instant.now();
+
+        TransactionInfo(int timeout, boolean isOneTime) {
+            this.timeout = timeout;
+            this.txId = isOneTime ? NULL_TRANSACTION_ID : Math.abs(SECURE_RANDOM.nextLong());
+        }
+    }
 
     DatabaseConnectionV2(@NotNull String databaseUrl, @NotNull String user, @NotNull String password) throws SQLException {
         connection = DriverManager.getConnection(databaseUrl, user, password);
@@ -37,32 +52,28 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     }
 
     public Object execStmt(@NotNull ConnectionFunction block) throws SQLException {
-        getIdForTransaction(0);
+        getIdForTransaction(0, true);
         final var obj = block.accept(connection);
         commit();
         return obj;
     }
 
-    public long getIdForTransaction(int timeout) throws SQLException {
-        bindConnection(timeout);
+    public long getIdForTransaction(int timeout, boolean isOneTime) throws SQLException {
+        bindConnection(timeout, isOneTime);
 
-        if (txId == NULL_TRANSACTION_ID) {
+        if (txInfo == null) {
             throw new IllegalStateException("Transaction ID should be valid");
         }
-        return txId;
+        return txInfo.txId;
     }
 
     public boolean commit() throws SQLException {
-        if (connection.getAutoCommit()) {
-            throw new IllegalStateException("Attempted to commit an auto-commit transaction");
-        }
+        Objects.requireNonNull(txInfo, "Attempted to commit an unbound connection");
 
-        Objects.requireNonNull(opInitTime, "Attempted to commit an idle connection");
-
-        final var timeSinceInit = Instant.now().toEpochMilli() - opInitTime.toEpochMilli();
+        final var timeSinceInit = Instant.now().toEpochMilli() - txInfo.initTime.toEpochMilli();
 
         final boolean isCommitted;
-        if (timeout > 0 && timeSinceInit > timeout) {
+        if (txInfo.timeout > 0 && timeSinceInit > txInfo.timeout) {
             connection.rollback();
             isCommitted = false;
         } else {
@@ -76,38 +87,31 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     }
 
     public void rollback() throws SQLException {
-        if (connection.getAutoCommit()) {
-            throw new IllegalStateException("Attempted to rollback an auto-commit transaction");
-        }
-
-        Objects.requireNonNull(opInitTime, "Attempted to rollback an idle connection");
+        Objects.requireNonNull(txInfo, "Attempted to rollback an unbound connection");
 
         connection.rollback();
         unbindConnection();
     }
 
-    private void bindConnection(int timeout) throws SQLException {
+    private void bindConnection(int timeout, boolean isOneTime) throws SQLException {
         if (timeout < 0) {
             throw new IllegalArgumentException("Timeout must be a non-negative value");
         }
         if (!connection.isValid(0)) {
             throw new IllegalStateException("Attempted to open an already-closed connection");
         }
-        if (opInitTime != null) {
-            throw new IllegalStateException("Attempted to re-use an in-use connection");
+        if (txInfo != null) {
+            throw new IllegalStateException("Attempted to bind a bound connection");
         }
 
-        this.timeout = timeout;
-        opInitTime = Instant.now();
+        txInfo = new TransactionInfo(timeout, isOneTime);
         lastUsedTime = null;
-        txId = Math.abs(SECURE_RANDOM.nextLong());
         connection.setAutoCommit(false);
     }
 
     private void unbindConnection() {
-        opInitTime = null;
         lastUsedTime = Instant.now();
-        txId = NULL_TRANSACTION_ID;
+        txInfo = null;
     }
 
     @NotNull
@@ -115,9 +119,12 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         return connection;
     }
 
-    @Nullable
-    Long getTransactionId() {
-        return txId != NULL_TRANSACTION_ID ? txId : null;
+    long getTransactionId() {
+        if (txInfo == null) {
+            throw new IllegalStateException("Cannot get transaction ID of an unbound connection");
+        }
+
+        return txInfo.txId;
     }
 
     @Nullable
@@ -126,7 +133,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     }
 
     boolean isInUse() {
-        return lastUsedTime == null;
+        return txInfo != null;
     }
 
     boolean isClosed() {

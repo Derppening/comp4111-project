@@ -165,15 +165,12 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
 
     public long getIdForTransaction(int timeout) throws SQLException {
         final var connection = findOrNewConnection();
-        return connection.getIdForTransaction(timeout);
+        return connection.getIdForTransaction(timeout, false);
     }
 
     @SuppressWarnings("unchecked")
     public <T> T putTransactionWithId(long id, @NotNull ConnectionFunction block) throws SQLException {
-        final var connection = findConnection(it -> {
-            final var txId = it.getTransactionId();
-            return txId != null && txId == id;
-        });
+        final var connection = findConnection(it -> it.isInUse() && it.getTransactionId() == id);
 
         if (connection != null) {
             return (T) block.accept(connection.getConnection());
@@ -183,10 +180,7 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
     }
 
     public boolean executeTransaction(long id, boolean shouldCommit) throws SQLException {
-        final var connection = findConnection(it -> {
-            final var txId = it.getTransactionId();
-            return txId != null && txId == id;
-        });
+        final var connection = findConnection(it -> it.isInUse() && it.getTransactionId() == id);
 
         if (connection != null) {
             if (shouldCommit) {
