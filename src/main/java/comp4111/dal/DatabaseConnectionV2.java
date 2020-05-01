@@ -51,14 +51,14 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         this(String.format("%s/%s", url, database), username, password);
     }
 
-    public Object execStmt(@NotNull ConnectionFunction block) throws SQLException {
+    public synchronized Object execStmt(@NotNull ConnectionFunction block) throws SQLException {
         getIdForTransaction(0, true);
         final var obj = block.accept(connection);
         commit();
         return obj;
     }
 
-    public long getIdForTransaction(int timeout, boolean isOneTime) throws SQLException {
+    public synchronized long getIdForTransaction(int timeout, boolean isOneTime) throws SQLException {
         bindConnection(timeout, isOneTime);
 
         if (txInfo == null) {
@@ -67,7 +67,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         return txInfo.txId;
     }
 
-    public boolean commit() throws SQLException {
+    public synchronized boolean commit() throws SQLException {
         Objects.requireNonNull(txInfo, "Attempted to commit an unbound connection");
 
         final var timeSinceInit = Instant.now().toEpochMilli() - txInfo.initTime.toEpochMilli();
@@ -86,14 +86,14 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         return isCommitted;
     }
 
-    public void rollback() throws SQLException {
+    public synchronized void rollback() throws SQLException {
         Objects.requireNonNull(txInfo, "Attempted to rollback an unbound connection");
 
         connection.rollback();
         unbindConnection();
     }
 
-    private void bindConnection(int timeout, boolean isOneTime) throws SQLException {
+    private synchronized void bindConnection(int timeout, boolean isOneTime) throws SQLException {
         if (timeout < 0) {
             throw new IllegalArgumentException("Timeout must be a non-negative value");
         }
@@ -109,17 +109,21 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         connection.setAutoCommit(false);
     }
 
-    private void unbindConnection() {
+    private synchronized void unbindConnection() {
         lastUsedTime = Instant.now();
         txInfo = null;
     }
 
     @NotNull
-    public Connection getConnection() {
+    public synchronized Connection getConnection() {
+        if (txInfo == null) {
+            throw new IllegalStateException("Cannot get connection of an unbound connection");
+        }
+
         return connection;
     }
 
-    long getTransactionId() {
+    synchronized long getTransactionId() {
         if (txInfo == null) {
             throw new IllegalStateException("Cannot get transaction ID of an unbound connection");
         }
@@ -128,20 +132,20 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     }
 
     @Nullable
-    Instant getLastUsedTime() {
+    synchronized Instant getLastUsedTime() {
         return lastUsedTime;
     }
 
-    boolean isInUse() {
+    synchronized boolean isInUse() {
         return txInfo != null;
     }
 
-    boolean isClosed() {
+    synchronized boolean isClosed() {
         return isClosed;
     }
 
     @Override
-    public void close() throws Exception {
+    public synchronized void close() throws Exception {
         if (isInUse()) {
             commit();
         }
