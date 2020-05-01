@@ -45,6 +45,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
 
     DatabaseConnectionV2(@NotNull String databaseUrl, @NotNull String user, @NotNull String password) throws SQLException {
         connection = DriverManager.getConnection(databaseUrl, user, password);
+        connection.setAutoCommit(false);
     }
 
     DatabaseConnectionV2(@NotNull String url, @NotNull String database, @NotNull String username, @NotNull String password) throws SQLException {
@@ -128,10 +129,13 @@ public class DatabaseConnectionV2 implements AutoCloseable {
 
         txInfo = new TransactionInfo(timeout, isOneTime);
         lastUsedTime = null;
-        connection.setAutoCommit(false);
     }
 
     private synchronized void unbindConnection() {
+        if (txInfo == null) {
+            throw new IllegalStateException("Attempted to unbind a unbound connection");
+        }
+
         lastUsedTime = Instant.now();
         txInfo = null;
     }
@@ -169,7 +173,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     @Override
     public synchronized void close() throws Exception {
         if (isInUse()) {
-            commit();
+            rollback();
         }
         connection.close();
         isClosed = true;
