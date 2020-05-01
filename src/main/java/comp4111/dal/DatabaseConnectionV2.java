@@ -71,18 +71,32 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         return txInfo.txId;
     }
 
-    public synchronized boolean commit() throws SQLException {
+    public synchronized boolean commit() {
         Objects.requireNonNull(txInfo, "Attempted to commit an unbound connection");
 
         final var timeSinceInit = Instant.now().toEpochMilli() - txInfo.initTime.toEpochMilli();
 
-        final boolean isCommitted;
+        boolean isCommitted;
         if (txInfo.timeout > 0 && timeSinceInit > txInfo.timeout) {
-            connection.rollback();
+            try {
+                connection.rollback();
+            } catch (SQLException e) {
+                LOGGER.error("Unable to rollback expired transaction", e);
+            }
             isCommitted = false;
         } else {
-            connection.commit();
-            isCommitted = true;
+            try {
+                connection.commit();
+                isCommitted = true;
+            } catch (SQLException e) {
+                LOGGER.error("Unable to commit transaction", e);
+                isCommitted = false;
+                try {
+                    connection.rollback();
+                } catch (SQLException ee) {
+                    LOGGER.error("Unable to rollback transaction", ee);
+                }
+            }
         }
 
         unbindConnection();
@@ -90,10 +104,14 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         return isCommitted;
     }
 
-    public synchronized void rollback() throws SQLException {
+    public synchronized void rollback() {
         Objects.requireNonNull(txInfo, "Attempted to rollback an unbound connection");
 
-        connection.rollback();
+        try {
+            connection.rollback();
+        } catch (SQLException e) {
+            LOGGER.error("Unable to rollback transaction", e);
+        }
         unbindConnection();
     }
 
