@@ -1,6 +1,7 @@
 package comp4111;
 
 import comp4111.dal.DatabaseConnection;
+import comp4111.dal.DatabaseConnectionPoolV2;
 import comp4111.dal.LoginDataAccess;
 import comp4111.handler.*;
 import comp4111.listener.GenericExceptionListener;
@@ -45,6 +46,7 @@ public class MainApplication {
         PATTERN_HANDLER.forEach(serverBuilder::register);
 
         final HttpServer server = serverBuilder.create();
+        DatabaseConnectionPoolV2.getInstance();
 
         try {
             // Set up the database connection.

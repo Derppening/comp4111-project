@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
@@ -22,14 +21,16 @@ public class LoginDataAccess extends Credentials {
         final String hashedPassword = SecurityUtils.calculateHash(password, salt, "SHA-256");
         Credentials c = new Credentials(username, hashedPassword, salt);
 
-        try (
-                Connection con = DatabaseConnection.getConnection();
-                PreparedStatement stmt = con.prepareStatement("insert into User_Credentials values(?, ?, ?)")
-        ) {
-            stmt.setString(1, c.getUsername());
-            stmt.setString(2, c.getHashedPassword());
-            stmt.setString(3, c.getSalt());
-            stmt.execute();
+        try {
+            DatabaseConnectionPoolV2.getInstance().execStmt(connection -> {
+                try (var stmt = connection.prepareStatement("INSERT INTO User_Credentials VALUES(?, ?, ?)")) {
+                    stmt.setString(1, c.getUsername());
+                    stmt.setString(2, c.getHashedPassword());
+                    stmt.setString(3, c.getSalt());
+                    stmt.execute();
+                }
+                return null;
+            });
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -43,7 +44,7 @@ public class LoginDataAccess extends Credentials {
         // Create a connection to a specific database in the MySQL server.
         try (Connection con = DatabaseConnection.getConnection()) {
             String[] result = new String[2];
-            final var credentialsInDb = QueryUtils.queryTable(con, "User_Credentials",
+            final var credentialsInDb = QueryUtils.queryTable(null, "User_Credentials",
                     "", new ArrayList<>(), Credentials::toCredentials);
             credentialsInDb.forEach(c -> {
                 if (c.getUsername().equals(username)) {
