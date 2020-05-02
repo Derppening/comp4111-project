@@ -24,13 +24,13 @@ public class TransactionPutDataAccess {
                     transactionPutResult = BooksPutDataAccess.updateBook(connection, bookId, true);
                 }
 
-                if (transactionPutResult != 0) {
-                    connection.rollback();
-                    DatabaseConnectionPoolV2.getInstance().executeTransaction(transaction, false);
-                }
-
                 return transactionPutResult;
             });
+
+            if (res != null && res != 0) {
+                DatabaseConnectionPoolV2.getInstance().executeTransaction(transaction, false);
+            }
+
             return res != null ? res : 1;
         } catch (SQLException e) {
             LOGGER.error("Error starting a new transaction", e);
