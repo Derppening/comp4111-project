@@ -36,6 +36,9 @@ public abstract class BooksPostHandler extends HttpEndpointHandler {
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
     @Nullable
+    private String token;
+
+    @Nullable
     private Book book;
 
     @NotNull
@@ -53,7 +56,7 @@ public abstract class BooksPostHandler extends HttpEndpointHandler {
         checkMethod(request, response);
 
         final var queryParams = HttpUtils.parseQueryParams(request.getPath(), response);
-        final var token = checkToken(queryParams, response);
+        token = checkToken(queryParams, response);
 
         final var payload = getPayload(request, response);
 
@@ -71,6 +74,11 @@ public abstract class BooksPostHandler extends HttpEndpointHandler {
                 book.getAuthor(),
                 book.getPublisher(),
                 book.getYear());
+    }
+
+    @NotNull
+    protected String getToken() {
+        return Objects.requireNonNull(token);
     }
 
     @NotNull
