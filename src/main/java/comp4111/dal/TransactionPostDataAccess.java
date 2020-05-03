@@ -5,8 +5,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.SQLException;
-
 public class TransactionPostDataAccess {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionPostDataAccess.class);
@@ -21,11 +19,6 @@ public class TransactionPostDataAccess {
     }
 
     public static boolean commitOrCancelTransaction(Long transaction, @NotNull TransactionPostRequest.Operation operation) {
-        try {
-            return DatabaseConnectionPoolV2.getInstance().executeTransaction(transaction, operation == TransactionPostRequest.Operation.COMMIT);
-        } catch (SQLException e) {
-            LOGGER.error("Error committing or cancelling the transaction", e);
-            return false;
-        }
+        return DatabaseConnectionPoolV2.getInstance().executeTransaction(transaction, operation == TransactionPostRequest.Operation.COMMIT);
     }
 }

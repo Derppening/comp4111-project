@@ -181,7 +181,7 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
         }
     }
 
-    public boolean executeTransaction(long id, boolean shouldCommit) throws SQLException {
+    public boolean executeTransaction(long id, boolean shouldCommit) {
         final var connection = findConnection(it -> it.isInUse() && it.getTransactionId() == id);
 
         if (connection != null) {
