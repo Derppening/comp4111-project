@@ -157,6 +157,7 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
     }
 
     @SuppressWarnings("unchecked")
+    @Nullable
     public <T> T execStmt(@NotNull ConnectionFunction block) throws SQLException {
         final var connection = findOrNewConnection();
 
@@ -169,6 +170,7 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
     }
 
     @SuppressWarnings("unchecked")
+    @Nullable
     public <T> T putTransactionWithId(long id, @NotNull ConnectionFunction block) throws SQLException {
         final var connection = findConnection(it -> it.isInUse() && it.getTransactionId() == id);
 

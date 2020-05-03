@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class BooksPutDataAccess extends Book {
 
@@ -26,13 +27,13 @@ public class BooksPutDataAccess extends Book {
             return 1;
         } else {
             try {
-                return DatabaseConnectionPoolV2.getInstance().execStmt(connection -> {
+                return Objects.requireNonNull(DatabaseConnectionPoolV2.getInstance().execStmt(connection -> {
                     try (var stmt = connection.prepareStatement("UPDATE Book SET available = ? WHERE id = ?")) {
                         stmt.setBoolean(1, available);
                         stmt.setLong(2, id);
                         return stmt.executeUpdate() > 0 ? 0 : 1;
                     }
-                });
+                }));
             } catch (SQLException e) {
                 e.printStackTrace();
             }
