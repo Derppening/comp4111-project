@@ -144,15 +144,6 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         txInfo = null;
     }
 
-    @NotNull
-    public synchronized Connection getConnection() {
-        if (txInfo == null) {
-            throw new IllegalStateException("Cannot get connection of an unbound connection");
-        }
-
-        return connection;
-    }
-
     synchronized long getTransactionId() {
         if (txInfo == null) {
             throw new IllegalStateException("Cannot get transaction ID of an unbound connection");
