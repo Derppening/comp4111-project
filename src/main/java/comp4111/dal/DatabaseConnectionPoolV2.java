@@ -201,5 +201,6 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
                 e.printStackTrace();
             }
         });
+        pool.clear();
     }
 }
