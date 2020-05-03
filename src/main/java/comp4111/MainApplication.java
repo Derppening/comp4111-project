@@ -29,10 +29,10 @@ public class MainApplication {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MainApplication.class);
 
-    public static final Map<String, AsyncServerRequestHandler<Message<HttpRequest, Void>>> PATTERN_HANDLER = List.of(
-            WildcardHandler.getInstance()
-//            LoginHandler.getInstance(),
-//            LogoutHandler.getInstance(),
+    public static final Map<String, AsyncServerRequestHandler<Message<HttpRequest, String>>> PATTERN_HANDLER = List.of(
+            WildcardHandler.getInstance(),
+            LoginHandler.getInstance(),
+            LogoutHandler.getInstance()
 //            BooksHandler.getInstance(),
 //            TransactionHandler.getInstance()
     ).stream().collect(Collectors.toUnmodifiableMap(HttpAsyncPathHandler::getHandlePattern, Function.identity()));

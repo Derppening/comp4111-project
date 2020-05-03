@@ -5,7 +5,7 @@ import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.nio.AsyncRequestConsumer;
 import org.apache.hc.core5.http.nio.AsyncResponseProducer;
 import org.apache.hc.core5.http.nio.AsyncServerRequestHandler;
-import org.apache.hc.core5.http.nio.entity.NoopEntityConsumer;
+import org.apache.hc.core5.http.nio.entity.StringAsyncEntityConsumer;
 import org.apache.hc.core5.http.nio.support.AsyncResponseBuilder;
 import org.apache.hc.core5.http.nio.support.BasicRequestConsumer;
 import org.apache.hc.core5.http.protocol.HttpContext;
@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
  * a generic path handler for all methods, or a dispatcher to dispatch the request to a
  * {@link HttpAsyncEndpointHandler}.
  */
-public abstract class HttpAsyncPathHandler implements AsyncServerRequestHandler<Message<HttpRequest, Void>>, HttpPath {
+public abstract class HttpAsyncPathHandler implements AsyncServerRequestHandler<Message<HttpRequest, String>>, HttpPath {
 
     protected final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 
@@ -48,12 +48,12 @@ public abstract class HttpAsyncPathHandler implements AsyncServerRequestHandler<
     public abstract HttpPath getHandlerDefinition();
 
     @Override
-    public AsyncRequestConsumer<Message<HttpRequest, Void>> prepare(HttpRequest request, EntityDetails entityDetails, HttpContext context) {
-        return new BasicRequestConsumer<>(entityDetails != null ? new NoopEntityConsumer() : null);
+    public AsyncRequestConsumer<Message<HttpRequest, String>> prepare(HttpRequest request, EntityDetails entityDetails, HttpContext context) {
+        return new BasicRequestConsumer<>(entityDetails != null ? new StringAsyncEntityConsumer() : null);
     }
 
     @Override
-    public void handle(Message<HttpRequest, Void> requestObject, ResponseTrigger responseTrigger, HttpContext context) throws HttpException, IOException {
+    public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context) throws HttpException, IOException {
         dispatchByMethod(requestObject, responseTrigger, context, Objects.requireNonNull(getMethodLut()));
     }
 
@@ -75,7 +75,7 @@ public abstract class HttpAsyncPathHandler implements AsyncServerRequestHandler<
      * @param context {@link HttpContext} of the request. Usually the third argument of {@link AsyncServerRequestHandler#handle}.
      * @param lut Lookup table for matching a {@link Method} to its corresponding {@link HttpAsyncEndpointHandler} creator.
      */
-    private static void dispatchByMethod(Message<HttpRequest, Void> requestObject, ResponseTrigger responseTrigger, HttpContext context, Map<Method, Supplier<HttpAsyncEndpointHandler>> lut) throws HttpException, IOException {
+    private static void dispatchByMethod(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context, Map<Method, Supplier<HttpAsyncEndpointHandler>> lut) throws HttpException, IOException {
         final AsyncResponseProducer response;
         final Method method = HttpUtils.toMethodOrNull(requestObject.getHead().getMethod());
         Supplier<HttpAsyncEndpointHandler> handler = null;
@@ -88,7 +88,7 @@ public abstract class HttpAsyncPathHandler implements AsyncServerRequestHandler<
             handler.get().handle(requestObject, responseTrigger, context);
         } else {
             response = AsyncResponseBuilder.create(HttpStatus.SC_METHOD_NOT_ALLOWED)
-                    .setHeader(HttpHeaders.ACCEPT, lut.keySet().stream().map(Enum::toString).collect(Collectors.joining(",")))
+                    .setHeader(HttpHeaders.ALLOW, lut.keySet().stream().map(Enum::toString).collect(Collectors.joining(",")))
                     .build();
             responseTrigger.submitResponse(response, context);
         }

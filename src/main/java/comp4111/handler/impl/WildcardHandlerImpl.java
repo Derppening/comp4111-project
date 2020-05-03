@@ -21,7 +21,7 @@ public class WildcardHandlerImpl extends WildcardHandler {
     }
 
     @Override
-    public void handle(Message<HttpRequest, Void> requestObject, ResponseTrigger responseTrigger, HttpContext context)
+    public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context)
             throws HttpException, IOException {
         final AsyncResponseProducer response;
 
