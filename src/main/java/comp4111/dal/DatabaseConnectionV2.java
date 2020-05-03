@@ -54,7 +54,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
 
     public synchronized Object execStmt(@NotNull ConnectionFunction block) throws SQLException {
         getIdForTransaction(0, true);
-        final var obj = block.accept(connection);
+        final var obj = execTransaction(block);
         commit();
         return obj;
     }
@@ -70,6 +70,10 @@ public class DatabaseConnectionV2 implements AutoCloseable {
             throw new IllegalStateException("Transaction ID should be valid");
         }
         return txInfo.txId;
+    }
+
+    public synchronized Object execTransaction(@NotNull ConnectionFunction block) throws SQLException {
+        return block.accept(connection);
     }
 
     public synchronized boolean commit() {
