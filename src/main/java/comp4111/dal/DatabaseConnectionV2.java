@@ -53,6 +53,8 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     }
 
     public synchronized Object execStmt(@NotNull ConnectionFunction block) throws SQLException {
+        LOGGER.trace("execStmt(block=...)");
+
         getIdForTransaction(0, true);
         final var obj = execTransaction(block);
         commit();
@@ -64,6 +66,8 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     }
 
     private synchronized long getIdForTransaction(int timeout, boolean isOneTime) throws SQLException {
+        LOGGER.trace("getIdForTransaction(timeout={}, isOneTime={})", timeout, isOneTime);
+
         bindConnection(timeout, isOneTime);
 
         if (txInfo == null) {
@@ -73,10 +77,13 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     }
 
     public synchronized Object execTransaction(@NotNull ConnectionFunction block) throws SQLException {
+        LOGGER.trace("execTransaction(block=...)");
         return block.accept(connection);
     }
 
     public synchronized boolean commit() {
+        LOGGER.trace("commit()");
+
         Objects.requireNonNull(txInfo, "Attempted to commit an unbound connection");
 
         final var timeSinceInit = Instant.now().toEpochMilli() - txInfo.initTime.toEpochMilli();
@@ -110,6 +117,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     }
 
     public synchronized void rollback() {
+        LOGGER.trace("rollback()");
         Objects.requireNonNull(txInfo, "Attempted to rollback an unbound connection");
 
         try {
@@ -121,6 +129,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     }
 
     private synchronized void bindConnection(int timeout, boolean isOneTime) throws SQLException {
+        LOGGER.trace("bindConnection(timeout={}, isOneTime={})", timeout, isOneTime);
         if (timeout < 0) {
             throw new IllegalArgumentException("Timeout must be a non-negative value");
         }
@@ -136,6 +145,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     }
 
     private synchronized void unbindConnection() {
+        LOGGER.trace("unbindConnection()");
         if (txInfo == null) {
             throw new IllegalStateException("Attempted to unbind a unbound connection");
         }
@@ -167,6 +177,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
 
     @Override
     public synchronized void close() throws Exception {
+        LOGGER.trace("close()");
         if (isInUse()) {
             rollback();
         }
