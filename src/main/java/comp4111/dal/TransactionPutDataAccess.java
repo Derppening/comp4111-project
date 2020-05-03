@@ -16,7 +16,7 @@ public class TransactionPutDataAccess {
      */
     public static int pushAction(@NotNull Long transaction, long bookId, @NotNull TransactionPutRequest.Action action) {
         try {
-            final var res = DatabaseConnectionPoolV2.getInstance().<Integer>putTransactionWithId(transaction, connection -> {
+            final var res = DatabaseConnectionPoolV2.getInstance().putTransactionWithId(transaction, connection -> {
                 int transactionPutResult;
                 if (action == TransactionPutRequest.Action.LOAN) {
                     transactionPutResult = BooksPutDataAccess.updateBook(connection, bookId, false);

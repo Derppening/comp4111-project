@@ -30,7 +30,7 @@ public class QueryUtils {
     public static <T> List<T> queryTable(@Nullable final Connection con, @NotNull String tableName,
                                          @NotNull String ext, @NotNull List<Object> params,
                                          @NotNull Function<ResultSet, T> transform) throws SQLException {
-        final ConnectionFunction block = connection -> {
+        final ConnectionFunction<List<T>> block = connection -> {
             final var list = new ArrayList<T>();
 
             @Language("SQL") final String query;
@@ -67,7 +67,7 @@ public class QueryUtils {
         };
 
         if (con != null) {
-            return (List<T>) block.accept(con);
+            return block.apply(con);
         } else {
             return DatabaseConnectionPoolV2.getInstance().execStmt(block);
         }
