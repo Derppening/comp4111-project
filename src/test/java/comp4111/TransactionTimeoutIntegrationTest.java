@@ -2,6 +2,7 @@ package comp4111;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import comp4111.dal.DatabaseConnection;
+import comp4111.dal.DatabaseConnectionPoolV2;
 import comp4111.handler.*;
 import comp4111.model.Book;
 import comp4111.model.LoginRequest;
@@ -154,6 +155,7 @@ public class TransactionTimeoutIntegrationTest extends AbstractServerTest {
         super.tearDown();
 
         DatabaseUtils.dropDatabase(DatabaseConnection.DB_NAME);
+        DatabaseConnectionPoolV2.getInstance().close();
         DatabaseConnection.cleanUp();
 
         token = null;
