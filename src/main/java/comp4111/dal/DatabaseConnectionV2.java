@@ -21,8 +21,8 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     private final Connection connection;
     private boolean isClosed = false;
 
-    @Nullable
-    private Instant lastUsedTime = null;
+    @NotNull
+    private Instant lastUsedTime;
 
     @Nullable
     private TransactionInfo txInfo = null;
@@ -46,6 +46,8 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     DatabaseConnectionV2(@NotNull String databaseUrl, @NotNull String user, @NotNull String password) throws SQLException {
         connection = DriverManager.getConnection(databaseUrl, user, password);
         connection.setAutoCommit(false);
+
+        lastUsedTime = Instant.now();
     }
 
     DatabaseConnectionV2(@NotNull String url, @NotNull String database, @NotNull String username, @NotNull String password) throws SQLException {
@@ -141,7 +143,6 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         }
 
         txInfo = new TransactionInfo(timeout, isOneTime);
-        lastUsedTime = null;
     }
 
     private synchronized void unbindConnection() {
@@ -162,7 +163,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         return txInfo.txId;
     }
 
-    @Nullable
+    @NotNull
     synchronized Instant getLastUsedTime() {
         return lastUsedTime;
     }

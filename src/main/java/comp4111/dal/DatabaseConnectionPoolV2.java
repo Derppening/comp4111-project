@@ -67,13 +67,14 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
             @Override
             public void run() {
                 final var now = Instant.now().toEpochMilli();
+
                 synchronized (pool) {
                     final var initSize = pool.size();
 
                     pool.stream()
                             .filter(con -> {
                                 final var lastUsedTime = con.getLastUsedTime();
-                                return lastUsedTime != null && now - lastUsedTime.toEpochMilli() > GC_CONNECTION_EVICT_TIME;
+                                return !con.isInUse() && now - lastUsedTime.toEpochMilli() > GC_CONNECTION_EVICT_TIME;
                             })
                             .forEach(it -> {
                                 try {
