@@ -173,7 +173,7 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
         final var connection = findConnection(it -> it.isInUse() && it.getTransactionId() == id);
 
         if (connection != null) {
-            return (T) block.accept(connection.getConnection());
+            return (T) connection.execTransaction(block);
         } else {
             return null;
         }
