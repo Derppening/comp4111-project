@@ -6,11 +6,8 @@ import comp4111.dal.LoginDataAccess;
 import comp4111.handler.*;
 import comp4111.listener.GenericExceptionCallback;
 import comp4111.util.SecurityUtils;
-import org.apache.hc.core5.http.HttpRequest;
-import org.apache.hc.core5.http.Message;
 import org.apache.hc.core5.http.impl.bootstrap.AsyncServerBootstrap;
 import org.apache.hc.core5.http.impl.bootstrap.HttpAsyncServer;
-import org.apache.hc.core5.http.nio.AsyncServerRequestHandler;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.hc.core5.util.TimeValue;
@@ -29,7 +26,7 @@ public class MainApplication {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MainApplication.class);
 
-    public static final Map<String, AsyncServerRequestHandler<Message<HttpRequest, String>>> PATTERN_HANDLER = List.of(
+    public static final Map<String, HttpAsyncPathHandler> PATTERN_HANDLER = List.of(
             WildcardHandler.getInstance(),
             LoginHandler.getInstance(),
             LogoutHandler.getInstance(),

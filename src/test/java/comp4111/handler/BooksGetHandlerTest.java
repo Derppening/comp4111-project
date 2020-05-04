@@ -4,6 +4,7 @@ import comp4111.AbstractServerTest;
 import comp4111.controller.TokenManager;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.message.BasicClassicHttpRequest;
+import org.apache.hc.core5.http.nio.support.AsyncResponseBuilder;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.apache.hc.core5.http.protocol.HttpCoreContext;
 import org.jetbrains.annotations.NotNull;
@@ -34,14 +35,15 @@ public class BooksGetHandlerTest extends AbstractServerTest {
             }
 
             @Override
-            public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
+            public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context) throws HttpException, IOException {
                 try {
-                    super.handle(request, response, context);
+                    super.handle(requestObject, responseTrigger, context);
                 } catch (IllegalArgumentException e) {
                     return;
                 }
 
-                response.setCode(HttpStatus.SC_OK);
+                final var response = AsyncResponseBuilder.create(HttpStatus.SC_OK).build();
+                responseTrigger.submitResponse(response, context);
             }
         };
         tokenMgr = TokenManager.getInstance();

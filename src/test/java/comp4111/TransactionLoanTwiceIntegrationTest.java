@@ -47,7 +47,7 @@ public class TransactionLoanTwiceIntegrationTest extends AbstractServerTest {
         MainApplication.createDefaultUsers();
 
         {
-            HttpPathHandler[] handlers = new HttpPathHandler[MainApplication.PATTERN_HANDLER.size()];
+            final var handlers = new HttpAsyncPathHandler[MainApplication.PATTERN_HANDLER.size()];
             MainApplication.PATTERN_HANDLER.values().toArray(handlers);
             registerAndStartServer(handlers);
         }

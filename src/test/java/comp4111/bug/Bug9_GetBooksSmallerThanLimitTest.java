@@ -6,7 +6,7 @@ import comp4111.DatabaseUtils;
 import comp4111.MainApplication;
 import comp4111.dal.DatabaseConnection;
 import comp4111.handler.BooksHandler;
-import comp4111.handler.HttpPathHandler;
+import comp4111.handler.HttpAsyncPathHandler;
 import comp4111.handler.LoginHandler;
 import comp4111.handler.LogoutHandler;
 import comp4111.model.Book;
@@ -47,7 +47,7 @@ public class Bug9_GetBooksSmallerThanLimitTest extends AbstractServerTest {
         MainApplication.createDefaultUsers();
 
         {
-            HttpPathHandler[] handlers = new HttpPathHandler[MainApplication.PATTERN_HANDLER.size()];
+            final var handlers = new HttpAsyncPathHandler[MainApplication.PATTERN_HANDLER.size()];
             MainApplication.PATTERN_HANDLER.values().toArray(handlers);
             registerAndStartServer(handlers);
         }
