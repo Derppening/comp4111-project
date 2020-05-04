@@ -26,7 +26,6 @@ public class QueryUtils {
      * @param <T> Type of the object in Java.
      * @return {@link List} of rows, converted into Java objects.
      */
-    @SuppressWarnings("unchecked")
     public static <T> List<T> queryTable(@Nullable final Connection con, @NotNull String tableName,
                                          @NotNull String ext, @NotNull List<Object> params,
                                          @NotNull Function<ResultSet, T> transform) throws SQLException {

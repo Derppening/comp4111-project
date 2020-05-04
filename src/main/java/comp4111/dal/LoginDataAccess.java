@@ -8,7 +8,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
@@ -42,10 +41,10 @@ public class LoginDataAccess extends Credentials {
     @Nullable
     public static String[] getHashedPwdAndSalt(@NotNull String username) {
         // Create a connection to a specific database in the MySQL server.
-        try (Connection con = DatabaseConnection.getConnection()) {
+        try {
             String[] result = new String[2];
             final var credentialsInDb = QueryUtils.queryTable(null, "User_Credentials",
-                    "", new ArrayList<>(), Credentials::toCredentials);
+                    InnoDBLockMode.SHARE.asSQLQueryComponent(), new ArrayList<>(), Credentials::toCredentials);
             credentialsInDb.forEach(c -> {
                 if (c.getUsername().equals(username)) {
                     // There should only be one set.

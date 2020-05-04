@@ -2,7 +2,10 @@ package comp4111.handler.impl;
 
 import comp4111.dal.BooksPutDataAccess;
 import comp4111.handler.BooksPutHandler;
-import org.apache.hc.core5.http.*;
+import org.apache.hc.core5.http.HttpException;
+import org.apache.hc.core5.http.HttpRequest;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.Message;
 import org.apache.hc.core5.http.nio.AsyncResponseProducer;
 import org.apache.hc.core5.http.nio.support.AsyncResponseBuilder;
 import org.apache.hc.core5.http.protocol.HttpContext;
@@ -20,7 +23,7 @@ public class BooksPutHandlerImpl extends BooksPutHandler {
             return;
         }
 
-        int booksPutResult = BooksPutDataAccess.updateBook(getBookId(), getAvailable());
+        int booksPutResult = BooksPutDataAccess.updateBook(null, getBookId(), getAvailable());
         if (booksPutResult == 0) {
             final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_OK).build();
             responseTrigger.submitResponse(response, context);

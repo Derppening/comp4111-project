@@ -65,10 +65,14 @@ public class BooksGetDataAccess extends Book {
         }
 
         try {
-            final var booksInDb = QueryUtils.queryTable(null, "Book",
-                    String.join(" ", chunk1, chunk2).trim(), params,
-                    Book::toJsonBook
-            );
+            final var ext = String.join(" ", chunk1, chunk2, InnoDBLockMode.SHARE.asSQLQueryComponent()).trim();
+
+            final var booksInDb = QueryUtils.queryTable(
+                    null,
+                    "Book",
+                    ext,
+                    params,
+                    Book::toJsonBook);
 
             if (queryLimit == null || booksInDb.size() <= queryLimit) {
                 return new BooksGetResult(booksInDb);

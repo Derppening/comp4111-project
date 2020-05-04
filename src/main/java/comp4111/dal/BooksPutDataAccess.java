@@ -1,15 +1,16 @@
 package comp4111.dal;
 
 import comp4111.dal.model.Book;
+import comp4111.function.ConnectionFunction;
 import comp4111.util.QueryUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 
 public class BooksPutDataAccess extends Book {
@@ -17,85 +18,61 @@ public class BooksPutDataAccess extends Book {
     private static final Logger LOGGER = LoggerFactory.getLogger(BooksPutDataAccess.class);
 
     /**
-     * @return {@code 0} for 200 response, {@code 1} for 400 response, {@code 2} for 404 response.
-     */
-    public static int updateBook(long id, boolean available) {
-        List<Book> book = getBook(id);
-        if (book.isEmpty()) {
-            return 2;
-        } else if (book.get(0).isAvailable() == available) {
-            return 1;
-        } else {
-            try {
-                return Objects.requireNonNull(DatabaseConnectionPoolV2.getInstance().execStmt(connection -> {
-                    try (var stmt = connection.prepareStatement("UPDATE Book SET available = ? WHERE id = ?")) {
-                        stmt.setBoolean(1, available);
-                        stmt.setLong(2, id);
-                        return stmt.executeUpdate() > 0 ? 0 : 1;
-                    }
-                }));
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-            return 1;
-        }
-    }
-
-    /**
-     * This is the same as {@link BooksPutDataAccess#updateBook(long id, boolean available)} except that the connection is specified.
+     * Updates the available state of the book with the given ID.
      *
+     * @param con The database connection to use for the query. If {@code null}, use a new connection to execute the
+     * query.
+     * @param id The ID of the book to query.
      * @return {@code 0} for 200 response, {@code 1} for 400 response, {@code 2} for 404 response.
      */
-    public static int updateBook(@NotNull Connection con, long id, boolean available) {
-        final var book = getBook(con, id);
-        if (book.isEmpty()) {
-            return 2;
-        } else if (book.get(0).isAvailable() == available) {
-            return 1;
-        } else {
-            try (var stmt = con.prepareStatement("UPDATE Book SET available = ? WHERE id = ?")) {
-                stmt.setBoolean(1, available);
-                stmt.setLong(2, id);
-                return stmt.executeUpdate() > 0 ? 0 : 1;
-            } catch (SQLException e) {
-                e.printStackTrace();
+    public static int updateBook(@Nullable Connection con, long id, boolean available) {
+        final ConnectionFunction<Integer> block = connection -> {
+            final var book = getBook(connection, id, InnoDBLockMode.UPDATE);
+            if (book == null) {
+                return 2;
+            } else if (book.isAvailable() == available) {
                 return 1;
+            } else {
+                try (var stmt = connection.prepareStatement("UPDATE Book SET available = ? WHERE id = ?")) {
+                    stmt.setBoolean(1, available);
+                    stmt.setLong(2, id);
+                    return stmt.executeUpdate() > 0 ? 0 : 1;
+                }
             }
-        }
-    }
+        };
 
-    public static List<Book> getBook(Long id) {
-        List<Book> result = new ArrayList<>();
+        Integer result;
         try {
-            List<Object> params = new ArrayList<>();
-            params.add(id);
-            final var bookInDb = QueryUtils.queryTable(null, "Book", "where id = ?", params, Book::toBook);
-            result.addAll(bookInDb); // There should be only one result.
-
-            return result;
+            if (con != null) {
+                result = block.apply(con);
+            } else {
+                result = DatabaseConnectionPoolV2.getInstance().execStmt(block);
+            }
         } catch (SQLException e) {
-            LOGGER.error("Error querying the table", e);
+            LOGGER.error("Caught error while updating book status", e);
+            result = 1;
         }
-        return result;
+        return Objects.requireNonNull(result);
     }
 
     /**
-     * This is the same as {@link BooksPutDataAccess#getBook(Long id)} except that the connection is specified.
+     * Retrieves a book from the database with the given ID.
      *
-     * @return {@code 0} for 200 response, {@code 1} for 400 response, {@code 2} for 404 response.
+     * @param con The database connection to use for the query. If {@code null}, use a new connection to execute the
+     * query.
+     * @param id The ID of the book to query.
+     * @param lockMode The lock mode when executing the query.
+     * @return The book obtained from the query.
      */
-    public static List<Book> getBook(@NotNull Connection con, Long id) {
-        List<Book> result = new ArrayList<>();
-        try {
-            List<Object> params = new ArrayList<>();
-            params.add(id);
-            final var bookInDb = QueryUtils.queryTable(con, "Book", "where id = ?", params, Book::toBook);
-            result.addAll(bookInDb); // There should be only one result.
+    @Nullable
+    public static Book getBook(@Nullable Connection con, long id, @NotNull InnoDBLockMode lockMode) throws SQLException {
+        final var ext = String.format("where id = ? %s", lockMode.asSQLQueryComponent()).trim();
 
-            return result;
-        } catch (SQLException e) {
-            LOGGER.error("Error querying the table", e);
-        }
-        return result;
+        final var params = new ArrayList<>();
+        params.add(id);
+        final var bookInDb = QueryUtils.queryTable(con, "Book", ext, params, Book::toBook);
+
+        assert bookInDb.isEmpty() || bookInDb.size() == 1;
+        return bookInDb.isEmpty() ? null : bookInDb.get(0);
     }
 }
