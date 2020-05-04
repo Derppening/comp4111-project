@@ -23,6 +23,11 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseConnectionPoolV2.class);
 
     /**
+     * The default timeout of a transaction.
+     */
+    private static final Duration DEFAULT_TX_TIMEOUT = Duration.ofSeconds(90);
+
+    /**
      * The URL to the MySQL database.
      */
     public static final String MYSQL_URL;
@@ -73,6 +78,18 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
     private final String login;
     private final String password;
     private final String db;
+
+    /**
+     * The default timeout the database waits when a database or row(s) is locked. If the value is {@code null}, the
+     * global default value of the database will be used.
+     */
+    @Nullable
+    private Duration defaultLockTimeout;
+    /**
+     * The default timeout of any transaction.
+     */
+    @NotNull
+    private Duration defaultTxTimeout = DEFAULT_TX_TIMEOUT;
 
     /**
      * The pool of connection instances.
@@ -135,7 +152,11 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @param username The username to login.
      * @param password The password of the username.
      */
-    DatabaseConnectionPoolV2(@NotNull String url, @NotNull String database, @NotNull String username, @NotNull String password) {
+    DatabaseConnectionPoolV2(
+            @NotNull String url,
+            @NotNull String database,
+            @NotNull String username,
+            @NotNull String password) {
         this.url = url;
         this.login = username;
         this.password = password;
@@ -232,13 +253,12 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * enforced by {@link DatabaseConnectionV2}, and therefore whether a transaction has timed out depends on both this
      * value and the transaction timeout set in the SQL server.
      *
-     * @param timeout The timeout of this transaction.
      * @return A long value representing the newly created transaction.
      * @throws SQLException if the database operation fails.
      */
-    public long getIdForTransaction(@NotNull Duration timeout) throws SQLException {
+    public long getIdForTransaction() throws SQLException {
         final var connection = findOrNewConnection();
-        return connection.getIdForTransaction(timeout);
+        return connection.getIdForTransaction(defaultTxTimeout, defaultLockTimeout);
     }
 
     /**
@@ -248,7 +268,7 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * {@link DatabaseConnectionPoolV2#executeTransaction(long, boolean)} must be called to commit or rollback the
      * transaction.
      *
-     * @param id The ID of the transaction assigned by {@link DatabaseConnectionPoolV2#getIdForTransaction(Duration)}.
+     * @param id The ID of the transaction assigned by {@link DatabaseConnectionPoolV2#getIdForTransaction()}.
      * @param block The block of SQL statements to execute in the transaction.
      * @param <R> The return type from the block.
      * @return The return value of the block. May be {@code null}.
@@ -269,7 +289,7 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
     /**
      * Commits or rolls back a transaction on the SQL server.
      *
-     * @param id The ID of the transaction assigned by {@link DatabaseConnectionPoolV2#getIdForTransaction(Duration)}.
+     * @param id The ID of the transaction assigned by {@link DatabaseConnectionPoolV2#getIdForTransaction()}.
      * @param shouldCommit If {@code true}, commits the transaction. Otherwise, rolls back the transaction.
      * @return {@code true} if the commit operation was successful. Failure to commit, rolling back, and no such
      * connection will all return {@code false}.
@@ -288,9 +308,44 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
     }
 
     /**
+     * Sets the default lock timeout for all transactions initiated by this pool.
+     *
+     * @param timeout New lock timeout.
+     */
+    public synchronized void setDefaultLockTimeout(@NotNull Duration timeout) {
+        this.defaultLockTimeout = timeout;
+    }
+
+    /**
+     * Resets the default lock timeout for all transactions initiated by this pool.
+     */
+    public synchronized void resetDefaultLockTimeout() {
+        this.defaultLockTimeout = null;
+    }
+
+    /**
+     * Sets the default transaction timeout for all transactions initiated by this pool.
+     *
+     * @param timeout New transaction timeout.
+     */
+    public synchronized void setDefaultTxTimeout(@NotNull Duration timeout) {
+        this.defaultTxTimeout = timeout;
+    }
+
+    /**
+     * Resets the default transaction timeout for all transactions initiated by this pool.
+     *
+     * The default value is {@link DatabaseConnectionPoolV2#DEFAULT_TX_TIMEOUT}.
+     */
+    public synchronized void resetDefaultTxTimeout() {
+        this.defaultTxTimeout = DEFAULT_TX_TIMEOUT;
+    }
+
+    /**
      * {@inheritDoc}
      *
-     * Closes all connections managed by this connection pool, and clears the pool.
+     * Closes all connections managed by this connection pool, and clears the pool. The lock timeout and transaction
+     * timeout defaults will also be reverted to their original values.
      */
     @Override
     public void close() {
@@ -302,5 +357,8 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
             }
         });
         pool.clear();
+
+        resetDefaultLockTimeout();
+        resetDefaultTxTimeout();
     }
 }

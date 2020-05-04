@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.DriverManager;
+import java.time.Duration;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -44,6 +45,7 @@ public class TransactionInterferenceIntegrationTest extends AbstractServerTest {
         }, "Database not started; Skipping live integration tests");
 
         DatabaseConnection.setConfig();
+        DatabaseConnectionPoolV2.getInstance().setDefaultLockTimeout(Duration.ofSeconds(2));
         MainApplication.createDefaultUsers();
 
         {

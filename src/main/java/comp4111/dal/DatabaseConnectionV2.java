@@ -38,6 +38,11 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     private boolean isClosed = false;
 
     /**
+     * The default lock timeout as retrieved when the connection is first established to the database.
+     */
+    private final Duration defaultLockTimeout;
+
+    /**
      * The time which this connection is last used.
      */
     @NotNull
@@ -121,13 +126,15 @@ public class DatabaseConnectionV2 implements AutoCloseable {
      * @param password The password of the user.
      * @throws SQLException if a database access error has occurred.
      */
-    DatabaseConnectionV2(@NotNull String databaseUrl, @NotNull String user, @NotNull String password) throws SQLException {
+    DatabaseConnectionV2(
+            @NotNull String databaseUrl,
+            @NotNull String user,
+            @NotNull String password) throws SQLException {
         connection = DriverManager.getConnection(databaseUrl, user, password);
         connection.setAutoCommit(false);
+        defaultLockTimeout = DatabaseConnection.getLockTimeout(connection);
 
         lastUsedTime = Instant.now();
-
-        // TODO(Derppening): Get transaction timeout from database
     }
 
     /**
@@ -139,7 +146,11 @@ public class DatabaseConnectionV2 implements AutoCloseable {
      * @param password The password of the user.
      * @throws SQLException if a database access error has occurred.
      */
-    DatabaseConnectionV2(@NotNull String url, @NotNull String database, @NotNull String username, @NotNull String password) throws SQLException {
+    DatabaseConnectionV2(
+            @NotNull String url,
+            @NotNull String database,
+            @NotNull String username,
+            @NotNull String password) throws SQLException {
         this(String.format("%s/%s", url, database), username, password);
     }
 
@@ -163,12 +174,18 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     /**
      * Obtains a transaction ID for a SQL transaction.
      *
-     * @param timeout Timeout of the transaction.
+     * @param txTimeout Timeout of the transaction.
+     * @param lockTimeout Timeout for database locking.
      * @return The transaction ID.
      * @throws SQLException if a database access error has occurred.
      */
-    public synchronized long getIdForTransaction(@NotNull Duration timeout) throws SQLException {
-        return getIdForTransaction(timeout, false);
+    public synchronized long getIdForTransaction(@NotNull Duration txTimeout, @Nullable Duration lockTimeout) throws SQLException {
+        if (lockTimeout == null) {
+            lockTimeout = this.defaultLockTimeout;
+        }
+        DatabaseConnection.setLockTimeout(connection, lockTimeout);
+
+        return getIdForTransaction(txTimeout, false);
     }
 
     /**

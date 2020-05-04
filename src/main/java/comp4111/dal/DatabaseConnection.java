@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.sql.*;
+import java.time.Duration;
 import java.util.Properties;
 
 public class DatabaseConnection {
@@ -158,5 +159,41 @@ public class DatabaseConnection {
             // https://www.w3schools.com/sql/sql_create_table.asp
             stmt.execute("create table " + tableSpec);
         }
+    }
+
+    /**
+     * Sets the lock timeout for a database connection.
+     *
+     * @param con Connection to set the timeout.
+     * @param timeout New timeout for lock contentions.
+     */
+    static void setLockTimeout(@NotNull final Connection con, @NotNull final Duration timeout) {
+        try (var stmt = con.prepareStatement("SET SESSION innodb_lock_wait_timeout = ?")) {
+            stmt.setInt(1, (int) timeout.toSeconds());
+            stmt.execute();
+        } catch (SQLException e) {
+            LOGGER.warn("Cannot set database transaction timeout", e);
+        }
+    }
+
+    /**
+     * Retrieves the timeout of awaiting for locks.
+     *
+     * @param con Connection to get the lock timeout.
+     * @return The duration which transactions wait for a lock before timing out.
+     */
+    @NotNull
+    static Duration getLockTimeout(@NotNull final Connection con) {
+        try (var stmt = con.prepareCall("SELECT @@innodb_lock_wait_timeout")) {
+            final var rs = stmt.executeQuery();
+            if (rs.next()) {
+                return Duration.ofSeconds(rs.getInt(1));
+            }
+
+            LOGGER.warn("Cannot get database transaction timeout: Using defaults");
+        } catch (SQLException e) {
+            LOGGER.warn("Cannot get database transaction timeout: Using defaults", e);
+        }
+        return Duration.ofSeconds(50);
     }
 }

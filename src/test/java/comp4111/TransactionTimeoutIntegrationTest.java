@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.DriverManager;
+import java.time.Duration;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -43,6 +44,7 @@ public class TransactionTimeoutIntegrationTest extends AbstractServerTest {
         }, "Database not started; Skipping live integration tests");
 
         DatabaseConnection.setConfig();
+        DatabaseConnectionPoolV2.getInstance().setDefaultTxTimeout(Duration.ofSeconds(1));
         MainApplication.createDefaultUsers();
 
         {
@@ -142,7 +144,7 @@ public class TransactionTimeoutIntegrationTest extends AbstractServerTest {
         markBookAsLoaned();
         requestATransactionId();
         pushAValidActionIntoATransaction();
-        Thread.sleep(100_000);
+        Thread.sleep(2_000);
         commitTheTransaction();
         logOutWithTheCorrectToken();
     }
