@@ -11,7 +11,6 @@ import org.apache.hc.core5.http.message.BasicClassicHttpRequest;
 import org.apache.hc.core5.http.protocol.HttpCoreContext;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
-import org.apache.hc.core5.reactor.ListenerEndpoint;
 import org.apache.hc.core5.testing.classic.LoggingConnPoolListener;
 import org.apache.hc.core5.testing.classic.LoggingHttp1StreamListener;
 import org.apache.hc.core5.testing.nio.LoggingExceptionCallback;
@@ -42,7 +41,6 @@ public abstract class AbstractServerTest {
     private AsyncServerBootstrap serverBootstrap;
     protected HttpAsyncServer server;
     protected HttpRequester requester;
-    private ListenerEndpoint endpoint;
 
     private HttpRequester createDefaultRequester() {
         return createDefaultRequester(CLIENT_TIMEOUT);
@@ -86,9 +84,7 @@ public abstract class AbstractServerTest {
 
         assertDoesNotThrow(() -> {
             server.start();
-            final var future = server.listen(new InetSocketAddress(8080));
-
-            endpoint = future.get();
+            server.listen(new InetSocketAddress(8080)).get();
         });
     }
 
@@ -105,14 +101,16 @@ public abstract class AbstractServerTest {
 
         assertDoesNotThrow(() -> {
             server.start();
-            final var future = server.listen(new InetSocketAddress(8080));
-
-            endpoint = future.get();
+            server.listen(new InetSocketAddress(8080)).get();
         });
     }
 
     protected HttpHost getDefaultHttpHost(HttpAsyncServer server) {
-        final var endpoint = (InetSocketAddress) this.endpoint.getAddress();
+        final var endpoint = (InetSocketAddress) server.getEndpoints()
+                .stream()
+                .findAny()
+                .orElseThrow()
+                .getAddress();
         return new HttpHost(URIScheme.HTTP.toString(), endpoint.getHostString(), endpoint.getPort());
     }
 
