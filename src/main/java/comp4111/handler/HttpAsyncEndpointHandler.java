@@ -80,27 +80,6 @@ public abstract class HttpAsyncEndpointHandler implements AsyncServerRequestHand
     /**
      * Retrieves the token from the query parameters.
      *
-     * TODO(davidtang1006): (!)
-     *
-     * @param queryParams Query parameters for this request.
-     * @param response HTTP response for this request.
-     * @return String representing the token.
-     * @throws IllegalArgumentException if the query parameters do not contain the token. If this exception is throw,
-     *                                  the response code of {@code response} will be set appropriately.
-     */
-    @NotNull
-    protected static String getToken(@NotNull Map<String, String> queryParams, @NotNull ClassicHttpResponse response) {
-        if (!queryParams.containsKey("token")) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
-            throw new IllegalArgumentException();
-        }
-
-        return queryParams.get("token");
-    }
-
-    /**
-     * Retrieves the token from the query parameters.
-     *
      * @param queryParams Query parameters for this request.
      * @param responseTrigger {@link ResponseTrigger} for this request.
      * @return String representing the token.
@@ -123,16 +102,19 @@ public abstract class HttpAsyncEndpointHandler implements AsyncServerRequestHand
      * Retrieves the token from the query parameters and checks whether it is correct.
      *
      * @param queryParams Query parameters for this request.
-     * @param response HTTP response for this request.
+     * @param responseTrigger {@link ResponseTrigger} for this request.
      * @return String representing the token.
      * @throws IllegalArgumentException if the query parameters do not contain the token, or the token is incorrect. If
      *                                  this exception is throw, the response code of {@code response} will be set appropriately.
      */
     @NotNull
-    protected final String checkToken(@NotNull Map<String, String> queryParams, @NotNull ClassicHttpResponse response) {
-        final var token = getToken(queryParams, response);
+    protected final String checkToken(@NotNull Map<String, String> queryParams,
+                                      @NotNull ResponseTrigger responseTrigger,
+                                      @NotNull HttpContext context) throws IOException, HttpException {
+        final var token = getToken(queryParams, responseTrigger, context);
         if (!getTokenMgr().containsToken(token)) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
+            final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
+            responseTrigger.submitResponse(response, context);
             throw new IllegalArgumentException();
         }
 

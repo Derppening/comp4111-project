@@ -75,7 +75,8 @@ public abstract class HttpAsyncPathHandler implements AsyncServerRequestHandler<
      * @param context {@link HttpContext} of the request. Usually the third argument of {@link AsyncServerRequestHandler#handle}.
      * @param lut Lookup table for matching a {@link Method} to its corresponding {@link HttpAsyncEndpointHandler} creator.
      */
-    private static void dispatchByMethod(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context, Map<Method, Supplier<HttpAsyncEndpointHandler>> lut) throws HttpException, IOException {
+    private static void dispatchByMethod(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger,
+                                         HttpContext context, Map<Method, Supplier<HttpAsyncEndpointHandler>> lut) throws HttpException, IOException {
         final AsyncResponseProducer response;
         final Method method = HttpUtils.toMethodOrNull(requestObject.getHead().getMethod());
         Supplier<HttpAsyncEndpointHandler> handler = null;

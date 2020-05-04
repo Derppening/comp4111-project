@@ -32,8 +32,8 @@ public class MainApplication {
     public static final Map<String, AsyncServerRequestHandler<Message<HttpRequest, String>>> PATTERN_HANDLER = List.of(
             WildcardHandler.getInstance(),
             LoginHandler.getInstance(),
-            LogoutHandler.getInstance()
-//            BooksHandler.getInstance(),
+            LogoutHandler.getInstance(),
+            BooksHandler.getInstance()
 //            TransactionHandler.getInstance()
     ).stream().collect(Collectors.toUnmodifiableMap(HttpAsyncPathHandler::getHandlePattern, Function.identity()));
 

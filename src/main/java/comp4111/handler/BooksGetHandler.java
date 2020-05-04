@@ -3,6 +3,8 @@ package comp4111.handler;
 import comp4111.handler.impl.BooksGetHandlerImpl;
 import comp4111.util.HttpUtils;
 import org.apache.hc.core5.http.*;
+import org.apache.hc.core5.http.nio.AsyncResponseProducer;
+import org.apache.hc.core5.http.nio.support.AsyncResponseBuilder;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -12,7 +14,7 @@ import java.io.IOException;
 /**
  * Endpoint handler for all {@code /books} GET requests.
  */
-public abstract class BooksGetHandler extends HttpEndpointHandler {
+public abstract class BooksGetHandler extends HttpAsyncEndpointHandler {
 
     private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
         @Override
@@ -50,14 +52,15 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
     }
 
     @Override
-    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-        checkMethod(request, response);
+    public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context)
+            throws HttpException, IOException {
+        checkMethod(requestObject, responseTrigger, context);
 
-        final var queryParams = HttpUtils.parseQueryParams(request.getPath(), response);
-        final var token = checkToken(queryParams, response);
+        final var queryParams = HttpUtils.parseQueryParams(requestObject.getHead().getPath(), responseTrigger, context);
+        final var token = checkToken(queryParams, responseTrigger, context);
 
         // This handles the requests like GET /BookManagementService/books/1?token=FWb66_FtRZZWwRA0xnT9x06zhB6nBA93.
-        long tempId = BooksHandler.getIdFromRequestWithoutException(request.getPath(), response);
+        long tempId = BooksHandler.getIdFromRequestWithoutException(requestObject.getHead().getPath());
         if (tempId > 0) {
             queryId = tempId;
         }
@@ -67,7 +70,8 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
             try {
                 queryId = Long.parseLong(queryIdStr);
             } catch (NumberFormatException e) {
-                response.setCode(HttpStatus.SC_BAD_REQUEST);
+                final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
+                responseTrigger.submitResponse(response, context);
                 throw new IllegalArgumentException(e);
             }
         }
@@ -78,7 +82,8 @@ public abstract class BooksGetHandler extends HttpEndpointHandler {
             try {
                 queryLimit = Integer.parseInt(queryLimitStr);
             } catch (NumberFormatException e) {
-                response.setCode(HttpStatus.SC_BAD_REQUEST);
+                final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
+                responseTrigger.submitResponse(response, context);
                 throw new IllegalArgumentException(e);
             }
         }

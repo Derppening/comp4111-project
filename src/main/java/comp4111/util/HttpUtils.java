@@ -115,12 +115,13 @@ public class HttpUtils {
      *
      * Implementation is referenced from {@link BasicHttpRequest#getUri()}.
      *
-     * @param request The HTTP request.
+     * @param requestObject The HTTP request.
      * @return String representation of the server hostname.
      */
     @NotNull
-    public static String getServerHostnameFromRequest(@NotNull HttpRequest request) {
+    public static String getServerHostnameFromRequest(@NotNull Message<HttpRequest, String> requestObject) {
         final var buf = new StringBuilder();
+        final HttpRequest request = requestObject.getHead();
         if (request.getAuthority() != null) {
             buf.append(request.getScheme() != null ? request.getScheme() : URIScheme.HTTP.id).append("://");
             buf.append(request.getAuthority().getHostName());
@@ -144,16 +145,17 @@ public class HttpUtils {
      *
      * Implementation is referenced from {@link BasicHttpRequest#getUri()}.
      *
-     * @param request The HTTP request.
+     * @param requestObject The HTTP request.
      * @return String representation of {@link BasicHttpRequest#getUri()}.
      */
     @NotNull
-    public static String getRequestUriString(@NotNull HttpRequest request) {
+    public static String getRequestUriString(@NotNull Message<HttpRequest, String> requestObject) {
+        final HttpRequest request = requestObject.getHead();
         try {
             return request.getUri().toString();
         } catch (URISyntaxException e) {
             final var buf = new StringBuilder();
-            buf.append(getServerHostnameFromRequest(request));
+            buf.append(getServerHostnameFromRequest(requestObject));
             if (request.getPath() != null) {
                 buf.append(request.getPath());
             }

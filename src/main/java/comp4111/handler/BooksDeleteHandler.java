@@ -2,10 +2,8 @@ package comp4111.handler;
 
 import comp4111.handler.impl.BooksDeleteHandlerImpl;
 import comp4111.util.HttpUtils;
-import org.apache.hc.core5.http.ClassicHttpRequest;
-import org.apache.hc.core5.http.ClassicHttpResponse;
-import org.apache.hc.core5.http.HttpException;
-import org.apache.hc.core5.http.Method;
+import org.apache.hc.core5.http.*;
+import org.apache.hc.core5.http.nio.AsyncServerRequestHandler;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 
@@ -14,7 +12,7 @@ import java.io.IOException;
 /**
  * Endpoint handler for all {@code /book/*} DELETE requests.
  */
-public abstract class BooksDeleteHandler extends HttpEndpointHandler {
+public abstract class BooksDeleteHandler extends HttpAsyncEndpointHandler {
 
     private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
         @NotNull
@@ -43,13 +41,15 @@ public abstract class BooksDeleteHandler extends HttpEndpointHandler {
     }
 
     @Override
-    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-        checkMethod(request, response);
+    public void handle(Message<HttpRequest, String> requestObject,
+                       AsyncServerRequestHandler.ResponseTrigger responseTrigger,
+                       HttpContext context) throws HttpException, IOException {
+        checkMethod(requestObject, responseTrigger, context);
 
-        final var queryParams = HttpUtils.parseQueryParams(request.getPath(), response);
-        final var token = checkToken(queryParams, response);
+        final var queryParams = HttpUtils.parseQueryParams(requestObject.getHead().getPath(), responseTrigger, context);
+        final var token = checkToken(queryParams, responseTrigger, context);
 
-        bookId = BooksHandler.getIdFromRequest(request.getPath(), response);
+        bookId = BooksHandler.getIdFromRequest(requestObject.getHead().getPath(), responseTrigger, context);
 
         // TODO(Derppening): Consider shortcutting when bookId <= 0
 

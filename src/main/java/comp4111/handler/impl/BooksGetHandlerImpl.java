@@ -6,7 +6,8 @@ import comp4111.handler.BooksGetHandler;
 import comp4111.model.BooksGetResult;
 import comp4111.util.JacksonUtils;
 import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.http.nio.AsyncResponseProducer;
+import org.apache.hc.core5.http.nio.support.AsyncResponseBuilder;
 import org.apache.hc.core5.http.protocol.HttpContext;
 
 import java.io.ByteArrayOutputStream;
@@ -18,9 +19,9 @@ public class BooksGetHandlerImpl extends BooksGetHandler {
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
     @Override
-    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
+    public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context) throws HttpException, IOException {
         try {
-            super.handle(request, response, context);
+            super.handle(requestObject, responseTrigger, context);
         } catch (IllegalArgumentException e) {
             return;
         }
@@ -28,16 +29,19 @@ public class BooksGetHandlerImpl extends BooksGetHandler {
         BooksGetResult booksGetResult = BooksGetDataAccess.getBooks(getQueryId(), getQueryTitle(), getQueryAuthor(),
                 getQueryLimit(), getQuerySort(), getQueryOrder());
         if (booksGetResult == null) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
+            final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
+            responseTrigger.submitResponse(response, context);
         } else if (booksGetResult.getFoundBooks() == 0) {
-            response.setCode(HttpStatus.SC_NO_CONTENT);
+            final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_NO_CONTENT).build();
+            responseTrigger.submitResponse(response, context);
         } else {
             // https://stackoverflow.com/a/13514884
             objectMapper.writeValue(outputStream, booksGetResult);
             final byte[] data = outputStream.toByteArray();
 
-            response.setCode(HttpStatus.SC_OK);
-            response.setEntity(new StringEntity(new String(data), ContentType.APPLICATION_JSON));
+            final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_OK)
+                    .setEntity(new String(data), ContentType.APPLICATION_JSON).build();
+            responseTrigger.submitResponse(response, context);
         }
     }
 }
