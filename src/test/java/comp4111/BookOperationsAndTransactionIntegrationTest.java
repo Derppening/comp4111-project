@@ -261,7 +261,7 @@ public class BookOperationsAndTransactionIntegrationTest extends AbstractServerT
 
         try (var response = makeRequest(Method.PUT, String.format("%s/50000000?token=%s", BooksHandler.HANDLE_PATTERN, token), entity)) {
             assertEquals(HttpStatus.SC_NOT_FOUND, response.getCode());
-            assertEquals("No book record", response.getReasonPhrase());
+            assertEquals("No book record", response.getHeader("Reason").getValue());
         }
     }
 
@@ -289,7 +289,7 @@ public class BookOperationsAndTransactionIntegrationTest extends AbstractServerT
 
         try (var response = makeRequest(Method.PUT, String.format("%s/577777777?token=%s", BooksHandler.HANDLE_PATTERN, token), entity)) {
             assertEquals(HttpStatus.SC_NOT_FOUND, response.getCode());
-            assertEquals("No book record", response.getReasonPhrase());
+            assertEquals("No book record", response.getHeader("Reason").getValue());
         }
     }
 
@@ -302,7 +302,7 @@ public class BookOperationsAndTransactionIntegrationTest extends AbstractServerT
     void r_DeleteAnExistingBookAddedInH() throws Exception {
         try (var response = makeRequest(Method.DELETE, String.format("%s/%d?token=%s", BooksHandler.HANDLE_PATTERN, bookId1, token), null)) {
             assertEquals(HttpStatus.SC_NOT_FOUND, response.getCode());
-            assertEquals("No book record", response.getReasonPhrase());
+            assertEquals("No book record", response.getHeader("Reason").getValue());
         }
     }
 
