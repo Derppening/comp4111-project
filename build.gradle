@@ -69,3 +69,14 @@ test {
     // Use junit platform for unit tests
     useJUnitPlatform()
 }
+
+wrapper {
+    gradleVersion = "6.2.2"
+    distributionType = Wrapper.DistributionType.ALL
+}
+
+task('runDbInit', type: JavaExec) {
+    dependsOn('classes')
+    main = "comp4111.DatabaseCreateUtilApplication"
+    classpath += sourceSets.main.runtimeClasspath
+}

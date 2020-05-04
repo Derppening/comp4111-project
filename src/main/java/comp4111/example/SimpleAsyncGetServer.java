@@ -7,7 +7,7 @@ import org.apache.hc.core5.http.impl.bootstrap.AsyncServerBootstrap;
 import org.apache.hc.core5.http.nio.AsyncRequestConsumer;
 import org.apache.hc.core5.http.nio.AsyncResponseProducer;
 import org.apache.hc.core5.http.nio.AsyncServerRequestHandler;
-import org.apache.hc.core5.http.nio.entity.NoopEntityConsumer;
+import org.apache.hc.core5.http.nio.entity.StringAsyncEntityConsumer;
 import org.apache.hc.core5.http.nio.support.AsyncResponseBuilder;
 import org.apache.hc.core5.http.nio.support.BasicRequestConsumer;
 import org.apache.hc.core5.http.protocol.HttpContext;
@@ -24,6 +24,7 @@ import java.net.SocketTimeoutException;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+// https://hc.apache.org/httpcomponents-core-5.0.x/httpcore5/apidocs/index.html
 // Adapted from https://hc.apache.org/httpcomponents-core-5.0.x/httpcore5/examples/AsyncFileServerExample.java
 public class SimpleAsyncGetServer {
 
@@ -32,7 +33,7 @@ public class SimpleAsyncGetServer {
     /**
      * Lookup table for HTTP paths and their corresponding handlers.
      */
-    private static final Map<String, AsyncServerRequestHandler<Message<HttpRequest, Void>>> PATTERN_HANDLER = Map.of(
+    private static final Map<String, AsyncServerRequestHandler<Message<HttpRequest, String>>> PATTERN_HANDLER = Map.of(
             "*", new NotFoundHandler(),
             "/", new HttpRootHandler()
     );
@@ -86,15 +87,16 @@ public class SimpleAsyncGetServer {
     /**
      * HTTP handler for responding to "/" path.
      */
-    static class HttpRootHandler implements AsyncServerRequestHandler<Message<HttpRequest, Void>> {
+    static class HttpRootHandler implements AsyncServerRequestHandler<Message<HttpRequest, String>> {
 
         @Override
-        public AsyncRequestConsumer<Message<HttpRequest, Void>> prepare(HttpRequest request, EntityDetails entityDetails, HttpContext context) throws HttpException {
-            return new BasicRequestConsumer<>(entityDetails != null ? new NoopEntityConsumer() : null);
+        public AsyncRequestConsumer<Message<HttpRequest, String>> prepare(HttpRequest request, EntityDetails entityDetails, HttpContext context) {
+            // https://hc.apache.org/httpcomponents-core-5.0.x/httpcore5/examples/AsyncServerFilterExample.java
+            return new BasicRequestConsumer<>(entityDetails != null ? new StringAsyncEntityConsumer() : null);
         }
 
         @Override
-        public void handle(Message<HttpRequest, Void> requestObject, ResponseTrigger responseTrigger, HttpContext context) throws HttpException, IOException {
+        public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context) throws HttpException, IOException {
             final AsyncResponseProducer response;
 
             final Method method = HttpUtils.toMethodOrNull(requestObject.getHead().getMethod());
@@ -102,7 +104,7 @@ public class SimpleAsyncGetServer {
 
             if (method == null || !method.equals(Method.GET)) {
                 response = AsyncResponseBuilder.create(HttpStatus.SC_METHOD_NOT_ALLOWED)
-                        .setHeader(HttpHeaders.ACCEPT, Method.GET.toString())
+                        .setHeader(HttpHeaders.ALLOW, Method.GET.toString())
                         .build();
             } else {
                 response = AsyncResponseBuilder.create(HttpStatus.SC_OK)
@@ -116,15 +118,15 @@ public class SimpleAsyncGetServer {
     /**
      * HTTP handler for responding to other paths which are not otherwise registered.
      */
-    static class NotFoundHandler implements AsyncServerRequestHandler<Message<HttpRequest, Void>> {
+    static class NotFoundHandler implements AsyncServerRequestHandler<Message<HttpRequest, String>> {
 
         @Override
-        public AsyncRequestConsumer<Message<HttpRequest, Void>> prepare(HttpRequest request, EntityDetails entityDetails, HttpContext context) throws HttpException {
-            return new BasicRequestConsumer<>(entityDetails != null ? new NoopEntityConsumer() : null);
+        public AsyncRequestConsumer<Message<HttpRequest, String>> prepare(HttpRequest request, EntityDetails entityDetails, HttpContext context) {
+            return new BasicRequestConsumer<>(entityDetails != null ? new StringAsyncEntityConsumer() : null);
         }
 
         @Override
-        public void handle(Message<HttpRequest, Void> requestObject, ResponseTrigger responseTrigger, HttpContext context) throws HttpException, IOException {
+        public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context) throws HttpException, IOException {
             final Method method = HttpUtils.toMethodOrNull(requestObject.getHead().getMethod());
             LOGGER.debug("{} {}", method != null ? method : requestObject.getHead().getMethod(), requestObject.getHead().getPath());
 

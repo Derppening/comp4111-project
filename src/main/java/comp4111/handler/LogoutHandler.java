@@ -3,7 +3,7 @@ package comp4111.handler;
 import comp4111.handler.impl.LogoutHandlerImpl;
 import org.jetbrains.annotations.NotNull;
 
-public abstract class LogoutHandler extends HttpPathHandler {
+public abstract class LogoutHandler extends HttpAsyncPathHandler {
 
     public static final String HANDLE_PATTERN = PATH_PREFIX + "/logout";
     private static final HttpPath HANDLER_DEFINITION = new HttpPath() {

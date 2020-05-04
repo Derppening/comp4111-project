@@ -5,7 +5,8 @@ import comp4111.handler.impl.LoginPostHandlerImpl;
 import comp4111.model.LoginRequest;
 import comp4111.util.JacksonUtils;
 import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.http.nio.AsyncResponseProducer;
+import org.apache.hc.core5.http.nio.support.AsyncResponseBuilder;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -16,7 +17,7 @@ import java.util.Objects;
 /**
  * Endpoint handler for all {@code /login} POST requests.
  */
-public abstract class LoginPostHandler extends HttpEndpointHandler {
+public abstract class LoginPostHandler extends HttpAsyncEndpointHandler {
 
     public static final String HANDLE_PATTERN = PATH_PREFIX + "/login";
     private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
@@ -51,16 +52,19 @@ public abstract class LoginPostHandler extends HttpEndpointHandler {
     }
 
     @Override
-    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-        checkMethod(request, response);
+    public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context)
+            throws HttpException, IOException {
+        checkMethod(requestObject, responseTrigger, context);
 
-        final var payload = getPayload(request, response);
+        final AsyncResponseProducer response;
+        final var payload = getPayload(requestObject, responseTrigger, context);
 
         try {
             loginRequest = objectMapper.readValue(payload, LoginRequest.class);
         } catch (Exception e) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
-            response.setEntity(new StringEntity(e.getLocalizedMessage(), ContentType.TEXT_HTML));
+            response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST)
+                    .setEntity(e.getLocalizedMessage(), ContentType.TEXT_HTML).build();
+            responseTrigger.submitResponse(response, context);
             throw new IllegalArgumentException(e);
         }
 

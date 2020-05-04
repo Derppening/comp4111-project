@@ -2,10 +2,7 @@ package comp4111.handler;
 
 import comp4111.handler.impl.LogoutGetHandlerImpl;
 import comp4111.util.HttpUtils;
-import org.apache.hc.core5.http.ClassicHttpRequest;
-import org.apache.hc.core5.http.ClassicHttpResponse;
-import org.apache.hc.core5.http.HttpException;
-import org.apache.hc.core5.http.Method;
+import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -16,7 +13,7 @@ import java.util.Objects;
 /**
  * Endpoint handler for all {@code /logout} GET requests.
  */
-public abstract class LogoutGetHandler extends HttpEndpointHandler {
+public abstract class LogoutGetHandler extends HttpAsyncEndpointHandler {
 
     private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
         @NotNull
@@ -47,12 +44,13 @@ public abstract class LogoutGetHandler extends HttpEndpointHandler {
     }
 
     @Override
-    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-        checkMethod(request, response);
+    public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context)
+            throws HttpException, IOException {
+        checkMethod(requestObject, responseTrigger, context);
 
-        final var queryParams = HttpUtils.parseQueryParams(request.getPath(), response);
+        final var queryParams = HttpUtils.parseQueryParams(requestObject.getHead().getPath(), responseTrigger, context);
 
-        token = getToken(queryParams, response);
+        token = getToken(queryParams, responseTrigger, context);
 
         LOGGER.info("GET /logout token=\"{}\"", token);
     }

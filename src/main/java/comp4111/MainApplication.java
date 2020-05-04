@@ -1,22 +1,27 @@
 package comp4111;
 
 import comp4111.dal.DatabaseConnection;
+import comp4111.dal.DatabaseConnectionPoolV2;
 import comp4111.dal.LoginDataAccess;
 import comp4111.handler.*;
-import comp4111.listener.GenericExceptionListener;
+import comp4111.listener.GenericExceptionCallback;
 import comp4111.util.SecurityUtils;
-import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
-import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
-import org.apache.hc.core5.http.io.SocketConfig;
+import org.apache.hc.core5.http.HttpRequest;
+import org.apache.hc.core5.http.Message;
+import org.apache.hc.core5.http.impl.bootstrap.AsyncServerBootstrap;
+import org.apache.hc.core5.http.impl.bootstrap.HttpAsyncServer;
+import org.apache.hc.core5.http.nio.AsyncServerRequestHandler;
 import org.apache.hc.core5.io.CloseMode;
+import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.hc.core5.util.TimeValue;
 import org.apache.hc.core5.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -24,27 +29,32 @@ public class MainApplication {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MainApplication.class);
 
-    public static final Map<String, HttpPathHandler> PATTERN_HANDLER = List.of(
+    public static final Map<String, AsyncServerRequestHandler<Message<HttpRequest, String>>> PATTERN_HANDLER = List.of(
             WildcardHandler.getInstance(),
             LoginHandler.getInstance(),
             LogoutHandler.getInstance(),
             BooksHandler.getInstance(),
             TransactionHandler.getInstance()
-    ).stream().collect(Collectors.toUnmodifiableMap(HttpPathHandler::getHandlePattern, Function.identity()));
+    ).stream().collect(Collectors.toUnmodifiableMap(HttpAsyncPathHandler::getHandlePattern, Function.identity()));
 
     public static void main(String[] args) {
-        final var socketConfig = SocketConfig.custom()
+        final var config = IOReactorConfig.custom()
                 .setSoTimeout(Timeout.ofSeconds(10))
                 .setTcpNoDelay(true)
                 .build();
 
-        final var serverBuilder = ServerBootstrap.bootstrap()
-                .setListenerPort(8080)
-                .setExceptionListener(GenericExceptionListener.INSTANCE)
-                .setSocketConfig(socketConfig);
+        final var serverBuilder = AsyncServerBootstrap.bootstrap()
+                .setExceptionCallback(GenericExceptionCallback.INSTANCE)
+                .setIOReactorConfig(config);
         PATTERN_HANDLER.forEach(serverBuilder::register);
 
-        final HttpServer server = serverBuilder.create();
+        final HttpAsyncServer server = serverBuilder.create();
+        DatabaseConnectionPoolV2.getInstance();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            LOGGER.info("HTTP server shutting down");
+            server.close(CloseMode.GRACEFUL);
+        }));
 
         try {
             // Set up the database connection.
@@ -52,9 +62,11 @@ public class MainApplication {
             createDefaultUsers();
 
             server.start();
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> server.close(CloseMode.GRACEFUL)));
-            server.awaitTermination(TimeValue.MAX_VALUE);
-        } catch (IOException | InterruptedException e) {
+            final var future = server.listen(new InetSocketAddress(8080));
+            final var listenerEndpoint = future.get();
+            LOGGER.info("Listening on " + listenerEndpoint.getAddress());
+            server.awaitShutdown(TimeValue.MAX_VALUE);
+        } catch (ExecutionException | InterruptedException e) {
             LOGGER.error("Received unknown exception while running server", e);
         } finally {
             DatabaseConnection.cleanUp();

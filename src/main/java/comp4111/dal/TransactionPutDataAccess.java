@@ -5,10 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Connection;
 import java.sql.SQLException;
-
-import static comp4111.dal.DatabaseConnection.connectionPool;
 
 public class TransactionPutDataAccess {
 
@@ -19,32 +16,25 @@ public class TransactionPutDataAccess {
      */
     public static int pushAction(@NotNull Long transaction, long bookId, @NotNull TransactionPutRequest.Action action) {
         try {
-            Connection con = connectionPool.getUsedConnection(transaction);
-            if (con == null) {
-                return 1;
-            }
-
-            int transactionPutResult;
-            if (action == TransactionPutRequest.Action.LOAN) {
-                transactionPutResult = BooksPutDataAccess.updateBook(con, bookId, false);
+            final var res = DatabaseConnectionPoolV2.getInstance().<Integer>putTransactionWithId(transaction, connection -> {
+                int transactionPutResult;
+                if (action == TransactionPutRequest.Action.LOAN) {
+                    transactionPutResult = BooksPutDataAccess.updateBook(connection, bookId, false);
+                } else {
+                    transactionPutResult = BooksPutDataAccess.updateBook(connection, bookId, true);
+                }
 
                 if (transactionPutResult != 0) {
-                    con.rollback();
-                    connectionPool.releaseConnection(con);
+                    connection.rollback();
+                    DatabaseConnectionPoolV2.getInstance().executeTransaction(transaction, false);
                 }
-            } else {
-                transactionPutResult = BooksPutDataAccess.updateBook(con, bookId, true);
 
-                if (transactionPutResult != 0) {
-                    con.rollback();
-                    connectionPool.releaseConnection(con);
-                }
-            }
-
-            return transactionPutResult;
+                return transactionPutResult;
+            });
+            return res != null ? res : 1;
         } catch (SQLException e) {
             LOGGER.error("Error starting a new transaction", e);
+            return 1;
         }
-        return 1;
     }
 }
