@@ -43,13 +43,9 @@ public abstract class AbstractServerTest {
     protected HttpRequester requester;
 
     private HttpRequester createDefaultRequester() {
-        return createDefaultRequester(CLIENT_TIMEOUT);
-    }
-
-    private HttpRequester createDefaultRequester(Timeout socketTimeout) {
         return RequesterBootstrap.bootstrap()
                 .setSslContext(null)
-                .setSocketConfig(SocketConfig.custom().setSoTimeout(socketTimeout).build())
+                .setSocketConfig(SocketConfig.custom().setSoTimeout(CLIENT_TIMEOUT).build())
                 .setMaxTotal(2)
                 .setDefaultMaxPerRoute(2)
                 .setStreamListener(LoggingHttp1StreamListener.INSTANCE)
@@ -60,15 +56,15 @@ public abstract class AbstractServerTest {
     @BeforeEach
     public void setUp() throws Exception {
         final var reactorConfig = IOReactorConfig.custom()
+                .setSoKeepAlive(false)
                 .setSoReuseAddress(true)
                 .setSoTimeout(SERVER_TIMEOUT)
                 .setTcpNoDelay(true)
                 .build();
         serverBootstrap = AsyncServerBootstrap.bootstrap()
                 .setExceptionCallback(LoggingExceptionCallback.INSTANCE)
-                .setStreamListener(org.apache.hc.core5.testing.nio.LoggingHttp1StreamListener.INSTANCE_SERVER)
                 .setIOReactorConfig(reactorConfig);
-        requester = createDefaultRequester(SERVER_TIMEOUT);
+        requester = createDefaultRequester();
     }
 
     /**
@@ -115,14 +111,12 @@ public abstract class AbstractServerTest {
     }
 
     protected ClassicHttpResponse makeRequest(Method method, String path, @Nullable HttpEntity entity) throws HttpException, IOException {
-        final var requester = createDefaultRequester();
-
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(method, path);
         request.setEntity(entity);
 
-        return requester.execute(target, request, SERVER_TIMEOUT, context);
+        return requester.execute(target, request, CLIENT_TIMEOUT, context);
     }
 
     @AfterEach
