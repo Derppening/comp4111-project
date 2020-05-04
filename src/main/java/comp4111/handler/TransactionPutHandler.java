@@ -6,7 +6,8 @@ import comp4111.model.TransactionPutRequest;
 import comp4111.util.HttpUtils;
 import comp4111.util.JacksonUtils;
 import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.http.nio.AsyncResponseProducer;
+import org.apache.hc.core5.http.nio.support.AsyncResponseBuilder;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -14,7 +15,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.Objects;
 
-public abstract class TransactionPutHandler extends HttpEndpointHandler {
+public abstract class TransactionPutHandler extends HttpAsyncEndpointHandler {
 
     private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
         @Override
@@ -44,19 +45,21 @@ public abstract class TransactionPutHandler extends HttpEndpointHandler {
     }
 
     @Override
-    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-        checkMethod(request, response);
+    public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context)
+            throws HttpException, IOException {
+        checkMethod(requestObject, responseTrigger, context);
 
-        final var queryParams = HttpUtils.parseQueryParams(request.getPath(), response);
-        final var token = checkToken(queryParams, response);
+        final var queryParams = HttpUtils.parseQueryParams(requestObject.getHead().getPath(), responseTrigger, context);
+        final var token = checkToken(queryParams, responseTrigger, context);
 
-        final var payload = getPayload(request, response);
+        final var payload = getPayload(requestObject, responseTrigger, context);
 
         try {
             putRequest = objectMapper.readValue(payload, TransactionPutRequest.class);
         } catch (Exception e) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
-            response.setEntity(new StringEntity(e.getLocalizedMessage(), ContentType.TEXT_PLAIN));
+            final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST)
+                    .setEntity(e.getLocalizedMessage(), ContentType.TEXT_PLAIN).build();
+            responseTrigger.submitResponse(response, context);
             throw new IllegalArgumentException(e);
         }
 

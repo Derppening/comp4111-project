@@ -33,8 +33,8 @@ public class MainApplication {
             WildcardHandler.getInstance(),
             LoginHandler.getInstance(),
             LogoutHandler.getInstance(),
-            BooksHandler.getInstance()
-//            TransactionHandler.getInstance()
+            BooksHandler.getInstance(),
+            TransactionHandler.getInstance()
     ).stream().collect(Collectors.toUnmodifiableMap(HttpAsyncPathHandler::getHandlePattern, Function.identity()));
 
     public static void main(String[] args) {

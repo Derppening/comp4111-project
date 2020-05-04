@@ -3,7 +3,7 @@ package comp4111.handler;
 import comp4111.handler.impl.TransactionHandlerImpl;
 import org.jetbrains.annotations.NotNull;
 
-public abstract class TransactionHandler extends HttpPathHandler {
+public abstract class TransactionHandler extends HttpAsyncPathHandler {
 
     public static final String HANDLE_PATTERN = PATH_PREFIX + "/transaction";
     private static final HttpPath HANDLER_DEFINITION = new HttpPath() {

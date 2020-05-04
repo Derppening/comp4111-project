@@ -8,7 +8,8 @@ import comp4111.model.TransactionPostRequest;
 import comp4111.model.TransactionPostResult;
 import comp4111.util.JacksonUtils;
 import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.http.nio.AsyncResponseProducer;
+import org.apache.hc.core5.http.nio.support.AsyncResponseBuilder;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 
@@ -20,49 +21,56 @@ public class TransactionPostHandlerImpl extends TransactionPostHandler {
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
     @Override
-    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
+    public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context)
+            throws HttpException, IOException {
         try {
-            super.handle(request, response, context);
+            super.handle(requestObject, responseTrigger, context);
         } catch (IllegalArgumentException e) {
             return;
         }
 
         final var txRequest = getTxRequest();
         if (txRequest == null) {
-            handleTransactionIdRequest(response);
+            handleTransactionIdRequest(responseTrigger, context);
         } else {
-            handleTransactionCommitRequest(txRequest, response);
+            handleTransactionCommitRequest(txRequest, responseTrigger, context);
         }
     }
 
-    private void handleTransactionIdRequest(@NotNull ClassicHttpResponse response) {
+    private void handleTransactionIdRequest(@NotNull ResponseTrigger responseTrigger, @NotNull HttpContext context)
+            throws IOException, HttpException {
         final Long id = TransactionPostDataAccess.startNewTransaction();
         final var transactionResponse = new TransactionPostResult(id);
 
         if (id == 0) {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
+            final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
+            responseTrigger.submitResponse(response, context);
             return;
         }
 
         try {
-            response.setEntity(new StringEntity(objectMapper.writeValueAsString(transactionResponse), ContentType.APPLICATION_JSON));
+            final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_OK)
+                    .setEntity(objectMapper.writeValueAsString(transactionResponse), ContentType.APPLICATION_JSON).build();
+            responseTrigger.submitResponse(response, context);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Cannot serialize transaction ID response", e);
         }
-
-        response.setCode(HttpStatus.SC_OK);
     }
 
-    private void handleTransactionCommitRequest(@NotNull TransactionPostRequest request, @NotNull ClassicHttpResponse response) {
+    private void handleTransactionCommitRequest(@NotNull TransactionPostRequest request,
+                                                @NotNull ResponseTrigger responseTrigger,
+                                                @NotNull HttpContext context) throws IOException, HttpException {
         final boolean isSuccessful = TransactionPostDataAccess.commitOrCancelTransaction(
                 Objects.requireNonNull(getTxRequest()).getTransaction(),
                 getTxRequest().getOperation()
         );
 
+        final AsyncResponseProducer response;
         if (isSuccessful) {
-            response.setCode(HttpStatus.SC_OK);
+            response = AsyncResponseBuilder.create(HttpStatus.SC_OK).build();
         } else {
-            response.setCode(HttpStatus.SC_BAD_REQUEST);
+            response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
         }
+        responseTrigger.submitResponse(response, context);
     }
 }
