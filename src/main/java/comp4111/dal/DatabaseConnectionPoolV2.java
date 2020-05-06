@@ -349,14 +349,18 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      */
     @Override
     public void close() {
-        pool.forEach(con -> {
-            try {
-                con.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        });
-        pool.clear();
+        gcPoolTimer.cancel();
+
+        synchronized (pool) {
+            pool.forEach(con -> {
+                try {
+                    con.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            });
+            pool.clear();
+        }
 
         resetDefaultLockTimeout();
         resetDefaultTxTimeout();
