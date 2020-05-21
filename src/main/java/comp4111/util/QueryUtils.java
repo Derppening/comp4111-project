@@ -14,6 +14,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 
 public class QueryUtils {
@@ -30,9 +32,12 @@ public class QueryUtils {
      * @param <T> Type of the object in Java.
      * @return {@link List} of rows, converted into Java objects.
      */
-    public static <T> List<T> queryTable(@Nullable final Connection con, @NotNull String tableName,
-                                         @NotNull String ext, @NotNull List<Object> params,
-                                         @NotNull Function<ResultSet, T> transform) throws SQLException {
+    public static <T> CompletableFuture<List<T>> queryTable(
+            @Nullable final Connection con,
+            @NotNull String tableName,
+            @NotNull String ext,
+            @NotNull List<Object> params,
+            @NotNull Function<ResultSet, T> transform) {
         final ConnectionFunction<List<T>> block = connection -> {
             final var list = new ArrayList<T>();
 
@@ -70,7 +75,13 @@ public class QueryUtils {
         };
 
         if (con != null) {
-            return block.apply(con);
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    return block.apply(con);
+                } catch (SQLException e) {
+                    throw new CompletionException(e);
+                }
+            });
         } else {
             return DatabaseConnectionPoolV2.getInstance().execStmt(block);
         }

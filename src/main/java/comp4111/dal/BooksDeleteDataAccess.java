@@ -1,22 +1,24 @@
 package comp4111.dal;
 
-import java.sql.SQLException;
-import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BooksDeleteDataAccess {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(BooksDeleteDataAccess.class);
 
     public static boolean deleteBook(long id) {
         boolean isSuccess;
 
         try {
-            isSuccess = Objects.requireNonNull(DatabaseConnectionPoolV2.getInstance().execStmt(connection -> {
+            isSuccess = DatabaseConnectionPoolV2.getInstance().execStmt(connection -> {
                 try (var stmt = connection.prepareStatement("DELETE FROM Book WHERE id = ?")) {
                     stmt.setLong(1, id);
                     return stmt.executeUpdate() > 0;
                 }
-            }));
-        } catch (SQLException e) {
-            e.printStackTrace();
+            }).get();
+        } catch (Exception e) {
+            LOGGER.error("Unable to delete book", e);
             isSuccess = false;
         }
 
