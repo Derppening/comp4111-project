@@ -2,9 +2,8 @@ package comp4111.bug;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import comp4111.AbstractServerTest;
-import comp4111.DatabaseUtils;
 import comp4111.MainApplication;
-import comp4111.dal.DatabaseConnection;
+import comp4111.dal.DatabaseUtils;
 import comp4111.handler.BooksHandler;
 import comp4111.handler.HttpAsyncPathHandler;
 import comp4111.handler.LoginHandler;
@@ -43,8 +42,8 @@ public class Bug8_BooksPostHasResponseTest extends AbstractServerTest {
             }
         }, "Database not started; Skipping live integration tests");
 
-        DatabaseConnection.setConfig();
-        MainApplication.createDefaultUsers();
+        DatabaseUtils.setupSchemas(true);
+        DatabaseUtils.createDefaultUsers();
 
         {
             final var handlers = new HttpAsyncPathHandler[MainApplication.PATTERN_HANDLER.size()];
@@ -120,8 +119,7 @@ public class Bug8_BooksPostHasResponseTest extends AbstractServerTest {
         }
         super.tearDown();
 
-        DatabaseUtils.dropDatabase(DB_NAME);
-        DatabaseConnection.cleanUp();
+        DatabaseUtils.dropDatabase();
 
         token = null;
         objectMapper = null;

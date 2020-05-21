@@ -132,7 +132,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
             @NotNull String password) throws SQLException {
         connection = DriverManager.getConnection(databaseUrl, user, password);
         connection.setAutoCommit(false);
-        defaultLockTimeout = DatabaseConnection.getLockTimeout(connection);
+        defaultLockTimeout = DatabaseUtils.getLockTimeout(connection);
 
         lastUsedTime = Instant.now();
     }
@@ -183,7 +183,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         if (lockTimeout == null) {
             lockTimeout = this.defaultLockTimeout;
         }
-        DatabaseConnection.setLockTimeout(connection, lockTimeout);
+        DatabaseUtils.setLockTimeout(connection, lockTimeout);
 
         return getIdForTransaction(txTimeout, false);
     }

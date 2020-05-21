@@ -1,8 +1,8 @@
 package comp4111;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import comp4111.dal.DatabaseConnection;
 import comp4111.dal.DatabaseConnectionPoolV2;
+import comp4111.dal.DatabaseUtils;
 import comp4111.handler.*;
 import comp4111.model.Book;
 import comp4111.model.LoginRequest;
@@ -44,9 +44,9 @@ public class TransactionTimeoutIntegrationTest extends AbstractServerTest {
             }
         }, "Database not started; Skipping live integration tests");
 
-        DatabaseConnection.setConfig();
+        DatabaseUtils.setupSchemas(true);
+        DatabaseUtils.createDefaultUsers();
         DatabaseConnectionPoolV2.getInstance().setDefaultTxTimeout(Duration.ofSeconds(1));
-        MainApplication.createDefaultUsers();
 
         {
             final var handlers = new HttpAsyncPathHandler[MainApplication.PATTERN_HANDLER.size()];
@@ -157,9 +157,8 @@ public class TransactionTimeoutIntegrationTest extends AbstractServerTest {
         }
         super.tearDown();
 
-        DatabaseUtils.dropDatabase(DB_NAME);
+        DatabaseUtils.dropDatabase();
         DatabaseConnectionPoolV2.getInstance().close();
-        DatabaseConnection.cleanUp();
 
         token = null;
         objectMapper = null;

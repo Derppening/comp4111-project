@@ -8,12 +8,29 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
 public class LoginDataAccess extends Credentials {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginDataAccess.class);
+
+    public static void createUserAccount(
+            @NotNull Connection connection,
+            @NotNull String username,
+            @NotNull String password) throws SQLException {
+        final String salt = SecurityUtils.generateRandomBase64String(24);
+        final String hashedPassword = SecurityUtils.calculateHash(password, salt, "SHA-256");
+        Credentials c = new Credentials(username, hashedPassword, salt);
+
+        try (var stmt = connection.prepareStatement("INSERT INTO User_Credentials VALUES(?, ?, ?)")) {
+            stmt.setString(1, c.getUsername());
+            stmt.setString(2, c.getHashedPassword());
+            stmt.setString(3, c.getSalt());
+            stmt.execute();
+        }
+    }
 
     public static void createUserAccount(@NotNull final String username, @NotNull final String password) {
         final String salt = SecurityUtils.generateRandomBase64String(24);

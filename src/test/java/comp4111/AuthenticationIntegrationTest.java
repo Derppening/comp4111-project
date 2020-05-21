@@ -1,8 +1,8 @@
 package comp4111;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import comp4111.dal.DatabaseConnection;
 import comp4111.dal.DatabaseConnectionPoolV2;
+import comp4111.dal.DatabaseUtils;
 import comp4111.handler.*;
 import comp4111.model.LoginRequest;
 import comp4111.util.JacksonUtils;
@@ -37,8 +37,8 @@ public class AuthenticationIntegrationTest extends AbstractServerTest {
             }
         }, "Database not started; Skipping live integration tests");
 
-        DatabaseConnection.setConfig();
-        MainApplication.createDefaultUsers();
+        DatabaseUtils.setupSchemas(true);
+        DatabaseUtils.createDefaultUsers();
 
         {
             final var handlers = new HttpAsyncPathHandler[MainApplication.PATTERN_HANDLER.size()];
@@ -153,9 +153,8 @@ public class AuthenticationIntegrationTest extends AbstractServerTest {
         }
         super.tearDown();
 
-        DatabaseUtils.dropDatabase(DB_NAME);
+        DatabaseUtils.dropDatabase();
         DatabaseConnectionPoolV2.getInstance().close();
-        DatabaseConnection.cleanUp();
 
         token = null;
         objectMapper = null;

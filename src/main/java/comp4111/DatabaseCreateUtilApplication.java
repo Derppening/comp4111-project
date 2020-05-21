@@ -1,6 +1,6 @@
 package comp4111;
 
-import comp4111.dal.DatabaseConnection;
+import comp4111.dal.DatabaseUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,9 +10,8 @@ public class DatabaseCreateUtilApplication {
 
     public static void main(String[] args) {
         try {
-            DatabaseConnection.setConfig();
+            DatabaseUtils.setupSchemas(true);
         } finally {
-            DatabaseConnection.cleanUp();
             LOGGER.info("The database connection is closed");
         }
     }
