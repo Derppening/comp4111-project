@@ -21,6 +21,7 @@ import java.sql.DriverManager;
 import java.time.Duration;
 import java.util.regex.Pattern;
 
+import static comp4111.dal.DatabaseInfo.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -37,7 +38,7 @@ public class TransactionInterferenceIntegrationTest extends AbstractServerTest {
         super.setUp();
 
         assumeTrue(() -> {
-            try (@SuppressWarnings("unused") var con = DriverManager.getConnection(DatabaseConnection.MYSQL_URL, DatabaseConnection.MYSQL_LOGIN, DatabaseConnection.MYSQL_PASSWORD)) {
+            try (@SuppressWarnings("unused") var con = DriverManager.getConnection(MYSQL_URL, MYSQL_LOGIN, MYSQL_PASSWORD)) {
                 return true;
             } catch (Throwable tr) {
                 return false;
@@ -191,7 +192,7 @@ public class TransactionInterferenceIntegrationTest extends AbstractServerTest {
         }
         super.tearDown();
 
-        DatabaseUtils.dropDatabase(DatabaseConnection.DB_NAME);
+        DatabaseUtils.dropDatabase(DB_NAME);
         DatabaseConnectionPoolV2.getInstance().close();
         DatabaseConnection.cleanUp();
 

@@ -6,12 +6,16 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.function.Predicate;
+
+import static comp4111.dal.DatabaseInfo.*;
 
 /**
  * A connection pool for grouping connections into one SQL server.
@@ -28,23 +32,6 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
     private static final Duration DEFAULT_TX_TIMEOUT = Duration.ofSeconds(90);
 
     /**
-     * The URL to the MySQL database.
-     */
-    public static final String MYSQL_URL;
-    /**
-     * The username used to login.
-     */
-    public static final String MYSQL_LOGIN;
-    /**
-     * The password of the user.
-     */
-    public static final String MYSQL_PASSWORD;
-    /**
-     * The name of the database.
-     */
-    public static final String DB_NAME;
-
-    /**
      * How long after a connection is unused should the garbage collector of the pool remove the connection from the
      * pool.
      */
@@ -55,22 +42,6 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      */
     @NotNull
     private static final Duration GC_PERIOD = Duration.ofSeconds(30);
-
-    static {
-        final var classLoader = Thread.currentThread().getContextClassLoader();
-        final var mysqlProperties = new Properties();
-        try {
-            mysqlProperties.load(classLoader.getResourceAsStream("mysql.properties"));
-        } catch (IOException e) {
-            LOGGER.error("Cannot read from database properties", e);
-            System.exit(1);
-        }
-
-        MYSQL_URL = mysqlProperties.get("mysql.url").toString();
-        MYSQL_LOGIN = mysqlProperties.get("mysql.username").toString();
-        MYSQL_PASSWORD = mysqlProperties.get("mysql.password").toString();
-        DB_NAME = mysqlProperties.get("mysql.database").toString();
-    }
 
     private static DatabaseConnectionPoolV2 INSTANCE = null;
 

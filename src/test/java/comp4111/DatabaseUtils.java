@@ -3,7 +3,7 @@ package comp4111;
 import java.sql.DriverManager;
 import java.sql.Statement;
 
-import static comp4111.dal.DatabaseConnection.*;
+import static comp4111.dal.DatabaseInfo.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class DatabaseUtils {
