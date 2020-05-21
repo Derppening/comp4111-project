@@ -57,7 +57,7 @@ public class TransactionLoanTwiceIntegrationTest extends AbstractServerTest {
     }
 
     void logInFirst() throws Exception {
-        final var loginRequest = new LoginRequest("user001", "pass001");
+        final var loginRequest = new LoginRequest("user00001", "pass00001");
         @Language("JSON") final var payload = objectMapper.writeValueAsString(loginRequest);
         final var entity = new StringEntity(payload);
 

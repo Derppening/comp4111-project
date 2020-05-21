@@ -221,11 +221,11 @@ public class DatabaseUtils {
      * Creates the set of default users in the database.
      */
     public static void createDefaultUsers() {
-        if (!SecurityUtils.userLogin("user001", "pass001")) { // The database probably does not contain user credentials.
+        if (!SecurityUtils.userLogin("user00001", "pass00001")) { // The database probably does not contain user credentials.
             try {
                 DatabaseConnectionPoolV2.getInstance().execStmt(connection -> {
-                    for (int i = 1; i <= 100; ++i) {
-                        String suffix = String.format("%03d", i);
+                    for (int i = 1; i <= 10000; ++i) {
+                        String suffix = String.format("%05d", i);
                         LoginDataAccess.createUserAccount(connection, "user" + suffix, "pass" + suffix);
                     }
 

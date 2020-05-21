@@ -50,7 +50,7 @@ public class AuthenticationIntegrationTest extends AbstractServerTest {
     }
 
     void a_LoginWithTheCorrectUsernameAndPassword() throws Exception {
-        final var loginRequest = new LoginRequest("user001", "pass001");
+        final var loginRequest = new LoginRequest("user00001", "pass00001");
         @Language("JSON") final var payload = objectMapper.writeValueAsString(loginRequest);
         final var entity = new StringEntity(payload);
 
@@ -64,7 +64,7 @@ public class AuthenticationIntegrationTest extends AbstractServerTest {
     }
 
     void b_LoginWithTheCorrectUsernameAndPasswordAgain() throws Exception {
-        final var loginRequest = new LoginRequest("user001", "pass001");
+        final var loginRequest = new LoginRequest("user00001", "pass00001");
         @Language("JSON") final var payload = objectMapper.writeValueAsString(loginRequest);
         final var entity = new StringEntity(payload);
 
@@ -74,7 +74,7 @@ public class AuthenticationIntegrationTest extends AbstractServerTest {
     }
 
     void c_LoginWithTheIncorrectUsernameAndPassword() throws Exception {
-        final var loginRequest = new LoginRequest("user001", "pass002");
+        final var loginRequest = new LoginRequest("user00001", "pass00002");
         @Language("JSON") final var payload = objectMapper.writeValueAsString(loginRequest);
         final var entity = new StringEntity(payload);
 

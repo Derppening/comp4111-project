@@ -57,8 +57,8 @@ public class Bug9_GetBooksSmallerThanLimitTest extends AbstractServerTest {
 
     void pre_LoginFirst() throws Exception {
         @Language("JSON") final var payload = "{" +
-                "\"Username\": \"user001\", " +
-                "\"Password\": \"pass001\"" +
+                "\"Username\": \"user00001\", " +
+                "\"Password\": \"pass00001\"" +
                 "}";
         final var entity = new StringEntity(payload);
 
