@@ -19,6 +19,9 @@ public class TransactionPostDataAccess {
     }
 
     public static boolean commitOrCancelTransaction(Long transaction, @NotNull TransactionPostRequest.Operation operation) {
-        return DatabaseConnectionPoolV2.getInstance().executeTransaction(transaction, operation == TransactionPostRequest.Operation.COMMIT);
+        final var shouldCommit = operation == TransactionPostRequest.Operation.COMMIT;
+        final var result = DatabaseConnectionPoolV2.getInstance().executeTransaction(transaction, shouldCommit);
+
+        return result == shouldCommit;
     }
 }
