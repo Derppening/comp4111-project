@@ -17,6 +17,8 @@ public class TransactionPutDataAccess {
     public static int pushAction(@NotNull Long transaction, long bookId, @NotNull TransactionPutRequest.Action action) {
         try {
             final var res = DatabaseConnectionPoolV2.getInstance().putTransactionWithId(transaction, connection -> {
+                final var savepoint = connection.setSavepoint();
+
                 int transactionPutResult;
                 if (action == TransactionPutRequest.Action.LOAN) {
                     transactionPutResult = BooksPutDataAccess.updateBook(connection, bookId, false);
@@ -24,12 +26,12 @@ public class TransactionPutDataAccess {
                     transactionPutResult = BooksPutDataAccess.updateBook(connection, bookId, true);
                 }
 
+                if (transactionPutResult != 0) {
+                    connection.rollback(savepoint);
+                }
+
                 return transactionPutResult;
             });
-
-            if (res != null && res != 0) {
-                DatabaseConnectionPoolV2.getInstance().executeTransaction(transaction, false);
-            }
 
             return res != null ? res : 1;
         } catch (SQLException e) {

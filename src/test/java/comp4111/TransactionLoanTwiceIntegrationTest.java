@@ -140,7 +140,7 @@ public class TransactionLoanTwiceIntegrationTest extends AbstractServerTest {
         final var entity = new StringEntity(payload);
 
         try (var response = makeRequest(Method.POST, String.format("%s?token=%s", TransactionHandler.HANDLE_PATTERN, token), entity)) {
-            assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
+            assertEquals(HttpStatus.SC_OK, response.getCode());
         }
     }
 

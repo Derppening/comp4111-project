@@ -5,6 +5,8 @@ import comp4111.function.ConnectionFunction;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -15,6 +17,8 @@ import java.util.List;
 import java.util.function.Function;
 
 public class QueryUtils {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(QueryUtils.class);
 
     /**
      * Queries a table with extra clauses, converting them into Java objects.

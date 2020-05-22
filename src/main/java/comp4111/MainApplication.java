@@ -14,6 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -47,7 +49,6 @@ public class MainApplication {
         PATTERN_HANDLER.forEach(serverBuilder::register);
 
         final HttpAsyncServer server = serverBuilder.create();
-        DatabaseConnectionPoolV2.getInstance();
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOGGER.info("HTTP server shutting down");
@@ -58,6 +59,8 @@ public class MainApplication {
             // Set up the database connection.
             DatabaseUtils.setupSchemas(recreateDb);
             DatabaseUtils.createDefaultUsers();
+
+            DatabaseConnectionPoolV2.getInstance().setDefaultLockTimeout(Duration.ofSeconds(3));
 
             server.start();
             final var future = server.listen(new InetSocketAddress(8080));
