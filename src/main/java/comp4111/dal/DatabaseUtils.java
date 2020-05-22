@@ -113,12 +113,9 @@ public class DatabaseUtils {
                 createTable(connection, SCHEMA_BOOK);
 
                 return null;
-            });
+            }).join();
 
             return true;
-        } catch (SQLException e) {
-            LOGGER.error("Error creating tables", e);
-            return false;
         }
     }
 
@@ -222,19 +219,15 @@ public class DatabaseUtils {
      */
     public static void createDefaultUsers() {
         if (!SecurityUtils.userLogin("user00001", "pass00001")) { // The database probably does not contain user credentials.
-            try {
-                DatabaseConnectionPoolV2.getInstance().execStmt(connection -> {
-                    for (int i = 1; i <= 10000; ++i) {
-                        String suffix = String.format("%05d", i);
-                        LoginDataAccess.createUserAccount(connection, "user" + suffix, "pass" + suffix);
-                    }
+            DatabaseConnectionPoolV2.getInstance().execStmt(connection -> {
+                for (int i = 1; i <= 10000; ++i) {
+                    String suffix = String.format("%05d", i);
+                    LoginDataAccess.createUserAccount(connection, "user" + suffix, "pass" + suffix);
+                }
 
-                    LOGGER.info("The user accounts are recreated");
-                    return null;
-                });
-            } catch (SQLException e) {
-                LOGGER.error("Unable to recreate user accounts", e);
-            }
+                LOGGER.info("The user accounts are recreated");
+                return null;
+            }).join();
         }
     }
 }

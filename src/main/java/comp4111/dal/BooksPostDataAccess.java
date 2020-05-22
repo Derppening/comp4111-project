@@ -6,11 +6,9 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class BooksPostDataAccess extends Book {
@@ -23,7 +21,7 @@ public class BooksPostDataAccess extends Book {
         // https://stackoverflow.com/questions/1915166/how-to-get-the-insert-id-in-jdbc
         long id;
         try {
-            id = Objects.requireNonNull(DatabaseConnectionPoolV2.getInstance().execStmt(connection -> {
+            id = DatabaseConnectionPoolV2.getInstance().execStmt(connection -> {
                 try (var stmt = connection.prepareStatement("INSERT IGNORE INTO Book VALUES(NULL, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
                     stmt.setString(1, b.getTitle());
                     stmt.setString(2, b.getAuthor());
@@ -41,9 +39,9 @@ public class BooksPostDataAccess extends Book {
                         }
                     }
                 }
-            }));
-        } catch (SQLException e) {
-            e.printStackTrace();
+            }).get();
+        } catch (Exception e) {
+            LOGGER.error("Unable to insert book", e);
             id = 0;
         }
 
@@ -58,14 +56,14 @@ public class BooksPostDataAccess extends Book {
             AtomicLong result = new AtomicLong();
             List<Object> params = new ArrayList<>();
             params.add(title);
-            final var bookInDb = QueryUtils.queryTable(null, "Book", "where title = ?", params, Book::toBook);
+            final var bookInDb = QueryUtils.queryTable(null, "Book", "where title = ?", params, Book::toBook).get();
             bookInDb.forEach(b -> {
                 // There should be only one result.
                 result.set(b.getId());
             });
 
             return result.longValue();
-        } catch (SQLException e) {
+        } catch (Exception e) {
             LOGGER.error("Error querying the table", e);
         }
         return 0;

@@ -10,6 +10,8 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.function.Predicate;
 
 import static comp4111.dal.DatabaseInfo.*;
@@ -50,7 +52,7 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
     /**
      * The pool of connection instances.
      */
-    private final Set<DatabaseConnectionV2> pool = new HashSet<>();
+    private final Set<DatabaseConnectionV2> connectionPool = new HashSet<>();
 
     /**
      * @return The default instance of the connection pool.
@@ -89,46 +91,34 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @throws RuntimeException if a new connection cannot be created.
      */
     @NotNull
-    private DatabaseConnectionV2 newConnection() {
-        try {
-            final var connection = new DatabaseConnectionV2(url, db, login, password);
-            synchronized (pool) {
-                pool.add(connection);
+    private CompletableFuture<DatabaseConnectionV2> newConnection() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                final var connection = new DatabaseConnectionV2(url, db, login, password);
+                synchronized (connectionPool) {
+                    connectionPool.add(connection);
+                }
+                return connection;
+            } catch (SQLException e) {
+                throw new CompletionException(e);
             }
-            return connection;
-        } catch (SQLException e) {
-            throw new RuntimeException("Cannot create new connection to pool", e);
-        }
+        });
     }
 
     /**
      * Finds an existing connection, or creates a new connection if no existing connections are available.
      *
      * @return A free connection from the pool, either by reusing one or creating one.
-     * @throws SQLException if a database operation fails.
      */
     @NotNull
-    private synchronized DatabaseConnectionV2 findOrNewConnection() throws SQLException {
-        final DatabaseConnectionV2 connection;
-        synchronized (pool) {
-            if (pool.isEmpty()) {
-                connection = newConnection();
-            } else {
-                try {
-                    connection = pool.stream()
-                            .filter(con -> !con.isInUse())
-                            .findAny()
-                            .orElseGet(this::newConnection);
-                } catch (RuntimeException e) {
-                    if (e.getCause() instanceof SQLException) {
-                        throw (SQLException) e.getCause();
-                    } else {
-                        throw e;
-                    }
-                }
-            }
+    private CompletableFuture<DatabaseConnectionV2> findOrNewConnection() {
+        synchronized (connectionPool) {
+            return connectionPool.stream()
+                    .filter(con -> !con.isInUse())
+                    .findAny()
+                    .map(CompletableFuture::completedFuture)
+                    .orElseGet(this::newConnection);
         }
-        return connection;
     }
 
     /**
@@ -137,13 +127,13 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @param predicate Predicate to filter the connections in the pool.
      * @return A connection in the pool matching the given predicate, or {@code null} if none matches the predicate.
      */
-    @Nullable
-    private DatabaseConnectionV2 findConnection(@NotNull Predicate<DatabaseConnectionV2> predicate) {
-        synchronized (pool) {
-            return pool.stream()
+    @NotNull
+    private CompletableFuture<@Nullable DatabaseConnectionV2> findConnection(@NotNull Predicate<DatabaseConnectionV2> predicate) {
+        synchronized (connectionPool) {
+            return CompletableFuture.supplyAsync(() -> connectionPool.stream()
                     .filter(predicate)
                     .findFirst()
-                    .orElse(null);
+                    .orElse(null));
         }
     }
 
@@ -153,9 +143,9 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @param connection Connection to check.
      */
     private void evictConnectionIfClosed(@NotNull DatabaseConnectionV2 connection) {
-        synchronized (pool) {
+        synchronized (connectionPool) {
             if (connection.isClosed()) {
-                pool.remove(connection);
+                connectionPool.remove(connection);
             }
         }
     }
@@ -168,16 +158,20 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @param block The block of SQL statements to execute.
      * @param <R> The return type from the block.
      * @return The return value of the block. May be {@code null}.
-     * @throws SQLException if the database operation fails.
      * @see DatabaseConnectionPoolV2#putTransactionWithId(long, ConnectionFunction)
      */
-    @Nullable
-    public <R> R execStmt(@NotNull ConnectionFunction<R> block) throws SQLException {
-        final var connection = findOrNewConnection();
-
-        final var result = connection.execStmt(block);
-        evictConnectionIfClosed(connection);
-        return result;
+    @NotNull
+    public <R> CompletableFuture<R> execStmt(@NotNull ConnectionFunction<R> block) {
+        return findOrNewConnection()
+                .thenApplyAsync(connection -> {
+                    try {
+                        final var result = connection.execStmt(block);
+                        evictConnectionIfClosed(connection);
+                        return result;
+                    } catch (SQLException e) {
+                        throw new CompletionException(e);
+                    }
+                });
     }
 
     /**
@@ -188,11 +182,17 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * value and the transaction timeout set in the SQL server.
      *
      * @return A long value representing the newly created transaction.
-     * @throws SQLException if the database operation fails.
      */
-    public long getIdForTransaction() throws SQLException {
-        final var connection = findOrNewConnection();
-        return connection.getIdForTransaction(defaultTxTimeout, defaultLockTimeout);
+    @NotNull
+    public CompletableFuture<Long> getIdForTransaction() {
+        return findOrNewConnection()
+                .thenApplyAsync(connection -> {
+                    try {
+                        return connection.getIdForTransaction(defaultTxTimeout, defaultLockTimeout);
+                    } catch (SQLException e) {
+                        throw new CompletionException(e);
+                    }
+                });
     }
 
     /**
@@ -206,18 +206,22 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @param block The block of SQL statements to execute in the transaction.
      * @param <R> The return type from the block.
      * @return The return value of the block. May be {@code null}.
-     * @throws SQLException if the database operation fails.
      * @see DatabaseConnectionPoolV2#execStmt(ConnectionFunction)
      */
-    @Nullable
-    public <R> R putTransactionWithId(long id, @NotNull ConnectionFunction<R> block) throws SQLException {
-        final var connection = findConnection(it -> it.isInUse() && it.getTransactionId() == id);
-
-        if (connection != null) {
-            return connection.execTransaction(block);
-        } else {
-            return null;
-        }
+    @NotNull
+    public <R> CompletableFuture<R> putTransactionWithId(long id, @NotNull ConnectionFunction<R> block) {
+        return findConnection(it -> it.isInUse() && it.getTransactionId() == id)
+                .thenApplyAsync(connection -> {
+                    if (connection != null) {
+                        try {
+                            return connection.execTransaction(block);
+                        } catch (SQLException e) {
+                            throw new CompletionException(e);
+                        }
+                    } else {
+                        return null;
+                    }
+                });
     }
 
     /**
@@ -228,23 +232,25 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @return {@code true} if the commit operation was successful. Failure to commit, rolling back, and no such
      * connection will all return {@code false}.
      */
-    public boolean executeTransaction(long id, boolean shouldCommit) {
-        final var connection = findConnection(it -> it.isInUse() && it.getTransactionId() == id);
+    @NotNull
+    public CompletableFuture<Boolean> executeTransaction(long id, boolean shouldCommit) {
+        return findConnection(it -> it.isInUse() && it.getTransactionId() == id)
+                .thenApplyAsync(connection -> {
+                    final boolean committed;
+                    if (connection != null) {
+                        if (shouldCommit) {
+                            committed = connection.commit();
+                        } else {
+                            connection.rollback();
+                            committed = false;
+                        }
 
-        final boolean committed;
-        if (connection != null) {
-            if (shouldCommit) {
-                committed = connection.commit();
-            } else {
-                connection.rollback();
-                committed = false;
-            }
-
-            evictConnectionIfClosed(connection);
-        } else {
-            committed = false;
-        }
-        return committed;
+                        evictConnectionIfClosed(connection);
+                    } else {
+                        committed = false;
+                    }
+                    return committed;
+                });
     }
 
     /**
@@ -289,15 +295,15 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      */
     @Override
     public void close() {
-        synchronized (pool) {
-            pool.forEach(con -> {
+        synchronized (connectionPool) {
+            connectionPool.forEach(con -> {
                 try {
                     con.close();
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }
             });
-            pool.clear();
+            connectionPool.clear();
         }
 
         resetDefaultLockTimeout();
