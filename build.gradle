@@ -91,3 +91,9 @@ task('runDbInit', type: JavaExec) {
     main = "comp4111.DatabaseCreateUtilApplication"
     classpath += sourceSets.main.runtimeClasspath
 }
+
+task('runDbDrop', type: JavaExec) {
+    dependsOn('classes')
+    main = "comp4111.DatabaseDropUtilApplication"
+    classpath += sourceSets.main.runtimeClasspath
+}
