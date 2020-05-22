@@ -8,11 +8,8 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.function.Predicate;
 
 import static comp4111.dal.DatabaseInfo.*;
@@ -30,18 +27,6 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * The default timeout of a transaction.
      */
     private static final Duration DEFAULT_TX_TIMEOUT = Duration.ofSeconds(90);
-
-    /**
-     * How long after a connection is unused should the garbage collector of the pool remove the connection from the
-     * pool.
-     */
-    @NotNull
-    private static final Duration GC_CONNECTION_EVICT_TIME = Duration.ofSeconds(60);
-    /**
-     * How often the garbage collector of the pool should run.
-     */
-    @NotNull
-    private static final Duration GC_PERIOD = Duration.ofSeconds(30);
 
     private static DatabaseConnectionPoolV2 INSTANCE = null;
 
@@ -66,43 +51,6 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * The pool of connection instances.
      */
     private final Set<DatabaseConnectionV2> pool = new HashSet<>();
-    /**
-     * Times for scheduling garbage collection tasks.
-     */
-    private final Timer gcPoolTimer = new Timer();
-
-    {
-        gcPoolTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                final var now = Instant.now().toEpochMilli();
-
-                synchronized (pool) {
-                    final var initSize = pool.size();
-
-                    pool.stream()
-                            .filter(con -> {
-                                final var lastUsedTime = con.getLastUsedTime();
-                                return !con.isInUse() && now - lastUsedTime.toEpochMilli() > GC_CONNECTION_EVICT_TIME.toMillis();
-                            })
-                            .forEach(it -> {
-                                try {
-                                    it.close();
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                            });
-                    pool.removeIf(DatabaseConnectionV2::isClosed);
-
-                    final var finalSize = pool.size();
-
-                    if (finalSize != initSize) {
-                        LOGGER.info("Completed connection pool eviction: {} -> {} connections", initSize, finalSize);
-                    }
-                }
-            }
-        }, GC_PERIOD.toMillis(), GC_PERIOD.toMillis());
-    }
 
     /**
      * @return The default instance of the connection pool.
@@ -200,6 +148,19 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
     }
 
     /**
+     * Evicts a connection from the connection pool if it is closed.
+     *
+     * @param connection Connection to check.
+     */
+    private void evictConnectionIfClosed(@NotNull DatabaseConnectionV2 connection) {
+        synchronized (pool) {
+            if (connection.isClosed()) {
+                pool.remove(connection);
+            }
+        }
+    }
+
+    /**
      * Executes a block of SQL statements on the SQL server managed by this pool.
      *
      * After the block finishes execution, the result is committed into the database.
@@ -214,7 +175,9 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
     public <R> R execStmt(@NotNull ConnectionFunction<R> block) throws SQLException {
         final var connection = findOrNewConnection();
 
-        return connection.execStmt(block);
+        final var result = connection.execStmt(block);
+        evictConnectionIfClosed(connection);
+        return result;
     }
 
     /**
@@ -268,14 +231,20 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
     public boolean executeTransaction(long id, boolean shouldCommit) {
         final var connection = findConnection(it -> it.isInUse() && it.getTransactionId() == id);
 
+        final boolean committed;
         if (connection != null) {
             if (shouldCommit) {
-                return connection.commit();
+                committed = connection.commit();
             } else {
                 connection.rollback();
+                committed = false;
             }
+
+            evictConnectionIfClosed(connection);
+        } else {
+            committed = false;
         }
-        return false;
+        return committed;
     }
 
     /**
@@ -320,8 +289,6 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      */
     @Override
     public void close() {
-        gcPoolTimer.cancel();
-
         synchronized (pool) {
             pool.forEach(con -> {
                 try {

@@ -43,12 +43,6 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     private final Duration defaultLockTimeout;
 
     /**
-     * The time which this connection is last used.
-     */
-    @NotNull
-    private Instant lastUsedTime;
-
-    /**
      * The information of the current transaction.
      */
     @Nullable
@@ -133,8 +127,6 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         connection = DriverManager.getConnection(databaseUrl, user, password);
         connection.setAutoCommit(false);
         defaultLockTimeout = DatabaseUtils.getLockTimeout(connection);
-
-        lastUsedTime = Instant.now();
     }
 
     /**
@@ -330,7 +322,6 @@ public class DatabaseConnectionV2 implements AutoCloseable {
             throw new IllegalStateException("Attempted to unbind a unbound connection");
         }
 
-        lastUsedTime = Instant.now();
         txInfo = null;
     }
 
@@ -344,15 +335,6 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         }
 
         return txInfo.txId;
-    }
-
-    /**
-     * @return The time this connection is last released. Note that if the connection is currently in use, it will
-     * return the last time a transaction is completed with this connection.
-     */
-    @NotNull
-    synchronized Instant getLastUsedTime() {
-        return lastUsedTime;
     }
 
     /**
