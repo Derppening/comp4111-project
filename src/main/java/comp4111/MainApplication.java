@@ -38,7 +38,7 @@ public class MainApplication {
         final var config = IOReactorConfig.custom()
                 .setSoTimeout(Timeout.ofSeconds(10))
                 .setTcpNoDelay(true)
-                .setIoThreadCount(Math.max(Runtime.getRuntime().availableProcessors() / 2, 2))
+                .setIoThreadCount(Math.max(Runtime.getRuntime().availableProcessors(), 2))
                 .build();
 
         final var serverBuilder = AsyncServerBootstrap.bootstrap()
