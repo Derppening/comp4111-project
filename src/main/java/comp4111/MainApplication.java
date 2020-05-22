@@ -33,6 +33,8 @@ public class MainApplication {
     ).stream().collect(Collectors.toUnmodifiableMap(HttpAsyncPathHandler::getHandlePattern, Function.identity()));
 
     public static void main(String[] args) {
+        boolean recreateDb = Arrays.asList(args).contains("--recreate-db");
+
         final var config = IOReactorConfig.custom()
                 .setSoTimeout(Timeout.ofSeconds(10))
                 .setTcpNoDelay(true)
@@ -54,7 +56,7 @@ public class MainApplication {
 
         try {
             // Set up the database connection.
-            DatabaseUtils.setupSchemas(false);
+            DatabaseUtils.setupSchemas(recreateDb);
             DatabaseUtils.createDefaultUsers();
 
             server.start();
