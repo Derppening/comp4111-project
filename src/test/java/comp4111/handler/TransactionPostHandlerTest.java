@@ -55,7 +55,7 @@ public class TransactionPostHandlerTest extends AbstractServerTest {
             }
         };
         tokenMgr = TokenManager.getInstance();
-        token = tokenMgr.newToken("user001");
+        token = tokenMgr.newToken("user00001");
         txMgr = TransactionManager.getInstance();
         transactionId = txMgr.newTransaction();
 
@@ -87,7 +87,7 @@ public class TransactionPostHandlerTest extends AbstractServerTest {
 
     @Test
     void givenBadToken_checkBadRequest() throws Exception {
-        final var badToken = tokenMgr.newToken("user002");
+        final var badToken = tokenMgr.newToken("user00002");
         assumeTrue(badToken != null);
         assumeTrue(tokenMgr.removeToken(badToken));
 
@@ -199,7 +199,7 @@ public class TransactionPostHandlerTest extends AbstractServerTest {
 
     @Disabled("Bad transaction UUIDs are currently checked in the overriding class.")
     @Test
-    void givenBadTransactionRequest_checkOK() throws Exception {
+    void givenBadTransactionRequest_checkBadRequest() throws Exception {
         final var badTx = txMgr.newTransaction();
         txMgr.getAndEraseTransaction(new TransactionPostRequest(badTx, TransactionPostRequest.Operation.CANCEL));
 
