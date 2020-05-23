@@ -47,7 +47,7 @@ public class BooksGetHandlerTest extends AbstractServerTest {
             }
         };
         tokenMgr = TokenManager.getInstance();
-        token = tokenMgr.newToken("user001");
+        token = tokenMgr.newToken("user00001");
 
         registerAndStartServer(handler);
     }
@@ -72,7 +72,7 @@ public class BooksGetHandlerTest extends AbstractServerTest {
 
     @Test
     void givenBadToken_checkBadRequest() throws Exception {
-        final var badToken = tokenMgr.newToken("user002");
+        final var badToken = tokenMgr.newToken("user00002");
         assumeTrue(badToken != null);
         assumeTrue(tokenMgr.removeToken(badToken));
 

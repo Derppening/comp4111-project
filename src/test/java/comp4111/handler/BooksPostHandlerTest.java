@@ -51,7 +51,7 @@ public class BooksPostHandlerTest extends AbstractServerTest {
             }
         };
         tokenMgr = TokenManager.getInstance();
-        token = tokenMgr.newToken("user001");
+        token = tokenMgr.newToken("user00001");
 
         objectMapper = new ObjectMapper();
 
@@ -81,13 +81,13 @@ public class BooksPostHandlerTest extends AbstractServerTest {
 
     @Test
     void givenBadToken_checkBadRequest() throws Exception {
-        final var badToken = tokenMgr.newToken("user002");
+        final var badToken = tokenMgr.newToken("user00002");
         assumeTrue(badToken != null);
         assumeTrue(tokenMgr.removeToken(badToken));
 
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
-        final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern());
+        final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), handler.getHandlePattern() + "?token=" + badToken);
         try (final var response = requester.execute(target, request, CLIENT_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
@@ -117,7 +117,7 @@ public class BooksPostHandlerTest extends AbstractServerTest {
     }
 
     @Test
-    void givenMissingTitleRequest_checkOK() throws Exception {
+    void givenMissingTitleRequest_checkBadRequest() throws Exception {
         @Language("JSON") final var payload = "{" +
                 "\"Author\": \"Lewis Carroll\", " +
                 "\"Publisher\": \"Macmillan Publishers\", " +
@@ -134,7 +134,7 @@ public class BooksPostHandlerTest extends AbstractServerTest {
     }
 
     @Test
-    void givenMissingAuthorRequest_checkOK() throws Exception {
+    void givenMissingAuthorRequest_checkBadRequest() throws Exception {
         @Language("JSON") final var payload = "{" +
                 "\"Title\": \"Alice in Wonderland\", " +
                 "\"Publisher\": \"Macmillan Publishers\", " +
@@ -151,7 +151,7 @@ public class BooksPostHandlerTest extends AbstractServerTest {
     }
 
     @Test
-    void givenMissingPublisherRequest_checkOK() throws Exception {
+    void givenMissingPublisherRequest_checkBadRequest() throws Exception {
         @Language("JSON") final var payload = "{" +
                 "\"Title\": \"Alice in Wonderland\", " +
                 "\"Author\": \"Lewis Carroll\", " +
@@ -168,7 +168,7 @@ public class BooksPostHandlerTest extends AbstractServerTest {
     }
 
     @Test
-    void givenMissingYearRequest_checkOK() throws Exception {
+    void givenMissingYearRequest_checkBadRequest() throws Exception {
         @Language("JSON") final var payload = "{" +
                 "\"Title\": \"Alice in Wonderland\", " +
                 "\"Author\": \"Lewis Carroll\", " +
@@ -185,7 +185,7 @@ public class BooksPostHandlerTest extends AbstractServerTest {
     }
 
     @Test
-    void givenNullTitleRequest_checkOK() throws Exception {
+    void givenNullTitleRequest_checkBadRequest() throws Exception {
         @Language("JSON") final var payload = "{" +
                 "\"Title\": null, " +
                 "\"Author\": \"Lewis Carroll\", " +
@@ -203,7 +203,7 @@ public class BooksPostHandlerTest extends AbstractServerTest {
     }
 
     @Test
-    void givenNullAuthorRequest_checkOK() throws Exception {
+    void givenNullAuthorRequest_checkBadRequest() throws Exception {
         @Language("JSON") final var payload = "{" +
                 "\"Title\": \"Alice in Wonderland\", " +
                 "\"Author\": null, " +
@@ -221,7 +221,7 @@ public class BooksPostHandlerTest extends AbstractServerTest {
     }
 
     @Test
-    void givenNullPublisherRequest_checkOK() throws Exception {
+    void givenNullPublisherRequest_checkBadRequest() throws Exception {
         @Language("JSON") final var payload = "{" +
                 "\"Title\": \"Alice in Wonderland\", " +
                 "\"Author\": \"Lewis Carroll\", " +
@@ -239,7 +239,7 @@ public class BooksPostHandlerTest extends AbstractServerTest {
     }
 
     @Test
-    void givenNullYearRequest_checkOK() throws Exception {
+    void givenNullYearRequest_checkBadRequest() throws Exception {
         @Language("JSON") final var payload = "{" +
                 "\"Title\": \"Alice in Wonderland\", " +
                 "\"Author\": \"Lewis Carroll\", " +
