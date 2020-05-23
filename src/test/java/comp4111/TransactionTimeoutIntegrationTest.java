@@ -1,7 +1,8 @@
 package comp4111;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import comp4111.dal.DatabaseConnection;
+import comp4111.dal.DatabaseConnectionPoolV2;
+import comp4111.dal.DatabaseUtils;
 import comp4111.handler.*;
 import comp4111.model.Book;
 import comp4111.model.LoginRequest;
@@ -17,8 +18,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.DriverManager;
+import java.time.Duration;
 import java.util.regex.Pattern;
 
+import static comp4111.dal.DatabaseInfo.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -34,18 +37,19 @@ public class TransactionTimeoutIntegrationTest extends AbstractServerTest {
         super.setUp();
 
         assumeTrue(() -> {
-            try (@SuppressWarnings("unused") var con = DriverManager.getConnection(DatabaseConnection.MYSQL_URL, DatabaseConnection.MYSQL_LOGIN, DatabaseConnection.MYSQL_PASSWORD)) {
+            try (@SuppressWarnings("unused") var con = DriverManager.getConnection(MYSQL_URL, MYSQL_LOGIN, MYSQL_PASSWORD)) {
                 return true;
             } catch (Throwable tr) {
                 return false;
             }
         }, "Database not started; Skipping live integration tests");
 
-        DatabaseConnection.setConfig();
-        MainApplication.createDefaultUsers();
+        DatabaseUtils.setupSchemas(true);
+        DatabaseUtils.createDefaultUsers();
+        DatabaseConnectionPoolV2.getInstance().setDefaultTxTimeout(Duration.ofSeconds(1));
 
         {
-            HttpPathHandler[] handlers = new HttpPathHandler[MainApplication.PATTERN_HANDLER.size()];
+            final var handlers = new HttpAsyncPathHandler[MainApplication.PATTERN_HANDLER.size()];
             MainApplication.PATTERN_HANDLER.values().toArray(handlers);
             registerAndStartServer(handlers);
         }
@@ -54,7 +58,7 @@ public class TransactionTimeoutIntegrationTest extends AbstractServerTest {
     }
 
     void logInFirst() throws Exception {
-        final var loginRequest = new LoginRequest("user001", "pass001");
+        final var loginRequest = new LoginRequest("user00001", "pass00001");
         @Language("JSON") final var payload = objectMapper.writeValueAsString(loginRequest);
         final var entity = new StringEntity(payload);
 
@@ -141,7 +145,7 @@ public class TransactionTimeoutIntegrationTest extends AbstractServerTest {
         markBookAsLoaned();
         requestATransactionId();
         pushAValidActionIntoATransaction();
-        Thread.sleep(100_000);
+        Thread.sleep(2_000);
         commitTheTransaction();
         logOutWithTheCorrectToken();
     }
@@ -153,8 +157,8 @@ public class TransactionTimeoutIntegrationTest extends AbstractServerTest {
         }
         super.tearDown();
 
-        DatabaseUtils.dropDatabase(DatabaseConnection.DB_NAME);
-        DatabaseConnection.cleanUp();
+        DatabaseUtils.dropDatabase();
+        DatabaseConnectionPoolV2.getInstance().close();
 
         token = null;
         objectMapper = null;

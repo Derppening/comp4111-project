@@ -90,9 +90,32 @@ public abstract class BooksGetHandler extends HttpAsyncEndpointHandler {
         querySort = queryParams.getOrDefault("sortby", null);
         queryOrder = queryParams.getOrDefault("order", null);
 
-        // TODO(Derppening): Early check whether limit, sortby and order parameters are correct
+        if (queryLimit != null && queryLimit < 0) {
+            final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
+            responseTrigger.submitResponse(response, context);
+            throw new IllegalArgumentException();
+        }
 
-        LOGGER.info("POST /books token=\"{}\"", token);
+        if (queryOrder != null && !queryOrder.equals("asc") && !queryOrder.equals("desc")) {
+            final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
+            responseTrigger.submitResponse(response, context);
+            throw new IllegalArgumentException();
+        }
+
+        if (querySort != null && !(querySort.equals("id") || querySort.equals("title") || querySort.equals("author") || querySort.equals("year"))) {
+            final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
+            responseTrigger.submitResponse(response, context);
+            throw new IllegalArgumentException();
+        }
+
+        LOGGER.info("GET /books token=\"{}\" id={} title=\"{}\" author=\"{}\" limit={} sort={} order={}",
+                token,
+                queryId,
+                queryTitle,
+                queryAuthor,
+                queryLimit,
+                querySort,
+                queryOrder);
     }
 
     @Nullable

@@ -1,6 +1,6 @@
 version: "2.4"
 services:
-  mariadb:
+  mysql:
     image: mysql:5.7
     container_name: comp4111-mysql
     environment:

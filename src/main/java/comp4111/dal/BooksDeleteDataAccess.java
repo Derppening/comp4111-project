@@ -1,8 +1,11 @@
 package comp4111.dal;
 
-import java.sql.SQLException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BooksDeleteDataAccess {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(BooksDeleteDataAccess.class);
 
     public static boolean deleteBook(long id) {
         boolean isSuccess;
@@ -13,9 +16,9 @@ public class BooksDeleteDataAccess {
                     stmt.setLong(1, id);
                     return stmt.executeUpdate() > 0;
                 }
-            });
-        } catch (SQLException e) {
-            e.printStackTrace();
+            }).get();
+        } catch (Exception e) {
+            LOGGER.error("Unable to delete book", e);
             isSuccess = false;
         }
 

@@ -7,7 +7,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -65,17 +64,22 @@ public class BooksGetDataAccess extends Book {
         }
 
         try {
-            final var booksInDb = QueryUtils.queryTable(null, "Book",
-                    String.join(" ", chunk1, chunk2).trim(), params,
-                    Book::toJsonBook
-            );
+            final var ext = String.join(" ", chunk1, chunk2, InnoDBLockMode.SHARE.asSQLQueryComponent()).trim();
+
+            final var booksInDb = QueryUtils.queryTable(
+                    null,
+                    "Book",
+                    ext,
+                    params,
+                    Book::toJsonBook)
+                    .get();
 
             if (queryLimit == null || booksInDb.size() <= queryLimit) {
                 return new BooksGetResult(booksInDb);
             } else {
                 return new BooksGetResult(booksInDb.subList(0, queryLimit));
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             LOGGER.error("Error querying the table", e);
             return null;
         }

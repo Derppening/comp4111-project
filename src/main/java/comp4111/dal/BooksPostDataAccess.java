@@ -6,7 +6,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,13 +35,13 @@ public class BooksPostDataAccess extends Book {
                             LOGGER.info("Inserted id={}", generatedKeys.getLong(1));
                             return generatedKeys.getLong(1);
                         } else {
-                            return 0;
+                            return 0L;
                         }
                     }
                 }
-            });
-        } catch (SQLException e) {
-            e.printStackTrace();
+            }).get();
+        } catch (Exception e) {
+            LOGGER.error("Unable to insert book", e);
             id = 0;
         }
 
@@ -57,14 +56,14 @@ public class BooksPostDataAccess extends Book {
             AtomicLong result = new AtomicLong();
             List<Object> params = new ArrayList<>();
             params.add(title);
-            final var bookInDb = QueryUtils.queryTable(null, "Book", "where title = ?", params, Book::toBook);
+            final var bookInDb = QueryUtils.queryTable(null, "Book", "where title = ?", params, Book::toBook).get();
             bookInDb.forEach(b -> {
                 // There should be only one result.
                 result.set(b.getId());
             });
 
             return result.longValue();
-        } catch (SQLException e) {
+        } catch (Exception e) {
             LOGGER.error("Error querying the table", e);
         }
         return 0;
