@@ -157,6 +157,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     public synchronized <R> R execStmt(@NotNull ConnectionFunction<R> block) throws SQLException {
         LOGGER.trace("execStmt(block=...)");
 
+        DatabaseUtils.setLockTimeout(connection, defaultLockTimeout);
         getIdForTransaction(Duration.ZERO, true);
         final var obj = execTransaction(block);
         commit();
