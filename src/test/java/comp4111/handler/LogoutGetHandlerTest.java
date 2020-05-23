@@ -39,7 +39,7 @@ public class LogoutGetHandlerTest extends AbstractServerTest {
             }
         };
         tokenMgr = TokenManager.getInstance();
-        token = tokenMgr.newToken("user001");
+        token = tokenMgr.newToken("user00001");
 
         registerAndStartServer(handler);
     }

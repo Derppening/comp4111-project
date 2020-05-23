@@ -82,7 +82,7 @@ public class LoginPostHandlerTest extends AbstractServerTest {
 
     @Test
     void givenMissingUsernameRequest_checkBadRequest() throws Exception {
-        @Language("JSON") final var payload = "{\"Password\": \"password001\"}";
+        @Language("JSON") final var payload = "{\"Password\": \"password00001\"}";
 
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
@@ -95,7 +95,7 @@ public class LoginPostHandlerTest extends AbstractServerTest {
 
     @Test
     void givenMissingPasswordRequest_checkBadRequest() throws Exception {
-        @Language("JSON") final var payload = "{\"Username\": \"username001\"}";
+        @Language("JSON") final var payload = "{\"Username\": \"username00001\"}";
 
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
@@ -134,7 +134,7 @@ public class LoginPostHandlerTest extends AbstractServerTest {
 
     @Test
     void givenGoodRequest_checkOK() throws Exception {
-        final var loginRequest = new LoginRequest("username001", "password001");
+        final var loginRequest = new LoginRequest("username00001", "password00001");
         @Language("JSON") final var payload = objectMapper.writeValueAsString(loginRequest);
 
         final var target = getDefaultHttpHost(server);
