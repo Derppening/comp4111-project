@@ -31,14 +31,10 @@ public class LoginPostHandlerTest extends AbstractServerTest {
         handler = new LoginPostHandler() {
             @Override
             public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context) throws HttpException, IOException {
-                try {
-                    super.handle(requestObject, responseTrigger, context);
-                } catch (IllegalArgumentException e) {
-                    return;
-                }
-
-                final var response = AsyncResponseBuilder.create(HttpStatus.SC_OK).build();
-                responseTrigger.submitResponse(response, context);
+                super.handleAsync(requestObject)
+                        .thenApplyAsync(json -> AsyncResponseBuilder.create(HttpStatus.SC_OK).build())
+                        .exceptionally(this::exceptionToResponse)
+                        .thenAcceptAsync(response -> HttpAsyncEndpointHandler.emitResponse(response, responseTrigger, context));
             }
         };
         objectMapper = JacksonUtils.getDefaultObjectMapper();

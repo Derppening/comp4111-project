@@ -1,14 +1,18 @@
 package comp4111.handler;
 
 import comp4111.controller.TokenManager;
+import comp4111.exception.HttpHandlingException;
 import comp4111.util.HttpUtils;
 import org.apache.hc.core5.http.*;
+import org.apache.hc.core5.http.message.BasicHttpResponse;
 import org.apache.hc.core5.http.nio.AsyncRequestConsumer;
 import org.apache.hc.core5.http.nio.AsyncResponseProducer;
 import org.apache.hc.core5.http.nio.AsyncServerRequestHandler;
+import org.apache.hc.core5.http.nio.entity.BasicAsyncEntityProducer;
 import org.apache.hc.core5.http.nio.entity.StringAsyncEntityConsumer;
 import org.apache.hc.core5.http.nio.support.AsyncResponseBuilder;
 import org.apache.hc.core5.http.nio.support.BasicRequestConsumer;
+import org.apache.hc.core5.http.nio.support.BasicResponseProducer;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -16,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 
 /**
  * This class is modified from {@link HttpEndpointHandler}. A handler which binds to a specific {@link HttpEndpoint}.
@@ -61,7 +66,6 @@ public abstract class HttpAsyncEndpointHandler implements AsyncServerRequestHand
      * Checks whether the method used in a request matches the accepted method by this handler.
      *
      * @param requestObject HTTP request to check.
-     * @param responseTrigger {@link ResponseTrigger} of the request.
      * @throws IllegalArgumentException if {@code requestObject} is sent using an incompatible method. If this exception
      *                                  is thrown, the response code of {@code response} will be set appropriately.
      */
@@ -74,6 +78,20 @@ public abstract class HttpAsyncEndpointHandler implements AsyncServerRequestHand
                     .setHeader(HttpHeaders.ALLOW, getHandleMethod().toString()).build();
             responseTrigger.submitResponse(response, context);
             throw new IllegalArgumentException();
+        }
+    }
+
+    /**
+     * Asynchronously checks whether the method used in a request matches the accepted method by this handler.
+     *
+     * @param requestObject HTTP request to check.
+     * @throws CompletionException if {@code requestObject} is sent using an incompatible method. Its cause is always a
+     *                             {@link HttpHandlingException}.
+     */
+    protected final void checkMethodAsync(@NotNull Message<HttpRequest, String> requestObject) {
+        final Method method = HttpUtils.toMethodOrNull(requestObject.getHead().getMethod());
+        if (method == null || !method.equals(getHandleMethod())) {
+            throw new CompletionException(new HttpHandlingException(HttpStatus.SC_METHOD_NOT_ALLOWED));
         }
     }
 
@@ -141,5 +159,68 @@ public abstract class HttpAsyncEndpointHandler implements AsyncServerRequestHand
             throw new IllegalArgumentException();
         }
         return requestObject.getBody();
+    }
+
+    /**
+     * Retrieves the payload of the request.
+     *
+     * @param requestObject The HTTP request.
+     * @return A string of the payload.
+     * @throws IllegalArgumentException if there is no payload associated with the request. If this exception is thrown,
+     *                                  the response code of {@code response} will be set appropriately.
+     */
+    @NotNull
+    protected static String getPayloadAsync(@NotNull Message<HttpRequest, String> requestObject) {
+        if (requestObject.getBody() == null || requestObject.getBody().isEmpty()) {
+            throw new CompletionException(new HttpHandlingException(HttpStatus.SC_BAD_REQUEST, "Payload must be specified"));
+        }
+        return requestObject.getBody();
+    }
+
+    @NotNull
+    protected AsyncResponseProducer exceptionToResponse(@NotNull Throwable tr) {
+        final int status;
+        final String reason;
+
+        if (tr.getCause() instanceof HttpHandlingException) {
+            final var cause = (HttpHandlingException) tr.getCause();
+
+            status = cause.getHttpStatus();
+            reason = cause.getLocalizedMessage() != null ? cause.getLocalizedMessage() : tr.getLocalizedMessage();
+
+            if (status == HttpStatus.SC_NOT_FOUND) {
+                final var response = new BasicHttpResponse(HttpStatus.SC_NOT_FOUND, "No book record");
+                if (reason != null) {
+                    return new BasicResponseProducer(response, new BasicAsyncEntityProducer(reason, ContentType.TEXT_PLAIN));
+                } else {
+                    return new BasicResponseProducer(response);
+                }
+            } else if (status == HttpStatus.SC_METHOD_NOT_ALLOWED) {
+                return AsyncResponseBuilder.create(HttpStatus.SC_METHOD_NOT_ALLOWED)
+                        .setHeader(HttpHeaders.ALLOW, getHandleMethod().toString())
+                        .build();
+            }
+        } else {
+            status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
+            reason = tr.getLocalizedMessage();
+        }
+
+        final var responseBuilder = AsyncResponseBuilder.create(status);
+        if (reason != null) {
+            responseBuilder.setEntity(reason, ContentType.TEXT_PLAIN);
+        }
+        return responseBuilder.build();
+    }
+
+    protected static void emitResponse(
+            @NotNull AsyncResponseProducer response,
+            @NotNull ResponseTrigger responseTrigger,
+            @NotNull HttpContext context) {
+        try {
+            responseTrigger.submitResponse(response, context);
+//            LOGGER.trace("response done");
+        } catch (Throwable ex) {
+            throw new CompletionException("Error while emitting response", ex);
+        }
     }
 }
