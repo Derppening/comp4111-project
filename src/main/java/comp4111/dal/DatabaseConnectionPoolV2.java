@@ -300,7 +300,7 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
                 try {
                     con.close();
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    LOGGER.error("Unable to close connection", e);
                 }
             });
             connectionPool.clear();
