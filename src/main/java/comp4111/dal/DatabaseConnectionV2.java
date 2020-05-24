@@ -434,7 +434,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
      * @return The transaction ID bound to this connection.
      * @throws IllegalStateException if this connection is not bound to a transaction.
      */
-    synchronized long getTransactionId() {
+    long getTransactionId() {
         if (txInfo == null) {
             throw new IllegalStateException("Cannot get transaction ID of an unbound connection");
         }
