@@ -20,20 +20,14 @@ public class LoginPostHandlerImpl extends LoginPostHandler {
 
     @Override
     public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context) throws HttpException, IOException {
-//        LOGGER.trace("start handle");
-
         super.handleAsync(requestObject)
                 .thenApplyAsync(request -> {
-                    // TODO: userLoginAsync
                     if (!SecurityUtils.userLogin(request.getUsername(), request.getPassword())) {
                         throw new CompletionException("Bad login details", new HttpHandlingException(HttpStatus.SC_BAD_REQUEST));
                     }
                     return request;
                 })
-                .thenApplyAsync(request -> {
-                    // TODO: newTokenAsync
-                    return getTokenMgr().newToken(request.getUsername());
-                })
+                .thenApplyAsync(request -> getTokenMgr().newToken(request.getUsername()))
                 .thenApplyAsync(token -> {
                     if (token == null) {
                         throw new CompletionException("User already logged in", new HttpHandlingException(HttpStatus.SC_CONFLICT));
@@ -52,6 +46,5 @@ public class LoginPostHandlerImpl extends LoginPostHandler {
                 .exceptionally(this::exceptionToResponse)
                 .thenAcceptAsync(response -> HttpAsyncEndpointHandler.emitResponse(response, responseTrigger, context));
 
-//        LOGGER.trace("handle done");
     }
 }
