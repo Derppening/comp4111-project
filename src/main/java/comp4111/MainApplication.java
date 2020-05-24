@@ -38,7 +38,9 @@ public class MainApplication {
         boolean recreateDb = Arrays.asList(args).contains("--recreate-db");
 
         final var config = IOReactorConfig.custom()
-                .setSoTimeout(Timeout.ofSeconds(10))
+                .setSoKeepAlive(false)
+                .setSoReuseAddress(true)
+                .setSoTimeout(Timeout.DISABLED)
                 .setTcpNoDelay(true)
                 .setIoThreadCount(Math.max(Runtime.getRuntime().availableProcessors(), 2))
                 .build();
