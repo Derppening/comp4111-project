@@ -242,8 +242,6 @@ public abstract class HttpAsyncEndpointHandler<ASYNC_T> implements AsyncServerRe
             responseBuilder.setEntity(reason, ContentType.TEXT_PLAIN);
         }
 
-        LOGGER.trace("status={} reason={}", status, reason);
-
         return responseBuilder.build();
     }
 
@@ -251,12 +249,8 @@ public abstract class HttpAsyncEndpointHandler<ASYNC_T> implements AsyncServerRe
             @NotNull AsyncResponseProducer response,
             @NotNull ResponseTrigger responseTrigger,
             @NotNull HttpContext context) {
-        final var LOGGER = LoggerFactory.getLogger(HttpAsyncEndpointHandler.class);
-
         try {
-            LOGGER.trace("emit response {}", response);
             responseTrigger.submitResponse(response, context);
-            LOGGER.trace("response done");
         } catch (Throwable ex) {
             throw new CompletionException("Error while emitting response", ex);
         }
