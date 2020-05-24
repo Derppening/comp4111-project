@@ -43,7 +43,6 @@ public class MainApplication {
                 .setSoReuseAddress(true)
                 .setSoTimeout(Timeout.DISABLED)
                 .setTcpNoDelay(true)
-                .setIoThreadCount(Math.max(Runtime.getRuntime().availableProcessors(), 2))
                 .build();
 
         final var serverBuilder = AsyncServerBootstrap.bootstrap()

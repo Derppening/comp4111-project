@@ -13,7 +13,6 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -151,20 +150,6 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         this(String.format("%s/%s", url, database), username, password);
     }
 
-    private synchronized void runBlocking(@NotNull ForkJoinPool.ManagedBlocker block) throws SQLException {
-        try {
-            ForkJoinPool.managedBlock(block);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } catch (RuntimeException e) {
-            if (e.getCause() instanceof SQLException) {
-                throw (SQLException) e.getCause();
-            } else {
-                throw e;
-            }
-        }
-    }
-
     /**
      * Executes a block of SQL statements using this connection.
      *
@@ -176,32 +161,15 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     public synchronized <R> R execStmt(@NotNull ConnectionFunction<R> block) throws SQLException {
         LOGGER.trace("execStmt(block=...)");
 
-        final var blocker = new ForkJoinPool.ManagedBlocker() {
-
-            R object;
-
-            @Override
-            public boolean block() {
-                try {
-                    DatabaseUtils.setLockTimeout(connection, defaultLockTimeout);
-                    getIdForTransaction(Duration.ZERO, true);
-                    object = execTransaction(block);
-                    commit();
-                } catch (Throwable tr) {
-                    throw new RuntimeException(tr);
-                }
-
-                return true;
-            }
-
-            @Override
-            public boolean isReleasable() {
-                return false;
-            }
-        };
-
-        runBlocking(blocker);
-        return blocker.object;
+        try {
+            DatabaseUtils.setLockTimeout(connection, defaultLockTimeout);
+            getIdForTransaction(Duration.ZERO, true);
+            final var object = execTransaction(block);
+            commit();
+            return object;
+        } catch (Throwable tr) {
+            throw new RuntimeException(tr);
+        }
     }
 
     /**
@@ -252,35 +220,12 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     public synchronized <R> R execTransaction(@NotNull ConnectionFunction<R> block) throws SQLException {
         LOGGER.trace("execTransaction(block=...)");
 
-        final var blocker = new ForkJoinPool.ManagedBlocker() {
-
-            R object;
-
-            @Override
-            public boolean block() {
-                try {
-                    object = block.apply(connection);
-                } catch (Throwable tr) {
-                    throw new RuntimeException(tr);
-                }
-
-                return true;
-            }
-
-            @Override
-            public boolean isReleasable() {
-                return false;
-            }
-        };
-
         if (txInfo == null) {
             throw new IllegalStateException("Attempted to execute a transaction on an unbound connection");
         }
 
         txInfo.markUsedNow();
-
-        runBlocking(blocker);
-        return blocker.object;
+        return block.apply(connection);
     }
 
     /**
@@ -297,54 +242,35 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     public synchronized boolean commit() {
         LOGGER.trace("commit()");
 
-        final var blocker = new ForkJoinPool.ManagedBlocker() {
+        boolean isCommitted;
+        if (txInfo == null) {
+            throw new IllegalStateException("Attempted to commit an unbound connection");
+        }
 
-            boolean isCommitted;
-
-            @Override
-            public boolean block() {
-                if (txInfo == null) {
-                    throw new IllegalStateException("Attempted to commit an unbound connection");
-                }
-
-                if (!txInfo.timeout.isZero() && txInfo.hasTimedOut()) {
-                    try {
-                        LOGGER.info("Transaction timed out: Rolling back transaction");
-                        connection.rollback();
-                    } catch (SQLException e) {
-                        LOGGER.error("Unable to rollback expired transaction", e);
-                    }
-                    isCommitted = false;
-                } else {
-                    try {
-                        connection.commit();
-                        isCommitted = true;
-                    } catch (SQLException e) {
-                        LOGGER.error("Unable to commit transaction", e);
-                        isCommitted = false;
-                        try {
-                            connection.rollback();
-                        } catch (SQLException ee) {
-                            LOGGER.error("Unable to rollback transaction", ee);
-                        }
-                    }
-                }
-
-                return true;
+        if (!txInfo.timeout.isZero() && txInfo.hasTimedOut()) {
+            try {
+                LOGGER.info("Transaction timed out: Rolling back transaction");
+                connection.rollback();
+            } catch (SQLException e) {
+                LOGGER.error("Unable to rollback expired transaction", e);
             }
-
-            @Override
-            public boolean isReleasable() {
-                return false;
+            isCommitted = false;
+        } else {
+            try {
+                connection.commit();
+                isCommitted = true;
+            } catch (SQLException e) {
+                LOGGER.error("Unable to commit transaction", e);
+                isCommitted = false;
+                try {
+                    connection.rollback();
+                } catch (SQLException ee) {
+                    LOGGER.error("Unable to rollback transaction", ee);
+                }
             }
-        };
-
-        try {
-            runBlocking(blocker);
-        } catch (SQLException ignored) {
         }
         unbindConnection();
-        return blocker.isCommitted;
+        return isCommitted;
     }
 
     /**
@@ -355,33 +281,16 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     public synchronized void rollback() {
         LOGGER.trace("rollback()");
 
-        final var blocker = new ForkJoinPool.ManagedBlocker() {
-
-            @Override
-            public boolean block() {
-                if (txInfo == null) {
-                    throw new IllegalStateException("Attempted to commit an unbound connection");
-                }
-
-                try {
-                    connection.rollback();
-                } catch (SQLException e) {
-                    LOGGER.error("Unable to rollback transaction", e);
-                }
-
-                return true;
-            }
-
-            @Override
-            public boolean isReleasable() {
-                return false;
-            }
-        };
+        if (txInfo == null) {
+            throw new IllegalStateException("Attempted to commit an unbound connection");
+        }
 
         try {
-            runBlocking(blocker);
-        } catch (SQLException ignored) {
+            connection.rollback();
+        } catch (SQLException e) {
+            LOGGER.error("Unable to rollback transaction", e);
         }
+
         unbindConnection();
     }
 
