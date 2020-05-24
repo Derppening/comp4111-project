@@ -1,24 +1,25 @@
 package comp4111.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import comp4111.exception.HttpHandlingException;
 import comp4111.handler.impl.BooksPostHandlerImpl;
 import comp4111.model.Book;
-import comp4111.util.HttpUtils;
 import comp4111.util.JacksonUtils;
-import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.nio.AsyncResponseProducer;
-import org.apache.hc.core5.http.nio.support.AsyncResponseBuilder;
-import org.apache.hc.core5.http.protocol.HttpContext;
+import org.apache.hc.core5.http.HttpRequest;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.Message;
+import org.apache.hc.core5.http.Method;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 /**
  * Endpoint handler for all {@code /books} POST requests.
  */
-public abstract class BooksPostHandler extends HttpAsyncEndpointHandler {
+public abstract class BooksPostHandler extends HttpAsyncEndpointHandler<BooksPostHandler.Request> {
 
     private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
         @NotNull
@@ -36,11 +37,23 @@ public abstract class BooksPostHandler extends HttpAsyncEndpointHandler {
 
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
-    @Nullable
-    private String token;
+    public static class Request {
+
+        @NotNull
+        public final String token;
+
+        @NotNull
+        public final Book book;
+
+
+        public Request(@NotNull String token, @NotNull Book book) {
+            this.token = token;
+            this.book = book;
+        }
+    }
 
     @Nullable
-    private Book book;
+    private Request request;
 
     @NotNull
     public static BooksPostHandler getInstance() {
@@ -53,39 +66,49 @@ public abstract class BooksPostHandler extends HttpAsyncEndpointHandler {
     }
 
     @Override
-    public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context)
-            throws HttpException, IOException {
-        checkMethod(requestObject, responseTrigger, context);
+    protected CompletableFuture<Request> handleAsync(Message<HttpRequest, String> requestObject) {
+        return CompletableFuture.completedFuture(requestObject)
+                .thenApplyAsync(this::checkMethodAsync)
+                .thenApplyAsync(this::checkTokenAsync)
+                .thenApplyAsync(HttpAsyncEndpointHandler::getPayloadAsync)
+                .thenApplyAsync(payload -> {
+                    final var token = getTokenAsync(requestObject);
 
-        final var queryParams = HttpUtils.parseQueryParams(requestObject.getHead().getPath(), responseTrigger, context);
-        token = checkToken(queryParams, responseTrigger, context);
+                    final Book book;
+                    try {
+                        book = objectMapper.readValue(payload, Book.class);
+                    } catch (Exception e) {
+                        throw new CompletionException(new HttpHandlingException(HttpStatus.SC_BAD_REQUEST, e));
+                    }
 
-        final var payload = getPayload(requestObject, responseTrigger, context);
-
-        try {
-            book = objectMapper.readValue(payload, Book.class);
-        } catch (Exception e) {
-            final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST)
-                    .setEntity(e.getLocalizedMessage(), ContentType.TEXT_HTML).build();
-            responseTrigger.submitResponse(response, context);
-            throw new IllegalArgumentException(e);
-        }
-
-        LOGGER.info("POST /books token=\"{}\" Title=\"{}\" Author=\"{}\" Publisher=\"{}\" Year={}",
-                token,
-                book.getTitle(),
-                book.getAuthor(),
-                book.getPublisher(),
-                book.getYear());
+                    request = new Request(token, book);
+                    return request;
+                })
+                .thenApplyAsync(request -> {
+                    LOGGER.info("POST /books token=\"{}\" Title=\"{}\" Author=\"{}\" Publisher=\"{}\" Year={}",
+                            request.token,
+                            request.book.getTitle(),
+                            request.book.getAuthor(),
+                            request.book.getPublisher(),
+                            request.book.getYear());
+                    return request;
+                });
     }
 
     @NotNull
+    Request getRequest() {
+        return Objects.requireNonNull(request);
+    }
+
+    @NotNull
+    @Deprecated(forRemoval = true)
     protected String getToken() {
-        return Objects.requireNonNull(token);
+        return getRequest().token;
     }
 
     @NotNull
+    @Deprecated(forRemoval = true)
     protected Book getBook() {
-        return Objects.requireNonNull(book);
+        return getRequest().book;
     }
 }

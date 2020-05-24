@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 public class BooksHandlerImpl extends BooksHandler {
 
-    private static final Map<Method, Supplier<HttpAsyncEndpointHandler>> METHOD_LUT = List.<Supplier<HttpAsyncEndpointHandler>>of(
+    private static final Map<Method, Supplier<HttpAsyncEndpointHandler<?>>> METHOD_LUT = List.<Supplier<HttpAsyncEndpointHandler<?>>>of(
             BooksDeleteHandler::getInstance,
             BooksGetHandler::getInstance,
             BooksPostHandler::getInstance,
@@ -20,7 +20,7 @@ public class BooksHandlerImpl extends BooksHandler {
     ).stream().collect(Collectors.toUnmodifiableMap(it -> it.get().getHandleMethod(), Function.identity()));
 
     @Override
-    public @Nullable Map<Method, Supplier<HttpAsyncEndpointHandler>> getMethodLut() {
+    public @Nullable Map<Method, Supplier<HttpAsyncEndpointHandler<?>>> getMethodLut() {
         return METHOD_LUT;
     }
 }

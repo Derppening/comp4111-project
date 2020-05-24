@@ -16,8 +16,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -39,15 +37,11 @@ public class BooksPostHandlerTest extends AbstractServerTest {
             }
 
             @Override
-            public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context) throws HttpException, IOException {
-                try {
-                    super.handle(requestObject, responseTrigger, context);
-                } catch (IllegalArgumentException e) {
-                    return;
-                }
-
-                final var response = AsyncResponseBuilder.create(HttpStatus.SC_OK).build();
-                responseTrigger.submitResponse(response, context);
+            public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context) {
+                super.handleAsync(requestObject)
+                        .thenApplyAsync(json -> AsyncResponseBuilder.create(HttpStatus.SC_OK).build())
+                        .exceptionally(this::exceptionToResponse)
+                        .thenAcceptAsync(response -> HttpAsyncEndpointHandler.emitResponse(response, responseTrigger, context));
             }
         };
         tokenMgr = TokenManager.getInstance();
@@ -272,10 +266,10 @@ public class BooksPostHandlerTest extends AbstractServerTest {
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
         try (final var response = requester.execute(target, request, CLIENT_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
-            assertEquals(book.getTitle(), handler.getBook().getTitle());
-            assertEquals(book.getAuthor(), handler.getBook().getAuthor());
-            assertEquals(book.getPublisher(), handler.getBook().getPublisher());
-            assertEquals(book.getYear(), handler.getBook().getYear());
+            assertEquals(book.getTitle(), handler.getRequest().book.getTitle());
+            assertEquals(book.getAuthor(), handler.getRequest().book.getAuthor());
+            assertEquals(book.getPublisher(), handler.getRequest().book.getPublisher());
+            assertEquals(book.getYear(), handler.getRequest().book.getYear());
         }
     }
 

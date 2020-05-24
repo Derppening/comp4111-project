@@ -19,7 +19,7 @@ import java.util.concurrent.CompletionException;
 /**
  * Endpoint handler for all {@code /login} POST requests.
  */
-public abstract class LoginPostHandler extends HttpAsyncEndpointHandler {
+public abstract class LoginPostHandler extends HttpAsyncEndpointHandler<LoginRequest> {
 
     public static final String HANDLE_PATTERN = PATH_PREFIX + "/login";
     private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
@@ -59,12 +59,10 @@ public abstract class LoginPostHandler extends HttpAsyncEndpointHandler {
      * @param requestObject The request object to process.
      * @return A {@link java.util.concurrent.Future} object representing the required information.
      */
+    @Override
     protected CompletableFuture<LoginRequest> handleAsync(Message<HttpRequest, String> requestObject) {
         return CompletableFuture.completedFuture(requestObject)
-                .thenApplyAsync(request -> {
-                    checkMethodAsync(request);
-                    return request;
-                })
+                .thenApplyAsync(this::checkMethodAsync)
                 .thenApplyAsync(HttpAsyncEndpointHandler::getPayloadAsync)
                 .thenApplyAsync(payload -> {
                     try {

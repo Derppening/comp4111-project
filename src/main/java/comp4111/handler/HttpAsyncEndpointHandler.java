@@ -20,14 +20,19 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 /**
  * This class is modified from {@link HttpEndpointHandler}. A handler which binds to a specific {@link HttpEndpoint}.
  */
-public abstract class HttpAsyncEndpointHandler implements AsyncServerRequestHandler<Message<HttpRequest, String>>, HttpEndpoint {
+public abstract class HttpAsyncEndpointHandler<ASYNC_T> implements AsyncServerRequestHandler<Message<HttpRequest, String>>, HttpEndpoint {
 
     protected final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+
+    protected CompletableFuture<ASYNC_T> handleAsync(Message<HttpRequest, String> requestObject) {
+        throw new IllegalStateException("Method not implemented");
+    }
 
     @NotNull
     protected TokenManager getTokenMgr() {
@@ -69,6 +74,7 @@ public abstract class HttpAsyncEndpointHandler implements AsyncServerRequestHand
      * @throws IllegalArgumentException if {@code requestObject} is sent using an incompatible method. If this exception
      *                                  is thrown, the response code of {@code response} will be set appropriately.
      */
+    @Deprecated(forRemoval = true)
     protected final void checkMethod(@NotNull Message<HttpRequest, String> requestObject,
                                      @NotNull ResponseTrigger responseTrigger,
                                      @NotNull HttpContext context) throws IOException, HttpException {
@@ -88,11 +94,12 @@ public abstract class HttpAsyncEndpointHandler implements AsyncServerRequestHand
      * @throws CompletionException if {@code requestObject} is sent using an incompatible method. Its cause is always a
      *                             {@link HttpHandlingException}.
      */
-    protected final void checkMethodAsync(@NotNull Message<HttpRequest, String> requestObject) {
+    protected final Message<HttpRequest, String> checkMethodAsync(@NotNull Message<HttpRequest, String> requestObject) {
         final Method method = HttpUtils.toMethodOrNull(requestObject.getHead().getMethod());
         if (method == null || !method.equals(getHandleMethod())) {
             throw new CompletionException(new HttpHandlingException(HttpStatus.SC_METHOD_NOT_ALLOWED));
         }
+        return requestObject;
     }
 
     /**
@@ -105,12 +112,24 @@ public abstract class HttpAsyncEndpointHandler implements AsyncServerRequestHand
      *                                  the response code of {@code response} will be set appropriately.
      */
     @NotNull
+    @Deprecated(forRemoval = true)
     protected static String getToken(@NotNull Map<String, String> queryParams, @NotNull ResponseTrigger responseTrigger,
                                      @NotNull HttpContext context) throws IOException, HttpException {
         if (!queryParams.containsKey("token")) {
             final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
             responseTrigger.submitResponse(response, context);
             throw new IllegalArgumentException();
+        }
+
+        return queryParams.get("token");
+    }
+
+    @NotNull
+    protected static String getTokenAsync(@NotNull Message<HttpRequest, String> requestObject) {
+        final var queryParams = HttpUtils.parseQueryParamsAsync(requestObject.getHead().getPath());
+
+        if (!queryParams.containsKey("token")) {
+            throw new CompletionException(new HttpHandlingException(HttpStatus.SC_BAD_REQUEST));
         }
 
         return queryParams.get("token");
@@ -126,6 +145,7 @@ public abstract class HttpAsyncEndpointHandler implements AsyncServerRequestHand
      *                                  this exception is throw, the response code of {@code response} will be set appropriately.
      */
     @NotNull
+    @Deprecated(forRemoval = true)
     protected final String checkToken(@NotNull Map<String, String> queryParams,
                                       @NotNull ResponseTrigger responseTrigger,
                                       @NotNull HttpContext context) throws IOException, HttpException {
@@ -139,6 +159,15 @@ public abstract class HttpAsyncEndpointHandler implements AsyncServerRequestHand
         return token;
     }
 
+    @NotNull
+    protected final Message<HttpRequest, String> checkTokenAsync(@NotNull Message<HttpRequest, String> requestObject) {
+        final var token = getTokenAsync(requestObject);
+        if (!getTokenMgr().containsToken(token)) {
+            throw new CompletionException(new HttpHandlingException(HttpStatus.SC_BAD_REQUEST));
+        }
+        return requestObject;
+    }
+
     /**
      * Retrieves the payload of the request.
      *
@@ -149,6 +178,7 @@ public abstract class HttpAsyncEndpointHandler implements AsyncServerRequestHand
      *                                  the response code of {@code response} will be set appropriately.
      */
     @NotNull
+    @Deprecated(forRemoval = true)
     protected static String getPayload(@NotNull Message<HttpRequest, String> requestObject,
                                        @NotNull ResponseTrigger responseTrigger, @NotNull HttpContext context)
             throws IOException, HttpException {
@@ -182,6 +212,8 @@ public abstract class HttpAsyncEndpointHandler implements AsyncServerRequestHand
         final int status;
         final String reason;
 
+        LOGGER.error("Caught exception while processing request", tr);
+
         if (tr.getCause() instanceof HttpHandlingException) {
             final var cause = (HttpHandlingException) tr.getCause();
 
@@ -206,9 +238,12 @@ public abstract class HttpAsyncEndpointHandler implements AsyncServerRequestHand
         }
 
         final var responseBuilder = AsyncResponseBuilder.create(status);
-        if (reason != null) {
+        if (reason != null && status != HttpStatus.SC_NO_CONTENT) {
             responseBuilder.setEntity(reason, ContentType.TEXT_PLAIN);
         }
+
+        LOGGER.trace("status={} reason={}", status, reason);
+
         return responseBuilder.build();
     }
 
@@ -216,9 +251,12 @@ public abstract class HttpAsyncEndpointHandler implements AsyncServerRequestHand
             @NotNull AsyncResponseProducer response,
             @NotNull ResponseTrigger responseTrigger,
             @NotNull HttpContext context) {
+        final var LOGGER = LoggerFactory.getLogger(HttpAsyncEndpointHandler.class);
+
         try {
+            LOGGER.trace("emit response {}", response);
             responseTrigger.submitResponse(response, context);
-//            LOGGER.trace("response done");
+            LOGGER.trace("response done");
         } catch (Throwable ex) {
             throw new CompletionException("Error while emitting response", ex);
         }

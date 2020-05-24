@@ -3,6 +3,8 @@ package comp4111.handler.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import comp4111.dal.TransactionPostDataAccess;
+import comp4111.exception.HttpHandlingException;
+import comp4111.handler.HttpAsyncEndpointHandler;
 import comp4111.handler.TransactionPostHandler;
 import comp4111.model.TransactionPostRequest;
 import comp4111.model.TransactionPostResult;
@@ -14,7 +16,7 @@ import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.util.Objects;
+import java.util.concurrent.CompletionException;
 
 public class TransactionPostHandlerImpl extends TransactionPostHandler {
 
@@ -23,46 +25,40 @@ public class TransactionPostHandlerImpl extends TransactionPostHandler {
     @Override
     public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context)
             throws HttpException, IOException {
-        try {
-            super.handle(requestObject, responseTrigger, context);
-        } catch (IllegalArgumentException e) {
-            return;
-        }
 
-        final var txRequest = getTxRequest();
-        if (txRequest == null) {
-            handleTransactionIdRequest(responseTrigger, context);
-        } else {
-            handleTransactionCommitRequest(txRequest, responseTrigger, context);
-        }
+        super.handleAsync(requestObject)
+                .thenApplyAsync(txRequest -> {
+                    if (txRequest != null) {
+                        return handleTransactionCommitRequestAsync(txRequest);
+                    } else {
+                        return handleTransactionIdRequestAsync();
+                    }
+                })
+                .exceptionally(this::exceptionToResponse)
+                .thenAcceptAsync(response -> HttpAsyncEndpointHandler.emitResponse(response, responseTrigger, context));
     }
 
-    private void handleTransactionIdRequest(@NotNull ResponseTrigger responseTrigger, @NotNull HttpContext context)
-            throws IOException, HttpException {
+    private AsyncResponseProducer handleTransactionIdRequestAsync() {
         final Long id = TransactionPostDataAccess.startNewTransaction();
         final var transactionResponse = new TransactionPostResult(id);
 
         if (id == 0) {
-            final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
-            responseTrigger.submitResponse(response, context);
-            return;
+            throw new CompletionException(new HttpHandlingException(HttpStatus.SC_BAD_REQUEST));
         }
 
         try {
-            final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_OK)
-                    .setEntity(objectMapper.writeValueAsString(transactionResponse), ContentType.APPLICATION_JSON).build();
-            responseTrigger.submitResponse(response, context);
+            return AsyncResponseBuilder.create(HttpStatus.SC_OK)
+                    .setEntity(objectMapper.writeValueAsString(transactionResponse), ContentType.APPLICATION_JSON)
+                    .build();
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Cannot serialize transaction ID response", e);
         }
     }
 
-    private void handleTransactionCommitRequest(@NotNull TransactionPostRequest request,
-                                                @NotNull ResponseTrigger responseTrigger,
-                                                @NotNull HttpContext context) throws IOException, HttpException {
+    private AsyncResponseProducer handleTransactionCommitRequestAsync(@NotNull TransactionPostRequest request) {
         final boolean isSuccessful = TransactionPostDataAccess.commitOrCancelTransaction(
-                Objects.requireNonNull(getTxRequest()).getTransaction(),
-                getTxRequest().getOperation()
+                request.getTransaction(),
+                request.getOperation()
         );
 
         final AsyncResponseProducer response;
@@ -71,6 +67,6 @@ public class TransactionPostHandlerImpl extends TransactionPostHandler {
         } else {
             response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
         }
-        responseTrigger.submitResponse(response, context);
+        return response;
     }
 }

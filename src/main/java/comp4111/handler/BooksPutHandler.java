@@ -1,23 +1,24 @@
 package comp4111.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import comp4111.exception.HttpHandlingException;
 import comp4111.handler.impl.BooksPutHandlerImpl;
-import comp4111.util.HttpUtils;
 import comp4111.util.JacksonUtils;
-import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.nio.AsyncResponseProducer;
-import org.apache.hc.core5.http.nio.support.AsyncResponseBuilder;
-import org.apache.hc.core5.http.protocol.HttpContext;
+import org.apache.hc.core5.http.HttpRequest;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.Message;
+import org.apache.hc.core5.http.Method;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 /**
  * Endpoint handler for all {@code /books/*} PUT requests.
  */
-public abstract class BooksPutHandler extends HttpAsyncEndpointHandler {
+public abstract class BooksPutHandler extends HttpAsyncEndpointHandler<BooksPutHandler.Request> {
 
     private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
         @Override
@@ -33,9 +34,20 @@ public abstract class BooksPutHandler extends HttpAsyncEndpointHandler {
 
     private final ObjectMapper objectMapper = JacksonUtils.getDefaultObjectMapper();
 
-    private long bookId;
+    public static class Request {
+
+        public final long bookId;
+        public final boolean available;
+
+
+        public Request(long bookId, boolean available) {
+            this.bookId = bookId;
+            this.available = available;
+        }
+    }
+
     @Nullable
-    private Boolean available;
+    private Request request;
 
     @NotNull
     public static BooksPutHandler getInstance() {
@@ -48,43 +60,48 @@ public abstract class BooksPutHandler extends HttpAsyncEndpointHandler {
     }
 
     @Override
-    public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context)
-            throws HttpException, IOException {
-        checkMethod(requestObject, responseTrigger, context);
+    protected CompletableFuture<Request> handleAsync(Message<HttpRequest, String> requestObject) {
+        return CompletableFuture.completedFuture(requestObject)
+                .thenApplyAsync(this::checkMethodAsync)
+                .thenApplyAsync(this::checkTokenAsync)
+                .thenApplyAsync(HttpAsyncEndpointHandler::getPayloadAsync)
+                .thenApplyAsync(payload -> {
+                    try {
+                        final var rootNode = objectMapper.readTree(payload);
+                        final var node = rootNode.get("Available");
+                        if (!node.isBoolean()) {
+                            throw new IllegalArgumentException();
+                        }
+                        return node.asBoolean();
+                    } catch (Exception e) {
+                        throw new CompletionException(new HttpHandlingException(HttpStatus.SC_BAD_REQUEST, e));
+                    }
+                })
+                .thenApplyAsync(isAvailable -> {
+                    final var bookId = BooksHandler.getIdFromRequestAsync(requestObject.getHead().getPath());
 
-        final var queryParams = HttpUtils.parseQueryParams(requestObject.getHead().getPath(), responseTrigger, context);
-        final var token = checkToken(queryParams, responseTrigger, context);
-
-        bookId = BooksHandler.getIdFromRequest(requestObject.getHead().getPath(), responseTrigger, context);
-
-        final var payload = getPayload(requestObject, responseTrigger, context);
-
-        try {
-            final var rootNode = objectMapper.readTree(payload);
-            final var node = rootNode.get("Available");
-            if (!node.isBoolean()) {
-                throw new IllegalArgumentException();
-            }
-            available = node.asBoolean();
-        } catch (Exception e) {
-            final AsyncResponseBuilder builder = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST);
-            if (e.getLocalizedMessage() != null) {
-                builder.setEntity(e.getLocalizedMessage(), ContentType.TEXT_PLAIN);
-            }
-            final AsyncResponseProducer response = builder.build();
-            responseTrigger.submitResponse(response, context);
-            throw new IllegalArgumentException(e);
-        }
-
-        LOGGER.info("PUT /books token={} id={} Available={}", token, bookId, available);
-    }
-
-    protected long getBookId() {
-        return bookId;
+                    request = new Request(bookId, isAvailable);
+                    return request;
+                })
+                .thenApplyAsync(request -> {
+                    LOGGER.info("PUT /books id={} Available={}", request.bookId, request.bookId);
+                    return request;
+                });
     }
 
     @NotNull
+    public Request getRequest() {
+        return Objects.requireNonNull(request);
+    }
+
+    @Deprecated(forRemoval = true)
+    protected long getBookId() {
+        return getRequest().bookId;
+    }
+
+    @NotNull
+    @Deprecated(forRemoval = true)
     protected Boolean getAvailable() {
-        return Objects.requireNonNull(available);
+        return getRequest().available;
     }
 }

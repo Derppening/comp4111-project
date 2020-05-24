@@ -19,8 +19,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -44,15 +42,11 @@ public class TransactionPutHandlerTest extends AbstractServerTest {
             }
 
             @Override
-            public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context) throws HttpException, IOException {
-                try {
-                    super.handle(requestObject, responseTrigger, context);
-                } catch (IllegalArgumentException e) {
-                    return;
-                }
-
-                final var response = AsyncResponseBuilder.create(HttpStatus.SC_OK).build();
-                responseTrigger.submitResponse(response, context);
+            public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context) {
+                super.handleAsync(requestObject)
+                        .thenApplyAsync(json -> AsyncResponseBuilder.create(HttpStatus.SC_OK).build())
+                        .exceptionally(this::exceptionToResponse)
+                        .thenAcceptAsync(response -> HttpAsyncEndpointHandler.emitResponse(response, responseTrigger, context));
             }
         };
         tokenMgr = TokenManager.getInstance();

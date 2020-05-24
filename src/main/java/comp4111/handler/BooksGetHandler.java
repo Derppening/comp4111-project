@@ -1,20 +1,24 @@
 package comp4111.handler;
 
+import comp4111.exception.HttpHandlingException;
 import comp4111.handler.impl.BooksGetHandlerImpl;
 import comp4111.util.HttpUtils;
-import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.nio.AsyncResponseProducer;
-import org.apache.hc.core5.http.nio.support.AsyncResponseBuilder;
-import org.apache.hc.core5.http.protocol.HttpContext;
+import org.apache.hc.core5.http.HttpRequest;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.Message;
+import org.apache.hc.core5.http.Method;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 /**
  * Endpoint handler for all {@code /books} GET requests.
  */
-public abstract class BooksGetHandler extends HttpAsyncEndpointHandler {
+public abstract class BooksGetHandler extends HttpAsyncEndpointHandler<BooksGetHandler.QueryParams> {
 
     private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
         @Override
@@ -28,18 +32,67 @@ public abstract class BooksGetHandler extends HttpAsyncEndpointHandler {
         }
     };
 
+    public static class QueryParams {
+
+        public enum SortField {
+            NONE, ID, TITLE, AUTHOR, YEAR;
+
+            @NotNull
+            public String toSQLComponent() {
+                return this.toString().toLowerCase();
+            }
+
+            @NotNull
+            public static SortField normalizedValueOf(@Nullable String value) {
+                return value != null ? SortField.valueOf(value.toUpperCase()) : SortField.NONE;
+            }
+        }
+
+        public enum OutputOrder {
+            NONE, ASC, DESC;
+
+            @NotNull
+            public String toSQLComponent() {
+                return this.toString().toLowerCase();
+            }
+
+            @NotNull
+            public static OutputOrder normalizedValueOf(@Nullable String value) {
+                return value != null ? OutputOrder.valueOf(value.toUpperCase()) : OutputOrder.NONE;
+            }
+        }
+
+        @Nullable
+        public final Long id;
+        @Nullable
+        public final String title;
+        @Nullable
+        public final String author;
+        @Nullable
+        public final Integer limit;
+        @NotNull
+        public final SortField sort;
+        @NotNull
+        public final OutputOrder order;
+
+        private QueryParams(
+                @Nullable Long id,
+                @Nullable String title,
+                @Nullable String author,
+                @Nullable Integer limit,
+                @NotNull SortField sort,
+                @NotNull OutputOrder order) {
+            this.id = id;
+            this.title = title;
+            this.author = author;
+            this.limit = limit;
+            this.sort = sort;
+            this.order = order;
+        }
+    }
+
     @Nullable
-    private Long queryId;
-    @Nullable
-    private String queryTitle;
-    @Nullable
-    private String queryAuthor;
-    @Nullable
-    private Integer queryLimit;
-    @Nullable
-    private String querySort;
-    @Nullable
-    private String queryOrder;
+    private QueryParams queryParams;
 
     @NotNull
     public static BooksGetHandler getInstance() {
@@ -52,99 +105,124 @@ public abstract class BooksGetHandler extends HttpAsyncEndpointHandler {
     }
 
     @Override
-    public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context)
-            throws HttpException, IOException {
-        checkMethod(requestObject, responseTrigger, context);
+    protected CompletableFuture<QueryParams> handleAsync(Message<HttpRequest, String> requestObject) {
+        return CompletableFuture.completedFuture(requestObject)
+                .thenApplyAsync(this::checkMethodAsync)
+                .thenApplyAsync(this::checkTokenAsync)
+                .thenApplyAsync(request -> HttpUtils.parseQueryParamsAsync(request.getHead().getPath()))
+                .thenApplyAsync(params -> {
+                    try {
+                        long queryId = BooksHandler.getIdFromRequestAsync(requestObject.getHead().getPath());
 
-        final var queryParams = HttpUtils.parseQueryParams(requestObject.getHead().getPath(), responseTrigger, context);
-        final var token = checkToken(queryParams, responseTrigger, context);
+                        if (queryId <= 0) {
+                            throw new CompletionException("<0 path id", new HttpHandlingException(HttpStatus.SC_BAD_REQUEST));
+                        }
 
-        // This handles the requests like GET /BookManagementService/books/1?token=FWb66_FtRZZWwRA0xnT9x06zhB6nBA93.
-        long tempId = BooksHandler.getIdFromRequestWithoutException(requestObject.getHead().getPath());
-        if (tempId > 0) {
-            queryId = tempId;
+                        queryParams = new QueryParams(
+                                queryId,
+                                null,
+                                null,
+                                null,
+                                QueryParams.SortField.NONE,
+                                QueryParams.OutputOrder.NONE
+                        );
+                    } catch (Exception e) {
+                        queryParams = parseQueryParams(params);
+                    }
+                    return queryParams;
+                })
+                .thenApplyAsync(queryParams -> {
+                    LOGGER.info("GET /books id={} title=\"{}\" author=\"{}\" limit={} sort={} order={}",
+                            queryParams.id,
+                            queryParams.title,
+                            queryParams.author,
+                            queryParams.limit,
+                            queryParams.sort,
+                            queryParams.order);
+                    return queryParams;
+                });
+    }
+
+    @NotNull
+    private QueryParams parseQueryParams(@NotNull Map<String, String> params) {
+        Long queryId;
+        final var queryIdStr = params.getOrDefault("id", null);
+        try {
+            queryId = queryIdStr != null ? Long.parseLong(queryIdStr) : null;
+        } catch (NumberFormatException e) {
+            throw new CompletionException("Bad id value", new HttpHandlingException(HttpStatus.SC_BAD_REQUEST, e));
         }
 
-        final var queryIdStr = queryParams.getOrDefault("id", null);
-        if (queryIdStr != null) {
-            try {
-                queryId = Long.parseLong(queryIdStr);
-            } catch (NumberFormatException e) {
-                final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
-                responseTrigger.submitResponse(response, context);
-                throw new IllegalArgumentException(e);
-            }
+        final var queryTitle = params.getOrDefault("title", null);
+        final var queryAuthor = params.getOrDefault("author", null);
+
+        Integer queryLimit;
+        final var queryLimitStr = params.getOrDefault("limit", null);
+        try {
+            queryLimit = queryLimitStr != null ? Integer.parseInt(queryLimitStr) : null;
+        } catch (NumberFormatException e) {
+            throw new CompletionException("Bad limit value", new HttpHandlingException(HttpStatus.SC_BAD_REQUEST, e));
         }
-        queryTitle = queryParams.getOrDefault("title", null);
-        queryAuthor = queryParams.getOrDefault("author", null);
-        final var queryLimitStr = queryParams.getOrDefault("limit", null);
-        if (queryLimitStr != null) {
-            try {
-                queryLimit = Integer.parseInt(queryLimitStr);
-            } catch (NumberFormatException e) {
-                final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
-                responseTrigger.submitResponse(response, context);
-                throw new IllegalArgumentException(e);
-            }
+
+        QueryParams.SortField querySort;
+        try {
+            querySort = QueryParams.SortField.normalizedValueOf(params.getOrDefault("sortby", null));
+        } catch (IllegalArgumentException e) {
+            throw new CompletionException("Bad sortby value", new HttpHandlingException(HttpStatus.SC_BAD_REQUEST, e));
         }
-        querySort = queryParams.getOrDefault("sortby", null);
-        queryOrder = queryParams.getOrDefault("order", null);
+
+        QueryParams.OutputOrder queryOrder;
+        try {
+            queryOrder = QueryParams.OutputOrder.normalizedValueOf(params.getOrDefault("order", null));
+        } catch (IllegalArgumentException e) {
+            throw new CompletionException("Bad order value", new HttpHandlingException(HttpStatus.SC_BAD_REQUEST, e));
+        }
 
         if (queryLimit != null && queryLimit < 0) {
-            final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
-            responseTrigger.submitResponse(response, context);
-            throw new IllegalArgumentException();
+            throw new CompletionException("<0 limit value", new HttpHandlingException(HttpStatus.SC_BAD_REQUEST));
         }
 
-        if (queryOrder != null && !queryOrder.equals("asc") && !queryOrder.equals("desc")) {
-            final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
-            responseTrigger.submitResponse(response, context);
-            throw new IllegalArgumentException();
-        }
+        return new QueryParams(queryId, queryTitle, queryAuthor, queryLimit, querySort, queryOrder);
+    }
 
-        if (querySort != null && !(querySort.equals("id") || querySort.equals("title") || querySort.equals("author") || querySort.equals("year"))) {
-            final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
-            responseTrigger.submitResponse(response, context);
-            throw new IllegalArgumentException();
-        }
-
-        LOGGER.info("GET /books token=\"{}\" id={} title=\"{}\" author=\"{}\" limit={} sort={} order={}",
-                token,
-                queryId,
-                queryTitle,
-                queryAuthor,
-                queryLimit,
-                querySort,
-                queryOrder);
+    @NotNull
+    QueryParams getQueryParams() {
+        return Objects.requireNonNull(queryParams);
     }
 
     @Nullable
+    @Deprecated(forRemoval = true)
     protected Long getQueryId() {
-        return queryId;
+        return getQueryParams().id;
     }
 
     @Nullable
+    @Deprecated(forRemoval = true)
     protected String getQueryTitle() {
-        return queryTitle;
+        return getQueryParams().title;
     }
 
     @Nullable
+    @Deprecated(forRemoval = true)
     protected String getQueryAuthor() {
-        return queryAuthor;
+        return getQueryParams().author;
     }
 
     @Nullable
+    @Deprecated(forRemoval = true)
     protected Integer getQueryLimit() {
-        return queryLimit;
+        return getQueryParams().limit;
     }
 
     @Nullable
+    @Deprecated(forRemoval = true)
     protected String getQuerySort() {
-        return querySort;
+        return getQueryParams().sort.toSQLComponent();
     }
 
     @Nullable
+    @Deprecated(forRemoval = true)
     protected String getQueryOrder() {
-        return queryOrder;
+        return getQueryParams().order.toSQLComponent();
     }
 }

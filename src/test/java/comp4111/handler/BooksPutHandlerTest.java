@@ -14,10 +14,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class BooksPutHandlerTest extends AbstractServerTest {
@@ -37,15 +34,11 @@ public class BooksPutHandlerTest extends AbstractServerTest {
             }
 
             @Override
-            public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context) throws HttpException, IOException {
-                try {
-                    super.handle(requestObject, responseTrigger, context);
-                } catch (IllegalArgumentException e) {
-                    return;
-                }
-
-                final var response = AsyncResponseBuilder.create(HttpStatus.SC_OK).build();
-                responseTrigger.submitResponse(response, context);
+            public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context) {
+                super.handleAsync(requestObject)
+                        .thenApplyAsync(json -> AsyncResponseBuilder.create(HttpStatus.SC_OK).build())
+                        .exceptionally(this::exceptionToResponse)
+                        .thenAcceptAsync(response -> HttpAsyncEndpointHandler.emitResponse(response, responseTrigger, context));
             }
         };
         tokenMgr = TokenManager.getInstance();
@@ -158,8 +151,8 @@ public class BooksPutHandlerTest extends AbstractServerTest {
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
         try (final var response = requester.execute(target, request, CLIENT_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
-            assertEquals(1, handler.getBookId());
-            assertEquals(true, handler.getAvailable());
+            assertEquals(1, handler.getRequest().bookId);
+            assertTrue(handler.getRequest().available);
         }
     }
 
@@ -173,8 +166,8 @@ public class BooksPutHandlerTest extends AbstractServerTest {
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
         try (final var response = requester.execute(target, request, CLIENT_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
-            assertEquals(1, handler.getBookId());
-            assertEquals(false, handler.getAvailable());
+            assertEquals(1, handler.getRequest().bookId);
+            assertFalse(handler.getRequest().available);
         }
     }
 

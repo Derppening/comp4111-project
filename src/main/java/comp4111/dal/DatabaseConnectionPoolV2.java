@@ -111,7 +111,7 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @return A free connection from the pool, either by reusing one or creating one.
      */
     @NotNull
-    private CompletableFuture<DatabaseConnectionV2> findOrNewConnection() {
+    private synchronized CompletableFuture<DatabaseConnectionV2> findOrNewConnection() {
         synchronized (connectionPool) {
             return connectionPool.stream()
                     .filter(con -> !con.isInUse())
@@ -128,7 +128,7 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @return A connection in the pool matching the given predicate, or {@code null} if none matches the predicate.
      */
     @NotNull
-    private CompletableFuture<@Nullable DatabaseConnectionV2> findConnection(@NotNull Predicate<DatabaseConnectionV2> predicate) {
+    private synchronized CompletableFuture<@Nullable DatabaseConnectionV2> findConnection(@NotNull Predicate<DatabaseConnectionV2> predicate) {
         synchronized (connectionPool) {
             return CompletableFuture.supplyAsync(() -> connectionPool.stream()
                     .filter(predicate)
