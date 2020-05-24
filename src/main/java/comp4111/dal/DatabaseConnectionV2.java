@@ -50,6 +50,9 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     private TransactionInfo txInfo = null;
 
     @NotNull
+    private final Object txInfoMonitor = new Object();
+
+    @NotNull
     private final AtomicBoolean isInUse = new AtomicBoolean(false);
 
     /**
@@ -203,10 +206,12 @@ public class DatabaseConnectionV2 implements AutoCloseable {
 
         bindConnection(timeout, isOneTime);
 
-        if (txInfo == null) {
-            throw new IllegalStateException("Transaction ID should be valid");
+        synchronized (txInfoMonitor) {
+            if (txInfo == null) {
+                throw new IllegalStateException("Transaction ID should be valid");
+            }
+            return txInfo.txId;
         }
-        return txInfo.txId;
     }
 
     /**
@@ -220,11 +225,14 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     public synchronized <R> R execTransaction(@NotNull ConnectionFunction<R> block) throws SQLException {
         LOGGER.trace("execTransaction(block=...)");
 
-        if (txInfo == null) {
-            throw new IllegalStateException("Attempted to execute a transaction on an unbound connection");
+        synchronized (txInfoMonitor) {
+            if (txInfo == null) {
+                throw new IllegalStateException("Attempted to execute a transaction on an unbound connection");
+            }
+
+            txInfo.markUsedNow();
         }
 
-        txInfo.markUsedNow();
         return block.apply(connection);
     }
 
@@ -242,12 +250,17 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     public synchronized boolean commit() {
         LOGGER.trace("commit()");
 
-        boolean isCommitted;
-        if (txInfo == null) {
-            throw new IllegalStateException("Attempted to commit an unbound connection");
+        final boolean isTxTimedOut;
+        synchronized (txInfoMonitor) {
+            if (txInfo == null) {
+                throw new IllegalStateException("Attempted to commit an unbound connection");
+            }
+
+            isTxTimedOut = !txInfo.timeout.isZero() && txInfo.hasTimedOut();
         }
 
-        if (!txInfo.timeout.isZero() && txInfo.hasTimedOut()) {
+        boolean isCommitted;
+        if (isTxTimedOut) {
             try {
                 LOGGER.info("Transaction timed out: Rolling back transaction");
                 connection.rollback();
@@ -281,8 +294,10 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     public synchronized void rollback() {
         LOGGER.trace("rollback()");
 
-        if (txInfo == null) {
-            throw new IllegalStateException("Attempted to commit an unbound connection");
+        synchronized (txInfoMonitor) {
+            if (txInfo == null) {
+                throw new IllegalStateException("Attempted to commit an unbound connection");
+            }
         }
 
         try {
@@ -317,7 +332,9 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         }
 
         isInUse.lazySet(true);
-        txInfo = new TransactionInfo(timeout, isOneTime);
+        synchronized (txInfoMonitor) {
+            txInfo = new TransactionInfo(timeout, isOneTime);
+        }
     }
 
     /**
@@ -327,11 +344,15 @@ public class DatabaseConnectionV2 implements AutoCloseable {
      */
     private synchronized void unbindConnection() {
         LOGGER.trace("unbindConnection()");
-        if (txInfo == null) {
-            throw new IllegalStateException("Attempted to unbind a unbound connection");
+
+        synchronized (txInfoMonitor) {
+            if (txInfo == null) {
+                throw new IllegalStateException("Attempted to unbind a unbound connection");
+            }
+
+            txInfo = null;
         }
 
-        txInfo = null;
         isInUse.lazySet(false);
     }
 
@@ -344,11 +365,13 @@ public class DatabaseConnectionV2 implements AutoCloseable {
      * @throws IllegalStateException if this connection is not bound to a transaction.
      */
     long getTransactionId() {
-        if (txInfo == null) {
-            throw new IllegalStateException("Cannot get transaction ID of an unbound connection");
-        }
+        synchronized (txInfoMonitor) {
+            if (txInfo == null) {
+                throw new IllegalStateException("Cannot get transaction ID of an unbound connection");
+            }
 
-        return txInfo.txId;
+            return txInfo.txId;
+        }
     }
 
     /**
