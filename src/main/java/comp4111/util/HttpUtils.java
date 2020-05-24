@@ -1,5 +1,6 @@
 package comp4111.util;
 
+import comp4111.exception.HttpHandlingException;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.message.BasicHttpRequest;
 import org.apache.hc.core5.http.nio.AsyncResponseProducer;
@@ -14,6 +15,7 @@ import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 
 public class HttpUtils {
 
@@ -64,6 +66,33 @@ public class HttpUtils {
                 final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
                 responseTrigger.submitResponse(response, context);
                 throw new IllegalArgumentException("Malformed query string");
+            }
+            final var chunkKey = queryChunk.substring(0, equalDelimiter);
+            final var chunkVal = queryChunk.substring(equalDelimiter + 1);
+            params.put(chunkKey, chunkVal);
+
+            path = nextDelimiter != -1 ? path.substring(nextDelimiter + 1) : "";
+        }
+        return params;
+    }
+
+    @NotNull
+    public static Map<String, String> parseQueryParamsAsync(@NotNull String path) {
+        final var queryStartIndex = path.indexOf('?');
+        if (queryStartIndex == -1) {
+            return Collections.emptyMap();
+        }
+
+        path = path.substring(queryStartIndex + 1);
+
+        final var params = new HashMap<String, String>();
+        while (!path.isEmpty()) {
+            final var nextDelimiter = path.indexOf('&');
+            final var queryChunk = nextDelimiter != -1 ? path.substring(0, nextDelimiter) : path;
+
+            final var equalDelimiter = queryChunk.indexOf('=');
+            if (equalDelimiter == -1) {
+                throw new CompletionException("Malformed query string", new HttpHandlingException(HttpStatus.SC_BAD_REQUEST));
             }
             final var chunkKey = queryChunk.substring(0, equalDelimiter);
             final var chunkVal = queryChunk.substring(equalDelimiter + 1);

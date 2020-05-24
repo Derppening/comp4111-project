@@ -1,23 +1,25 @@
 package comp4111.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import comp4111.exception.HttpHandlingException;
 import comp4111.handler.impl.LoginPostHandlerImpl;
 import comp4111.model.LoginRequest;
 import comp4111.util.JacksonUtils;
-import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.nio.AsyncResponseProducer;
-import org.apache.hc.core5.http.nio.support.AsyncResponseBuilder;
-import org.apache.hc.core5.http.protocol.HttpContext;
+import org.apache.hc.core5.http.HttpRequest;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.Message;
+import org.apache.hc.core5.http.Method;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 /**
  * Endpoint handler for all {@code /login} POST requests.
  */
-public abstract class LoginPostHandler extends HttpAsyncEndpointHandler {
+public abstract class LoginPostHandler extends HttpAsyncEndpointHandler<LoginRequest> {
 
     public static final String HANDLE_PATTERN = PATH_PREFIX + "/login";
     private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
@@ -51,28 +53,33 @@ public abstract class LoginPostHandler extends HttpAsyncEndpointHandler {
         return HANDLER_DEFINITION;
     }
 
+    /**
+     * Handles a request asynchronously.
+     *
+     * @param requestObject The request object to process.
+     * @return A {@link java.util.concurrent.Future} object representing the required information.
+     */
     @Override
-    public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context)
-            throws HttpException, IOException {
-        checkMethod(requestObject, responseTrigger, context);
-
-        final AsyncResponseProducer response;
-        final var payload = getPayload(requestObject, responseTrigger, context);
-
-        try {
-            loginRequest = objectMapper.readValue(payload, LoginRequest.class);
-        } catch (Exception e) {
-            response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST)
-                    .setEntity(e.getLocalizedMessage(), ContentType.TEXT_HTML).build();
-            responseTrigger.submitResponse(response, context);
-            throw new IllegalArgumentException(e);
-        }
-
-        LOGGER.info("POST /login Username=\"{}\" Password=\"{}\"", loginRequest.getUsername(), loginRequest.getPassword());
+    protected CompletableFuture<LoginRequest> handleAsync(Message<HttpRequest, String> requestObject) {
+        return CompletableFuture.completedFuture(requestObject)
+                .thenApplyAsync(this::checkMethodAsync)
+                .thenApplyAsync(HttpAsyncEndpointHandler::getPayloadAsync)
+                .thenApplyAsync(payload -> {
+                    try {
+                        loginRequest = objectMapper.readValue(payload, LoginRequest.class);
+                    } catch (Exception e) {
+                        throw new CompletionException(new HttpHandlingException(HttpStatus.SC_BAD_REQUEST, e));
+                    }
+                    return loginRequest;
+                })
+                .thenApplyAsync(loginRequest -> {
+                    LOGGER.info("POST /login Username=\"{}\" Password=\"{}\"", loginRequest.getUsername(), loginRequest.getPassword());
+                    return loginRequest;
+                });
     }
 
     @NotNull
-    protected LoginRequest getLoginRequest() {
+    LoginRequest getLoginRequest() {
         return Objects.requireNonNull(loginRequest);
     }
 }

@@ -5,6 +5,8 @@ import comp4111.function.ConnectionFunction;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,9 +14,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 
 public class QueryUtils {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(QueryUtils.class);
 
     /**
      * Queries a table with extra clauses, converting them into Java objects.
@@ -26,11 +32,13 @@ public class QueryUtils {
      * @param <T> Type of the object in Java.
      * @return {@link List} of rows, converted into Java objects.
      */
-    @SuppressWarnings("unchecked")
-    public static <T> List<T> queryTable(@Nullable final Connection con, @NotNull String tableName,
-                                         @NotNull String ext, @NotNull List<Object> params,
-                                         @NotNull Function<ResultSet, T> transform) throws SQLException {
-        final ConnectionFunction block = connection -> {
+    public static <T> CompletableFuture<List<T>> queryTable(
+            @Nullable final Connection con,
+            @NotNull String tableName,
+            @NotNull String ext,
+            @NotNull List<Object> params,
+            @NotNull Function<ResultSet, T> transform) {
+        final ConnectionFunction<List<T>> block = connection -> {
             final var list = new ArrayList<T>();
 
             @Language("SQL") final String query;
@@ -67,7 +75,13 @@ public class QueryUtils {
         };
 
         if (con != null) {
-            return (List<T>) block.accept(con);
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    return block.apply(con);
+                } catch (SQLException e) {
+                    throw new CompletionException(e);
+                }
+            });
         } else {
             return DatabaseConnectionPoolV2.getInstance().execStmt(block);
         }

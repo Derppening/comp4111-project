@@ -2,11 +2,10 @@ package comp4111.bug;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import comp4111.AbstractServerTest;
-import comp4111.DatabaseUtils;
 import comp4111.MainApplication;
-import comp4111.dal.DatabaseConnection;
+import comp4111.dal.DatabaseUtils;
 import comp4111.handler.BooksHandler;
-import comp4111.handler.HttpPathHandler;
+import comp4111.handler.HttpAsyncPathHandler;
 import comp4111.handler.LoginHandler;
 import comp4111.handler.LogoutHandler;
 import comp4111.model.Book;
@@ -22,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import java.sql.DriverManager;
 import java.util.regex.Pattern;
 
+import static comp4111.dal.DatabaseInfo.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -36,18 +36,18 @@ public class Bug9_GetBooksSmallerThanLimitTest extends AbstractServerTest {
         super.setUp();
 
         assumeTrue(() -> {
-            try (@SuppressWarnings("unused") var con = DriverManager.getConnection(DatabaseConnection.MYSQL_URL, DatabaseConnection.MYSQL_LOGIN, DatabaseConnection.MYSQL_PASSWORD)) {
+            try (@SuppressWarnings("unused") var con = DriverManager.getConnection(MYSQL_URL, MYSQL_LOGIN, MYSQL_PASSWORD)) {
                 return true;
             } catch (Throwable tr) {
                 return false;
             }
         }, "Database not started; Skipping live integration tests");
 
-        DatabaseConnection.setConfig();
-        MainApplication.createDefaultUsers();
+        DatabaseUtils.setupSchemas(true);
+        DatabaseUtils.createDefaultUsers();
 
         {
-            HttpPathHandler[] handlers = new HttpPathHandler[MainApplication.PATTERN_HANDLER.size()];
+            final var handlers = new HttpAsyncPathHandler[MainApplication.PATTERN_HANDLER.size()];
             MainApplication.PATTERN_HANDLER.values().toArray(handlers);
             registerAndStartServer(handlers);
         }
@@ -57,8 +57,8 @@ public class Bug9_GetBooksSmallerThanLimitTest extends AbstractServerTest {
 
     void pre_LoginFirst() throws Exception {
         @Language("JSON") final var payload = "{" +
-                "\"Username\": \"user001\", " +
-                "\"Password\": \"pass001\"" +
+                "\"Username\": \"user00001\", " +
+                "\"Password\": \"pass00001\"" +
                 "}";
         final var entity = new StringEntity(payload);
 
@@ -165,8 +165,7 @@ public class Bug9_GetBooksSmallerThanLimitTest extends AbstractServerTest {
         }
         super.tearDown();
 
-        DatabaseUtils.dropDatabase(DatabaseConnection.DB_NAME);
-        DatabaseConnection.cleanUp();
+        DatabaseUtils.dropDatabase();
 
         token = null;
         objectMapper = null;

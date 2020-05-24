@@ -1,18 +1,20 @@
 package comp4111.handler;
 
+import comp4111.exception.HttpHandlingException;
 import comp4111.handler.impl.BooksDeleteHandlerImpl;
-import comp4111.util.HttpUtils;
-import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.nio.AsyncServerRequestHandler;
-import org.apache.hc.core5.http.protocol.HttpContext;
+import org.apache.hc.core5.http.HttpRequest;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.Message;
+import org.apache.hc.core5.http.Method;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 /**
  * Endpoint handler for all {@code /book/*} DELETE requests.
  */
-public abstract class BooksDeleteHandler extends HttpAsyncEndpointHandler {
+public abstract class BooksDeleteHandler extends HttpAsyncEndpointHandler<Long> {
 
     private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
         @NotNull
@@ -41,22 +43,26 @@ public abstract class BooksDeleteHandler extends HttpAsyncEndpointHandler {
     }
 
     @Override
-    public void handle(Message<HttpRequest, String> requestObject,
-                       AsyncServerRequestHandler.ResponseTrigger responseTrigger,
-                       HttpContext context) throws HttpException, IOException {
-        checkMethod(requestObject, responseTrigger, context);
+    protected CompletableFuture<Long> handleAsync(Message<HttpRequest, String> requestObject) {
+        return CompletableFuture.completedFuture(requestObject)
+                .thenApplyAsync(this::checkMethodAsync)
+                .thenApplyAsync(this::checkTokenAsync)
+                .thenApplyAsync(request -> BooksHandler.getIdFromRequestAsync(request.getHead().getPath()))
+                .thenApplyAsync(id -> {
+                    if (id <= 0) {
+                        throw new CompletionException(new HttpHandlingException(HttpStatus.SC_BAD_REQUEST));
+                    }
 
-        final var queryParams = HttpUtils.parseQueryParams(requestObject.getHead().getPath(), responseTrigger, context);
-        final var token = checkToken(queryParams, responseTrigger, context);
-
-        bookId = BooksHandler.getIdFromRequest(requestObject.getHead().getPath(), responseTrigger, context);
-
-        // TODO(Derppening): Consider shortcutting when bookId <= 0
-
-        LOGGER.info("DELETE /books token=\"{}\" id={}", token, bookId);
+                    bookId = id;
+                    return bookId;
+                })
+                .thenApplyAsync(id -> {
+                    LOGGER.info("DELETE /books id={}", id);
+                    return id;
+                });
     }
 
-    protected long getBookId() {
+    long getBookId() {
         return bookId;
     }
 }

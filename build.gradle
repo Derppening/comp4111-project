@@ -12,6 +12,8 @@ plugins {
 
     // Apply the application plugin to add support for building a CLI application.
     id 'application'
+
+    id 'jacoco'
 }
 
 repositories {
@@ -46,7 +48,7 @@ dependencies {
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.2'
 
     // Use JUnit Jupiter API for testing.
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.2'
 
     // https://mvnrepository.com/artifact/org.apache.httpcomponents.core5/httpcore5-testing
     testImplementation group: 'org.apache.httpcomponents.core5', name: 'httpcore5-testing', version: '5.0'
@@ -65,6 +67,15 @@ java {
     targetCompatibility = JavaVersion.VERSION_11
 }
 
+jacocoTestReport {
+    dependsOn('test')
+    reports {
+        xml.enabled false
+        csv.enabled false
+        html.destination file("${buildDir}/jacocoHTML")
+    }
+}
+
 test {
     // Use junit platform for unit tests
     useJUnitPlatform()
@@ -75,8 +86,34 @@ wrapper {
     distributionType = Wrapper.DistributionType.ALL
 }
 
+task('runFreshDb', type: JavaExec) {
+    dependsOn('classes')
+    main = "comp4111.MainApplication"
+    args = ["--recreate-db"]
+    classpath += sourceSets.main.runtimeClasspath
+}
+
+task('runFreshTables', type: JavaExec) {
+    dependsOn('classes')
+    main = "comp4111.MainApplication"
+    args = ["--recreate-tables"]
+    classpath += sourceSets.main.runtimeClasspath
+}
+
 task('runDbInit', type: JavaExec) {
     dependsOn('classes')
     main = "comp4111.DatabaseCreateUtilApplication"
+    classpath += sourceSets.main.runtimeClasspath
+}
+
+task('runTablesInit', type: JavaExec) {
+    dependsOn('classes')
+    main = "comp4111.DatabaseTablesCreateApplication"
+    classpath += sourceSets.main.runtimeClasspath
+}
+
+task('runDbDrop', type: JavaExec) {
+    dependsOn('classes')
+    main = "comp4111.DatabaseDropUtilApplication"
     classpath += sourceSets.main.runtimeClasspath
 }

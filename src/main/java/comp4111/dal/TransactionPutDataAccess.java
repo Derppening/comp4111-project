@@ -5,8 +5,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.SQLException;
-
 public class TransactionPutDataAccess {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionPostDataAccess.class);
@@ -16,7 +14,9 @@ public class TransactionPutDataAccess {
      */
     public static int pushAction(@NotNull Long transaction, long bookId, @NotNull TransactionPutRequest.Action action) {
         try {
-            final var res = DatabaseConnectionPoolV2.getInstance().<Integer>putTransactionWithId(transaction, connection -> {
+            final var res = DatabaseConnectionPoolV2.getInstance().putTransactionWithId(transaction, connection -> {
+                final var savepoint = connection.setSavepoint();
+
                 int transactionPutResult;
                 if (action == TransactionPutRequest.Action.LOAN) {
                     transactionPutResult = BooksPutDataAccess.updateBook(connection, bookId, false);
@@ -25,14 +25,14 @@ public class TransactionPutDataAccess {
                 }
 
                 if (transactionPutResult != 0) {
-                    connection.rollback();
-                    DatabaseConnectionPoolV2.getInstance().executeTransaction(transaction, false);
+                    connection.rollback(savepoint);
                 }
 
                 return transactionPutResult;
-            });
+            }).get();
+
             return res != null ? res : 1;
-        } catch (SQLException e) {
+        } catch (Exception e) {
             LOGGER.error("Error starting a new transaction", e);
             return 1;
         }

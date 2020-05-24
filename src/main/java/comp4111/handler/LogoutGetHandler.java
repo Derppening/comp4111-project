@@ -1,19 +1,19 @@
 package comp4111.handler;
 
 import comp4111.handler.impl.LogoutGetHandlerImpl;
-import comp4111.util.HttpUtils;
-import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.protocol.HttpContext;
+import org.apache.hc.core5.http.HttpRequest;
+import org.apache.hc.core5.http.Message;
+import org.apache.hc.core5.http.Method;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Endpoint handler for all {@code /logout} GET requests.
  */
-public abstract class LogoutGetHandler extends HttpAsyncEndpointHandler {
+public abstract class LogoutGetHandler extends HttpAsyncEndpointHandler<String> {
 
     private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
         @NotNull
@@ -43,20 +43,21 @@ public abstract class LogoutGetHandler extends HttpAsyncEndpointHandler {
         return HANDLER_DEFINITION;
     }
 
-    @Override
-    public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context)
-            throws HttpException, IOException {
-        checkMethod(requestObject, responseTrigger, context);
-
-        final var queryParams = HttpUtils.parseQueryParams(requestObject.getHead().getPath(), responseTrigger, context);
-
-        token = getToken(queryParams, responseTrigger, context);
-
-        LOGGER.info("GET /logout token=\"{}\"", token);
+    protected CompletableFuture<String> handleAsync(Message<HttpRequest, String> requestObject) {
+        return CompletableFuture.completedFuture(requestObject)
+                .thenApplyAsync(this::checkMethodAsync)
+                .thenApplyAsync(request -> {
+                    token = HttpAsyncEndpointHandler.getTokenAsync(request);
+                    return token;
+                })
+                .thenApplyAsync(token -> {
+                    LOGGER.info("GET /logout token=\"{}\"", token);
+                    return token;
+                });
     }
 
     @NotNull
-    public String getToken() {
+    String getToken() {
         return Objects.requireNonNull(token);
     }
 }

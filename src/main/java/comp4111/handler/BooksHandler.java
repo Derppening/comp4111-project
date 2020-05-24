@@ -1,5 +1,6 @@
 package comp4111.handler;
 
+import comp4111.exception.HttpHandlingException;
 import comp4111.handler.impl.BooksHandlerImpl;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.HttpException;
@@ -10,6 +11,7 @@ import org.apache.hc.core5.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.util.concurrent.CompletionException;
 
 /**
  * Path handler for all {@code /books} requests.
@@ -55,6 +57,17 @@ public abstract class BooksHandler extends HttpAsyncPathHandler {
             final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST).build();
             responseTrigger.submitResponse(response, context);
             throw new IllegalArgumentException(e);
+        }
+    }
+
+    static long getIdFromRequestAsync(@NotNull String path) {
+        final var startIdx = (HANDLE_PATTERN + "/").length();
+        final var endIdx = path.indexOf('?') != -1 ? path.indexOf('?') : path.length();
+
+        try {
+            return Long.parseLong(path.substring(startIdx, endIdx));
+        } catch (Exception e) {
+            throw new CompletionException("Bad path id", new HttpHandlingException(HttpStatus.SC_BAD_REQUEST));
         }
     }
 

@@ -1,7 +1,8 @@
 package comp4111;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import comp4111.dal.DatabaseConnection;
+import comp4111.dal.DatabaseConnectionPoolV2;
+import comp4111.dal.DatabaseUtils;
 import comp4111.handler.*;
 import comp4111.model.LoginRequest;
 import comp4111.util.JacksonUtils;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.DriverManager;
 
+import static comp4111.dal.DatabaseInfo.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -28,18 +30,18 @@ public class AuthenticationIntegrationTest extends AbstractServerTest {
         super.setUp();
 
         assumeTrue(() -> {
-            try (@SuppressWarnings("unused") var con = DriverManager.getConnection(DatabaseConnection.MYSQL_URL, DatabaseConnection.MYSQL_LOGIN, DatabaseConnection.MYSQL_PASSWORD)) {
+            try (@SuppressWarnings("unused") var con = DriverManager.getConnection(MYSQL_URL, MYSQL_LOGIN, MYSQL_PASSWORD)) {
                 return true;
             } catch (Throwable tr) {
                 return false;
             }
         }, "Database not started; Skipping live integration tests");
 
-        DatabaseConnection.setConfig();
-        MainApplication.createDefaultUsers();
+        DatabaseUtils.setupSchemas(true);
+        DatabaseUtils.createDefaultUsers();
 
         {
-            HttpPathHandler[] handlers = new HttpPathHandler[MainApplication.PATTERN_HANDLER.size()];
+            final var handlers = new HttpAsyncPathHandler[MainApplication.PATTERN_HANDLER.size()];
             MainApplication.PATTERN_HANDLER.values().toArray(handlers);
             registerAndStartServer(handlers);
         }
@@ -48,7 +50,7 @@ public class AuthenticationIntegrationTest extends AbstractServerTest {
     }
 
     void a_LoginWithTheCorrectUsernameAndPassword() throws Exception {
-        final var loginRequest = new LoginRequest("user001", "pass001");
+        final var loginRequest = new LoginRequest("user00001", "pass00001");
         @Language("JSON") final var payload = objectMapper.writeValueAsString(loginRequest);
         final var entity = new StringEntity(payload);
 
@@ -62,7 +64,7 @@ public class AuthenticationIntegrationTest extends AbstractServerTest {
     }
 
     void b_LoginWithTheCorrectUsernameAndPasswordAgain() throws Exception {
-        final var loginRequest = new LoginRequest("user001", "pass001");
+        final var loginRequest = new LoginRequest("user00001", "pass00001");
         @Language("JSON") final var payload = objectMapper.writeValueAsString(loginRequest);
         final var entity = new StringEntity(payload);
 
@@ -72,7 +74,7 @@ public class AuthenticationIntegrationTest extends AbstractServerTest {
     }
 
     void c_LoginWithTheIncorrectUsernameAndPassword() throws Exception {
-        final var loginRequest = new LoginRequest("user001", "pass002");
+        final var loginRequest = new LoginRequest("user00001", "pass00002");
         @Language("JSON") final var payload = objectMapper.writeValueAsString(loginRequest);
         final var entity = new StringEntity(payload);
 
@@ -151,8 +153,8 @@ public class AuthenticationIntegrationTest extends AbstractServerTest {
         }
         super.tearDown();
 
-        DatabaseUtils.dropDatabase(DatabaseConnection.DB_NAME);
-        DatabaseConnection.cleanUp();
+        DatabaseUtils.dropDatabase();
+        DatabaseConnectionPoolV2.getInstance().close();
 
         token = null;
         objectMapper = null;

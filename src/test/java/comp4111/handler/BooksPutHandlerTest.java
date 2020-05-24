@@ -5,6 +5,7 @@ import comp4111.controller.TokenManager;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.BasicClassicHttpRequest;
+import org.apache.hc.core5.http.nio.support.AsyncResponseBuilder;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.apache.hc.core5.http.protocol.HttpCoreContext;
 import org.intellij.lang.annotations.Language;
@@ -13,10 +14,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class BooksPutHandlerTest extends AbstractServerTest {
@@ -36,14 +34,11 @@ public class BooksPutHandlerTest extends AbstractServerTest {
             }
 
             @Override
-            public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-                try {
-                    super.handle(request, response, context);
-                } catch (IllegalArgumentException e) {
-                    return;
-                }
-
-                response.setCode(HttpStatus.SC_OK);
+            public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context) {
+                super.handleAsync(requestObject)
+                        .thenApplyAsync(json -> AsyncResponseBuilder.create(HttpStatus.SC_OK).build())
+                        .exceptionally(this::exceptionToResponse)
+                        .thenAcceptAsync(response -> HttpAsyncEndpointHandler.emitResponse(response, responseTrigger, context));
             }
         };
         tokenMgr = TokenManager.getInstance();
@@ -57,7 +52,7 @@ public class BooksPutHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(Method.GET, BooksHandler.HANDLE_PATTERN + "/1?token=" + token);
-        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, CLIENT_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getCode());
             assertEquals(handler.getHandleMethod().toString(), response.getHeader("Allow").getValue());
         }
@@ -68,7 +63,7 @@ public class BooksPutHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), BooksHandler.HANDLE_PATTERN + "?token=" + token);
-        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, CLIENT_TIMEOUT, context)) {
             assertNotEquals(HttpStatus.SC_OK, response.getCode());
         }
     }
@@ -78,7 +73,7 @@ public class BooksPutHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), BooksHandler.HANDLE_PATTERN + "/1");
-        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, CLIENT_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -92,7 +87,7 @@ public class BooksPutHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), BooksHandler.HANDLE_PATTERN + "/1?token=" + badToken);
-        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, CLIENT_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -105,7 +100,7 @@ public class BooksPutHandlerTest extends AbstractServerTest {
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), BooksHandler.HANDLE_PATTERN + "/a?token=" + token);
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, CLIENT_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -115,7 +110,7 @@ public class BooksPutHandlerTest extends AbstractServerTest {
         final var target = getDefaultHttpHost(server);
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), BooksHandler.HANDLE_PATTERN + "/1?token" + token);
-        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, CLIENT_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -128,7 +123,7 @@ public class BooksPutHandlerTest extends AbstractServerTest {
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), BooksHandler.HANDLE_PATTERN + "/1?token" + token);
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, CLIENT_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -141,7 +136,7 @@ public class BooksPutHandlerTest extends AbstractServerTest {
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), BooksHandler.HANDLE_PATTERN + "/1?token=" + token);
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, CLIENT_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
         }
     }
@@ -154,10 +149,10 @@ public class BooksPutHandlerTest extends AbstractServerTest {
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), BooksHandler.HANDLE_PATTERN + "/1?token=" + token);
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, CLIENT_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
-            assertEquals(1, handler.getBookId());
-            assertEquals(true, handler.getAvailable());
+            assertEquals(1, handler.getRequest().bookId);
+            assertTrue(handler.getRequest().available);
         }
     }
 
@@ -169,10 +164,10 @@ public class BooksPutHandlerTest extends AbstractServerTest {
         final var context = HttpCoreContext.create();
         final ClassicHttpRequest request = new BasicClassicHttpRequest(handler.getHandleMethod(), BooksHandler.HANDLE_PATTERN + "/1?token=" + token);
         request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-        try (final var response = requester.execute(target, request, SERVER_TIMEOUT, context)) {
+        try (final var response = requester.execute(target, request, CLIENT_TIMEOUT, context)) {
             assertEquals(HttpStatus.SC_OK, response.getCode());
-            assertEquals(1, handler.getBookId());
-            assertEquals(false, handler.getAvailable());
+            assertEquals(1, handler.getRequest().bookId);
+            assertFalse(handler.getRequest().available);
         }
     }
 

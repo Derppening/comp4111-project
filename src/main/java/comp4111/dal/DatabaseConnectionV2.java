@@ -10,76 +10,259 @@ import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * An DAL over {@link Connection} to enable support for connection reuse.
+ * <p>
+ * Note:
+ * <br>
+ * Connection opening and closing refers to the act of opening/closing a connection to a SQL server, whereas connection
+ * binding and unbinding refer to the act of assigning/un-assigning the connection to a specific transaction.
+ */
 public class DatabaseConnectionV2 implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseConnectionV2.class);
+
+    /**
+     * Transaction ID representing a transaction which is single-use only.
+     *
+     * Transactions of this ID is only used when executing single-use statements, such as via
+     * {@link DatabaseConnectionV2#execStmt(ConnectionFunction)}.
+     */
     static final long NULL_TRANSACTION_ID = -1;
 
     private final Connection connection;
-    private boolean isClosed = false;
+    private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
-    @Nullable
-    private Instant lastUsedTime = null;
+    /**
+     * The default lock timeout as retrieved when the connection is first established to the database.
+     */
+    private final Duration defaultLockTimeout;
 
+    /**
+     * The information of the current transaction.
+     */
     @Nullable
     private TransactionInfo txInfo = null;
 
+    @NotNull
+    private final Object txInfoMonitor = new Object();
+
+    @NotNull
+    private final AtomicBoolean isInUse = new AtomicBoolean(false);
+
+    /**
+     * A POD class for storing transaction information.
+     */
     private static class TransactionInfo {
 
         private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
-        public final int timeout;
+        /**
+         * The timeout of this transaction, or {@code 0} if the transaction has no timeout.
+         */
+        public final Duration timeout;
+        /**
+         * The ID of this transaction, or {@link DatabaseConnectionV2#NULL_TRANSACTION_ID} if this transaction is a
+         * one-time transaction managed internally by {@link DatabaseConnectionV2}.
+         */
         public final long txId;
 
+        /**
+         * The time which this transaction is last operated on.
+         */
         @NotNull
-        public final Instant initTime = Instant.now();
+        public Instant lastOpTime;
 
-        TransactionInfo(int timeout, boolean isOneTime) {
+        /**
+         * @param timeout Timeout of this transaction. Set this value to {@link Duration#ZERO} for no timeout.
+         * @param isOneTime If true, marks this transaction as one which does not need to expose its transaction ID
+         * outside of {@link DatabaseConnectionV2}.
+         */
+        TransactionInfo(@NotNull Duration timeout, boolean isOneTime) {
             this.timeout = timeout;
             this.txId = isOneTime ? NULL_TRANSACTION_ID : Math.abs(SECURE_RANDOM.nextLong());
+            this.lastOpTime = Instant.now();
+        }
+
+        /**
+         * Marks this transaction as being used right now.
+         *
+         * When called, the method will first check whether this transaction is timed out. If not, the last operation
+         * time will be updated accordingly as the beginning of the sliding window. Otherwise, the time will not be
+         * updated to implicitly indicate that the transaction has timed out.
+         */
+        void markUsedNow() {
+            final var now = Instant.now();
+            if (!hasTimedOut(now)) {
+                lastOpTime = Instant.now();
+            }
+        }
+
+        /**
+         * @return {@code true} if this transaction has timed out.
+         */
+        boolean hasTimedOut() {
+            return hasTimedOut(Instant.now());
+        }
+
+        /**
+         * @param time The {@link Instant} to check the time against.
+         * @return {@code true} if this transaction has timed out against the given time.
+         */
+        private boolean hasTimedOut(@NotNull Instant time) {
+            return time.toEpochMilli() - lastOpTime.toEpochMilli() > timeout.toMillis();
         }
     }
 
-    DatabaseConnectionV2(@NotNull String databaseUrl, @NotNull String user, @NotNull String password) throws SQLException {
+    /**
+     * Creates a connection to a database server.
+     *
+     * @param databaseUrl The URL to the database.
+     * @param user The user to login the database.
+     * @param password The password of the user.
+     * @throws SQLException if a database access error has occurred.
+     */
+    DatabaseConnectionV2(
+            @NotNull String databaseUrl,
+            @NotNull String user,
+            @NotNull String password) throws SQLException {
         connection = DriverManager.getConnection(databaseUrl, user, password);
         connection.setAutoCommit(false);
+        defaultLockTimeout = DatabaseUtils.getLockTimeout(connection);
     }
 
-    DatabaseConnectionV2(@NotNull String url, @NotNull String database, @NotNull String username, @NotNull String password) throws SQLException {
+    /**
+     * Creates a connection to a database.
+     *
+     * @param url The URL to the database.
+     * @param database The database to connection to.
+     * @param username The user to login the database.
+     * @param password The password of the user.
+     * @throws SQLException if a database access error has occurred.
+     */
+    DatabaseConnectionV2(
+            @NotNull String url,
+            @NotNull String database,
+            @NotNull String username,
+            @NotNull String password) throws SQLException {
         this(String.format("%s/%s", url, database), username, password);
     }
 
-    public synchronized Object execStmt(@NotNull ConnectionFunction block) throws SQLException {
-        getIdForTransaction(0, true);
-        final var obj = block.accept(connection);
-        commit();
-        return obj;
+    /**
+     * Executes a block of SQL statements using this connection.
+     *
+     * @param block The block of SQL statements to execute.
+     * @param <R> The return type from the block.
+     * @return The return value of {@code block}.
+     * @throws SQLException if a database access error has occurred.
+     */
+    public synchronized <R> R execStmt(@NotNull ConnectionFunction<R> block) throws SQLException {
+        LOGGER.trace("execStmt(block=...)");
+
+        try {
+            DatabaseUtils.setLockTimeout(connection, defaultLockTimeout);
+            getIdForTransaction(Duration.ZERO, true);
+            final var object = execTransaction(block);
+            commit();
+            return object;
+        } catch (Throwable tr) {
+            throw new RuntimeException(tr);
+        }
     }
 
-    public synchronized long getIdForTransaction(int timeout) throws SQLException {
-        return getIdForTransaction(timeout, false);
+    /**
+     * Obtains a transaction ID for a SQL transaction.
+     *
+     * @param txTimeout Timeout of the transaction.
+     * @param lockTimeout Timeout for database locking.
+     * @return The transaction ID.
+     * @throws SQLException if a database access error has occurred.
+     */
+    public synchronized long getIdForTransaction(@NotNull Duration txTimeout, @Nullable Duration lockTimeout) throws SQLException {
+        if (lockTimeout == null) {
+            lockTimeout = this.defaultLockTimeout;
+        }
+        DatabaseUtils.setLockTimeout(connection, lockTimeout);
+
+        return getIdForTransaction(txTimeout, false);
     }
 
-    private synchronized long getIdForTransaction(int timeout, boolean isOneTime) throws SQLException {
+    /**
+     * Obtains a transaction ID for a SQL transaction.
+     *
+     * @param timeout Timeout of the transaction.
+     * @param isOneTime If true, marks this transaction as one which does not need to expose its transaction ID.
+     * outside of {@link DatabaseConnectionV2}.
+     * @return The transaction ID.
+     * @throws SQLException if a database access error has occurred.
+     */
+    private synchronized long getIdForTransaction(@NotNull Duration timeout, boolean isOneTime) throws SQLException {
+        LOGGER.trace("getIdForTransaction(timeout={}, isOneTime={})", timeout, isOneTime);
+
         bindConnection(timeout, isOneTime);
 
-        if (txInfo == null) {
-            throw new IllegalStateException("Transaction ID should be valid");
+        synchronized (txInfoMonitor) {
+            if (txInfo == null) {
+                throw new IllegalStateException("Transaction ID should be valid");
+            }
+            return txInfo.txId;
         }
-        return txInfo.txId;
     }
 
-    public synchronized boolean commit() {
-        Objects.requireNonNull(txInfo, "Attempted to commit an unbound connection");
+    /**
+     * Adds a sequence of SQL statements to be committed to this transaction.
+     *
+     * @param block The block of SQL statements to execute.
+     * @param <R> The return type from the block.
+     * @return The return value of {@code block}.
+     * @throws SQLException if a database access error has occurred.
+     */
+    public synchronized <R> R execTransaction(@NotNull ConnectionFunction<R> block) throws SQLException {
+        LOGGER.trace("execTransaction(block=...)");
 
-        final var timeSinceInit = Instant.now().toEpochMilli() - txInfo.initTime.toEpochMilli();
+        synchronized (txInfoMonitor) {
+            if (txInfo == null) {
+                throw new IllegalStateException("Attempted to execute a transaction on an unbound connection");
+            }
+
+            txInfo.markUsedNow();
+        }
+
+        return block.apply(connection);
+    }
+
+    /**
+     * Commits a transaction.
+     *
+     * This method will check whether the transaction has already timed out before committing the transaction. A timed
+     * out transaction will always result in a rollback.
+     *
+     * If a commit operation fails, the transaction is rolled back.
+     *
+     * @return {@code true} if the operation succeeded.
+     * @throws IllegalStateException if this connection currently does not serve a transaction.
+     */
+    public synchronized boolean commit() {
+        LOGGER.trace("commit()");
+
+        final boolean isTxTimedOut;
+        synchronized (txInfoMonitor) {
+            if (txInfo == null) {
+                throw new IllegalStateException("Attempted to commit an unbound connection");
+            }
+
+            isTxTimedOut = !txInfo.timeout.isZero() && txInfo.hasTimedOut();
+        }
 
         boolean isCommitted;
-        if (txInfo.timeout > 0 && timeSinceInit > txInfo.timeout) {
+        if (isTxTimedOut) {
             try {
+                LOGGER.info("Transaction timed out: Rolling back transaction");
                 connection.rollback();
             } catch (SQLException e) {
                 LOGGER.error("Unable to rollback expired transaction", e);
@@ -99,25 +282,46 @@ public class DatabaseConnectionV2 implements AutoCloseable {
                 }
             }
         }
-
         unbindConnection();
-
         return isCommitted;
     }
 
+    /**
+     * Rolls back a transaction.
+     *
+     * @throws IllegalStateException if this connection currently does not serve a transaction.
+     */
     public synchronized void rollback() {
-        Objects.requireNonNull(txInfo, "Attempted to rollback an unbound connection");
+        LOGGER.trace("rollback()");
+
+        synchronized (txInfoMonitor) {
+            if (txInfo == null) {
+                throw new IllegalStateException("Attempted to commit an unbound connection");
+            }
+        }
 
         try {
             connection.rollback();
         } catch (SQLException e) {
             LOGGER.error("Unable to rollback transaction", e);
         }
+
         unbindConnection();
     }
 
-    private synchronized void bindConnection(int timeout, boolean isOneTime) throws SQLException {
-        if (timeout < 0) {
+    /**
+     * Marks this connection as bound to a transaction.
+     *
+     * @param timeout Timeout of the transaction.
+     * @param isOneTime If true, marks this transaction as one which does not need to expose its transaction ID.
+     * @throws IllegalArgumentException if the timeout is a negative value.
+     * @throws IllegalStateException    if the connection is not valid or a transaction is already bound to this
+     *                                  connection.
+     * @throws SQLException             if a database access error has occurred.
+     */
+    private synchronized void bindConnection(@NotNull Duration timeout, boolean isOneTime) throws SQLException {
+        LOGGER.trace("bindConnection(timeout={}, isOneTime={})", timeout, isOneTime);
+        if (timeout.isNegative()) {
             throw new IllegalArgumentException("Timeout must be a non-negative value");
         }
         if (!connection.isValid(0)) {
@@ -127,56 +331,81 @@ public class DatabaseConnectionV2 implements AutoCloseable {
             throw new IllegalStateException("Attempted to bind a bound connection");
         }
 
-        txInfo = new TransactionInfo(timeout, isOneTime);
-        lastUsedTime = null;
+        isInUse.lazySet(true);
+        synchronized (txInfoMonitor) {
+            txInfo = new TransactionInfo(timeout, isOneTime);
+        }
     }
 
+    /**
+     * Unbinds this connection from a transaction.
+     *
+     * @throws IllegalStateException if this connection is not bound to a transaction.
+     */
     private synchronized void unbindConnection() {
-        if (txInfo == null) {
-            throw new IllegalStateException("Attempted to unbind a unbound connection");
+        LOGGER.trace("unbindConnection()");
+
+        synchronized (txInfoMonitor) {
+            if (txInfo == null) {
+                throw new IllegalStateException("Attempted to unbind a unbound connection");
+            }
+
+            txInfo = null;
         }
 
-        lastUsedTime = Instant.now();
-        txInfo = null;
+        isInUse.lazySet(false);
     }
 
-    @NotNull
-    public synchronized Connection getConnection() {
-        if (txInfo == null) {
-            throw new IllegalStateException("Cannot get connection of an unbound connection");
+    long getTransactionIdNoExcept() {
+        return isInUse.getAcquire() ? getTransactionId() : NULL_TRANSACTION_ID;
+    }
+
+    /**
+     * @return The transaction ID bound to this connection.
+     * @throws IllegalStateException if this connection is not bound to a transaction.
+     */
+    long getTransactionId() {
+        synchronized (txInfoMonitor) {
+            if (txInfo == null) {
+                throw new IllegalStateException("Cannot get transaction ID of an unbound connection");
+            }
+
+            return txInfo.txId;
         }
-
-        return connection;
     }
 
-    synchronized long getTransactionId() {
-        if (txInfo == null) {
-            throw new IllegalStateException("Cannot get transaction ID of an unbound connection");
-        }
-
-        return txInfo.txId;
+    /**
+     * @return Whether this connection is currently used by a transaction.
+     */
+    boolean isInUse() {
+        return isInUse.getAcquire();
     }
 
-    @Nullable
-    synchronized Instant getLastUsedTime() {
-        return lastUsedTime;
+    /**
+     * @return Whether this connection is closed, i.e. {@link DatabaseConnectionV2#close()} is invoked on this instance.
+     */
+    boolean isClosed() {
+        return isClosed.getAcquire();
     }
 
-    synchronized boolean isInUse() {
-        return txInfo != null;
-    }
-
-    synchronized boolean isClosed() {
-        return isClosed;
-    }
-
+    /**
+     * {@inheritDoc}
+     *
+     * Closes the underlying connection managed by this instance.
+     *
+     * If a transaction is under way, the transaction will be rolled back before it is closed.
+     *
+     * @throws SQLException if a database access error has occurred.
+     */
     @Override
-    public synchronized void close() throws Exception {
+    public synchronized void close() throws SQLException {
+        LOGGER.trace("close()");
+        isClosed.lazySet(true);
+
         if (isInUse()) {
             rollback();
         }
         connection.close();
-        isClosed = true;
     }
 
     @Override

@@ -6,51 +6,30 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.sql.SQLException;
-import java.time.Instant;
-import java.util.*;
+import java.time.Duration;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.function.Predicate;
 
+import static comp4111.dal.DatabaseInfo.*;
+
+/**
+ * A connection pool for grouping connections into one SQL server.
+ *
+ * All SQL connection properties are read from {@code mysql.properties} in the resources directory.
+ */
 public class DatabaseConnectionPoolV2 implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseConnectionPoolV2.class);
 
     /**
-     * The URL to the MySQL database.
+     * The default timeout of a transaction.
      */
-    public static final String MYSQL_URL;
-    /**
-     * The username used to login.
-     */
-    public static final String MYSQL_LOGIN;
-    /**
-     * The password of the user.
-     */
-    public static final String MYSQL_PASSWORD;
-    /**
-     * The name of the database.
-     */
-    public static final String DB_NAME;
-
-    private static final long GC_CONNECTION_EVICT_TIME = 60_000;
-    private static final long GC_PERIOD = 30_000;
-
-    static {
-        final var classLoader = Thread.currentThread().getContextClassLoader();
-        final var mysqlProperties = new Properties();
-        try {
-            mysqlProperties.load(classLoader.getResourceAsStream("mysql.properties"));
-        } catch (IOException e) {
-            LOGGER.error("Cannot read from database properties", e);
-            System.exit(1);
-        }
-
-        MYSQL_URL = mysqlProperties.get("mysql.url").toString();
-        MYSQL_LOGIN = mysqlProperties.get("mysql.username").toString();
-        MYSQL_PASSWORD = mysqlProperties.get("mysql.password").toString();
-        DB_NAME = mysqlProperties.get("mysql.database").toString();
-    }
+    private static final Duration DEFAULT_TX_TIMEOUT = Duration.ofSeconds(90);
 
     private static DatabaseConnectionPoolV2 INSTANCE = null;
 
@@ -59,41 +38,26 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
     private final String password;
     private final String db;
 
-    private final Set<DatabaseConnectionV2> pool = new HashSet<>();
-    private final Timer gcPoolTimer = new Timer();
+    /**
+     * The default timeout the database waits when a database or row(s) is locked. If the value is {@code null}, the
+     * global default value of the database will be used.
+     */
+    @Nullable
+    private Duration defaultLockTimeout;
+    /**
+     * The default timeout of any transaction.
+     */
+    @NotNull
+    private Duration defaultTxTimeout = DEFAULT_TX_TIMEOUT;
 
-    {
-        gcPoolTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                final var now = Instant.now().toEpochMilli();
-                synchronized (pool) {
-                    final var initSize = pool.size();
+    /**
+     * The pool of connection instances.
+     */
+    private final Set<DatabaseConnectionV2> connectionPool = new HashSet<>();
 
-                    pool.stream()
-                            .filter(con -> {
-                                final var lastUsedTime = con.getLastUsedTime();
-                                return lastUsedTime != null && now - lastUsedTime.toEpochMilli() > GC_CONNECTION_EVICT_TIME;
-                            })
-                            .forEach(it -> {
-                                try {
-                                    it.close();
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                            });
-                    pool.removeIf(DatabaseConnectionV2::isClosed);
-
-                    final var finalSize = pool.size();
-
-                    if (finalSize != initSize) {
-                        LOGGER.info("Completed connection pool eviction: {} -> {} connections", initSize, finalSize);
-                    }
-                }
-            }
-        }, GC_PERIOD, GC_PERIOD);
-    }
-
+    /**
+     * @return The default instance of the connection pool.
+     */
     public synchronized static DatabaseConnectionPoolV2 getInstance() {
         if (INSTANCE == null) {
             INSTANCE = new DatabaseConnectionPoolV2(MYSQL_URL, DB_NAME, MYSQL_LOGIN, MYSQL_PASSWORD);
@@ -102,104 +66,352 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
         return INSTANCE;
     }
 
-    DatabaseConnectionPoolV2(@NotNull String url, @NotNull String database, @NotNull String username, @NotNull String password) {
+    /**
+     * Creates a connection pool with the given properties.
+     *
+     * @param url The URL to the MySQL server.
+     * @param database The database name.
+     * @param username The username to login.
+     * @param password The password of the username.
+     */
+    DatabaseConnectionPoolV2(
+            @NotNull String url,
+            @NotNull String database,
+            @NotNull String username,
+            @NotNull String password) {
         this.url = url;
         this.login = username;
         this.password = password;
         this.db = database;
     }
 
+    /**
+     * Creates a new connection to the database and adds it into the pool.
+     *
+     * @return A new connection to the database.
+     * @throws RuntimeException if a new connection cannot be created.
+     */
     @NotNull
     private DatabaseConnectionV2 newConnection() {
         try {
             final var connection = new DatabaseConnectionV2(url, db, login, password);
-            synchronized (pool) {
-                pool.add(connection);
+            synchronized (connectionPool) {
+                connectionPool.add(connection);
             }
             return connection;
         } catch (SQLException e) {
-            throw new RuntimeException("Cannot create new connection to pool", e);
+            throw new CompletionException(e);
         }
     }
 
+    /**
+     * Finds an existing connection, or creates a new connection if no existing connections are available.
+     *
+     * @return A free connection from the pool, either by reusing one or creating one.
+     */
     @NotNull
-    private synchronized DatabaseConnectionV2 findOrNewConnection() throws SQLException {
-        final DatabaseConnectionV2 connection;
-        synchronized (pool) {
-            if (pool.isEmpty()) {
-                connection = newConnection();
-            } else {
-                try {
-                    connection = pool.stream()
-                            .filter(con -> !con.isInUse())
-                            .findAny()
-                            .orElseGet(this::newConnection);
-                } catch (RuntimeException e) {
-                    if (e.getCause() instanceof SQLException) {
-                        throw (SQLException) e.getCause();
-                    } else {
-                        throw e;
-                    }
-                }
-            }
+    private DatabaseConnectionV2 findOrNewConnection() {
+        synchronized (connectionPool) {
+            return connectionPool.parallelStream()
+                    .filter(con -> !con.isInUse())
+                    .findAny()
+                    .orElseGet(this::newConnection);
         }
-        return connection;
     }
 
+    /**
+     * Finds a connection from the pool matching a predicate.
+     *
+     * @param predicate Predicate to filter the connections in the pool.
+     * @return A connection in the pool matching the given predicate, or {@code null} if none matches the predicate.
+     */
     @Nullable
     private DatabaseConnectionV2 findConnection(@NotNull Predicate<DatabaseConnectionV2> predicate) {
-        synchronized (pool) {
-            return pool.stream()
+        synchronized (connectionPool) {
+            return connectionPool.parallelStream()
                     .filter(predicate)
                     .findFirst()
                     .orElse(null);
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> T execStmt(@NotNull ConnectionFunction block) throws SQLException {
-        final var connection = findOrNewConnection();
-
-        return (T) connection.execStmt(block);
-    }
-
-    public long getIdForTransaction(int timeout) throws SQLException {
-        final var connection = findOrNewConnection();
-        return connection.getIdForTransaction(timeout);
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T> T putTransactionWithId(long id, @NotNull ConnectionFunction block) throws SQLException {
-        final var connection = findConnection(it -> it.isInUse() && it.getTransactionId() == id);
-
-        if (connection != null) {
-            return (T) block.accept(connection.getConnection());
-        } else {
-            return null;
-        }
-    }
-
-    public boolean executeTransaction(long id, boolean shouldCommit) throws SQLException {
-        final var connection = findConnection(it -> it.isInUse() && it.getTransactionId() == id);
-
-        if (connection != null) {
-            if (shouldCommit) {
-                return connection.commit();
-            } else {
-                connection.rollback();
+    /**
+     * Evicts a connection from the connection pool if it is closed.
+     *
+     * @param connection Connection to check.
+     */
+    private void evictConnectionIfClosed(@NotNull DatabaseConnectionV2 connection) {
+        if (connection.isClosed()) {
+            synchronized (connectionPool) {
+                connectionPool.remove(connection);
             }
         }
-        return false;
     }
 
+    private void runBlocking(@NotNull ForkJoinPool.ManagedBlocker block) {
+        try {
+            ForkJoinPool.managedBlock(block);
+        } catch (Exception e) {
+            throw new CompletionException(e.getCause());
+        }
+    }
+
+    /**
+     * Executes a block of SQL statements on the SQL server managed by this pool.
+     *
+     * After the block finishes execution, the result is committed into the database.
+     *
+     * @param block The block of SQL statements to execute.
+     * @param <R> The return type from the block.
+     * @return The return value of the block. May be {@code null}.
+     * @see DatabaseConnectionPoolV2#putTransactionWithId(long, ConnectionFunction)
+     */
+    @NotNull
+    public <R> CompletableFuture<R> execStmt(@NotNull ConnectionFunction<R> block) {
+        final var execBlock = new ForkJoinPool.ManagedBlocker() {
+
+            R object;
+
+            @Override
+            public boolean block() {
+                while (true) {
+                    final var connection = findOrNewConnection();
+
+                    if (!connection.isInUse()) {
+                        synchronized (connection) {
+                            if (!connection.isInUse()) {
+                                try {
+                                    final var result = connection.execStmt(block);
+                                    evictConnectionIfClosed(connection);
+                                    object = result;
+                                    break;
+                                } catch (SQLException e) {
+                                    throw new CompletionException(e);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return true;
+            }
+
+            @Override
+            public boolean isReleasable() {
+                return false;
+            }
+        };
+
+        return CompletableFuture.supplyAsync(() -> {
+            runBlocking(execBlock);
+            return execBlock.object;
+        });
+    }
+
+    /**
+     * Obtains an ID to queue transactions on the SQL server managed by this pool.
+     *
+     * Note that this timeout has no relation with the transaction timeout set by the database. In fact, the timeout is
+     * enforced by {@link DatabaseConnectionV2}, and therefore whether a transaction has timed out depends on both this
+     * value and the transaction timeout set in the SQL server.
+     *
+     * @return A long value representing the newly created transaction.
+     */
+    @NotNull
+    public CompletableFuture<Long> getIdForTransaction() {
+        final var execBlock = new ForkJoinPool.ManagedBlocker() {
+
+            long txId;
+
+            @Override
+            public boolean block() {
+                while (true) {
+                    final var connection = findOrNewConnection();
+
+                    if (!connection.isInUse()) {
+                        synchronized (connection) {
+                            if (!connection.isInUse()) {
+                                try {
+                                    txId = connection.getIdForTransaction(defaultTxTimeout, defaultLockTimeout);
+                                    break;
+                                } catch (SQLException e) {
+                                    throw new CompletionException(e);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return true;
+            }
+
+            @Override
+            public boolean isReleasable() {
+                return false;
+            }
+        };
+
+        return CompletableFuture.supplyAsync(() -> {
+            runBlocking(execBlock);
+            return execBlock.txId;
+        });
+    }
+
+    /**
+     * Executes a block of SQL statements on the SQL server with the given transaction ID.
+     *
+     * Note that calling this method does not commit the result. Instead,
+     * {@link DatabaseConnectionPoolV2#executeTransaction(long, boolean)} must be called to commit or rollback the
+     * transaction.
+     *
+     * @param id The ID of the transaction assigned by {@link DatabaseConnectionPoolV2#getIdForTransaction()}.
+     * @param block The block of SQL statements to execute in the transaction.
+     * @param <R> The return type from the block.
+     * @return The return value of the block. May be {@code null}.
+     * @see DatabaseConnectionPoolV2#execStmt(ConnectionFunction)
+     */
+    @NotNull
+    public <R> CompletableFuture<R> putTransactionWithId(long id, @NotNull ConnectionFunction<R> block) {
+        final var execBlock = new ForkJoinPool.ManagedBlocker() {
+
+            R object = null;
+
+            @Override
+            public boolean block() {
+                final var connection = findConnection(it -> it.getTransactionIdNoExcept() == id && it.isInUse());
+                if (connection != null) {
+                    synchronized (connection) {
+                        if (connection.isInUse()) {
+                            try {
+                                object = connection.execTransaction(block);
+                            } catch (SQLException e) {
+                                throw new CompletionException(e);
+                            }
+                        }
+                    }
+                }
+
+                return true;
+            }
+
+            @Override
+            public boolean isReleasable() {
+                return false;
+            }
+        };
+
+        return CompletableFuture.supplyAsync(() -> {
+            runBlocking(execBlock);
+            return execBlock.object;
+        });
+    }
+
+    /**
+     * Commits or rolls back a transaction on the SQL server.
+     *
+     * @param id The ID of the transaction assigned by {@link DatabaseConnectionPoolV2#getIdForTransaction()}.
+     * @param shouldCommit If {@code true}, commits the transaction. Otherwise, rolls back the transaction.
+     * @return {@code true} if the commit operation was successful. Failure to commit, rolling back, and no such
+     * connection will all return {@code false}.
+     */
+    @NotNull
+    public CompletableFuture<Boolean> executeTransaction(long id, boolean shouldCommit) {
+        final var execBlock = new ForkJoinPool.ManagedBlocker() {
+
+            boolean committed = false;
+
+            @Override
+            public boolean block() {
+                final var connection = findConnection(it -> it.getTransactionIdNoExcept() == id && it.isInUse());
+
+                if (connection != null) {
+                    synchronized (connection) {
+                        if (connection.isInUse()) {
+                            if (shouldCommit) {
+                                committed = connection.commit();
+                            } else {
+                                connection.rollback();
+                                committed = false;
+                            }
+
+                            evictConnectionIfClosed(connection);
+                        } else {
+                            committed = false;
+                        }
+                    }
+                } else {
+                    committed = false;
+                }
+
+                return true;
+            }
+
+            @Override
+            public boolean isReleasable() {
+                return false;
+            }
+        };
+
+        return CompletableFuture.supplyAsync(() -> {
+            runBlocking(execBlock);
+            return execBlock.committed;
+        });
+    }
+
+    /**
+     * Sets the default lock timeout for all transactions initiated by this pool.
+     *
+     * @param timeout New lock timeout.
+     */
+    public synchronized void setDefaultLockTimeout(@NotNull Duration timeout) {
+        this.defaultLockTimeout = timeout;
+    }
+
+    /**
+     * Resets the default lock timeout for all transactions initiated by this pool.
+     */
+    public synchronized void resetDefaultLockTimeout() {
+        this.defaultLockTimeout = null;
+    }
+
+    /**
+     * Sets the default transaction timeout for all transactions initiated by this pool.
+     *
+     * @param timeout New transaction timeout.
+     */
+    public synchronized void setDefaultTxTimeout(@NotNull Duration timeout) {
+        this.defaultTxTimeout = timeout;
+    }
+
+    /**
+     * Resets the default transaction timeout for all transactions initiated by this pool.
+     *
+     * The default value is {@link DatabaseConnectionPoolV2#DEFAULT_TX_TIMEOUT}.
+     */
+    public synchronized void resetDefaultTxTimeout() {
+        this.defaultTxTimeout = DEFAULT_TX_TIMEOUT;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Closes all connections managed by this connection pool, and clears the pool. The lock timeout and transaction
+     * timeout defaults will also be reverted to their original values.
+     */
     @Override
     public void close() {
-        pool.forEach(con -> {
-            try {
-                con.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+        synchronized (connectionPool) {
+            connectionPool.forEach(con -> {
+                try {
+                    con.close();
+                } catch (SQLException e) {
+                    LOGGER.error("Unable to close connection", e);
+                }
+            });
+            connectionPool.clear();
+        }
+
+        resetDefaultLockTimeout();
+        resetDefaultTxTimeout();
     }
 }
