@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * An DAL over {@link Connection} to enable support for connection reuse.
@@ -36,7 +37,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     static final long NULL_TRANSACTION_ID = -1;
 
     private final Connection connection;
-    private boolean isClosed = false;
+    private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
     /**
      * The default lock timeout as retrieved when the connection is first established to the database.
@@ -48,6 +49,9 @@ public class DatabaseConnectionV2 implements AutoCloseable {
      */
     @Nullable
     private TransactionInfo txInfo = null;
+
+    @NotNull
+    private final AtomicBoolean isInUse = new AtomicBoolean(false);
 
     /**
      * A POD class for storing transaction information.
@@ -403,6 +407,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
             throw new IllegalStateException("Attempted to bind a bound connection");
         }
 
+        isInUse.lazySet(true);
         txInfo = new TransactionInfo(timeout, isOneTime);
     }
 
@@ -418,6 +423,11 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         }
 
         txInfo = null;
+        isInUse.lazySet(false);
+    }
+
+    long getTransactionIdNoExcept() {
+        return isInUse.getAcquire() ? getTransactionId() : NULL_TRANSACTION_ID;
     }
 
     /**
@@ -435,15 +445,15 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     /**
      * @return Whether this connection is currently used by a transaction.
      */
-    synchronized boolean isInUse() {
-        return txInfo != null;
+    boolean isInUse() {
+        return isInUse.getAcquire();
     }
 
     /**
      * @return Whether this connection is closed, i.e. {@link DatabaseConnectionV2#close()} is invoked on this instance.
      */
-    synchronized boolean isClosed() {
-        return isClosed;
+    boolean isClosed() {
+        return isClosed.getAcquire();
     }
 
     /**
@@ -458,11 +468,12 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     @Override
     public synchronized void close() throws SQLException {
         LOGGER.trace("close()");
+        isClosed.lazySet(true);
+
         if (isInUse()) {
             rollback();
         }
         connection.close();
-        isClosed = true;
     }
 
     @Override
