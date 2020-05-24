@@ -46,15 +46,20 @@ The application is running when an output similar to the following is displayed 
 > :run
 ```
 
+You should wait for the message `Listening on port[...]` before starting your testing.
+
 ### Running Custom Applications
 
-This project contains several other applications which may be useful.
+This project contains several other applications which may be useful. You may run these via `./gradlew <name>`
 
 - `runFreshDb`: Same as `run`, but drops and recreates the database.
 - `runFreshTables`: Same as `run`, but drops and recreates all tables.
 - `runDbInit`: Only recreate the database.
 - `runTablesInit`: Only recreate the tables.
 - `runDbDrop`: Only drop the database.
+
+It is recommended to always run `runFreshDb` or `runFreshTables` to ensure that the database and/or tables are correctly
+created, and that no additional data are present to mess up the test cases.
 
 ### Running Unit Tests
 
@@ -63,6 +68,8 @@ Unit tests can be run using the following command:
 ```sh
 ./gradlew test
 ```
+
+Note that unit tests **WILL** recreate the database on every invocation. There is currently no way to change this.
 
 ### Running Infer
 
