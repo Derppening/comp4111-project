@@ -19,7 +19,7 @@ Note that this process may take a while.
 To enter the container environment:
 
 ```sh
-docker-compose attach infer
+docker attach infer
 ```
 
 When attaching to a container, files in the current project root will be copied into the container. This is to avoid 
