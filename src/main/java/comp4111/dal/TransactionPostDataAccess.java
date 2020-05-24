@@ -11,7 +11,7 @@ public class TransactionPostDataAccess {
 
     public static Long startNewTransaction() {
         try {
-            return DatabaseConnectionPoolV2.getInstance().getIdForTransaction().get();
+            return DatabaseConnectionPoolV2.getInstance().getIdForTransaction();
         } catch (Exception e) {
             LOGGER.error("Error starting a new transaction", e);
             return 0L;
@@ -20,14 +20,8 @@ public class TransactionPostDataAccess {
 
     public static boolean commitOrCancelTransaction(Long transaction, @NotNull TransactionPostRequest.Operation operation) {
         final var shouldCommit = operation == TransactionPostRequest.Operation.COMMIT;
-        try {
-            return DatabaseConnectionPoolV2.getInstance()
-                    .executeTransaction(transaction, operation == TransactionPostRequest.Operation.COMMIT)
-                    .thenApply(it -> it == shouldCommit)
-                    .get();
-        } catch (Exception e) {
-            LOGGER.error("Error completing transaction", e);
-            return false;
-        }
+        final var result = DatabaseConnectionPoolV2.getInstance().executeTransaction(transaction, shouldCommit);
+
+        return result == shouldCommit;
     }
 }

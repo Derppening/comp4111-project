@@ -11,8 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
+import java.util.Objects;
 
 public class BooksPutDataAccess extends Book {
 
@@ -27,42 +26,33 @@ public class BooksPutDataAccess extends Book {
      * @return {@code 0} for 200 response, {@code 1} for 400 response, {@code 2} for 404 response.
      */
     public static int updateBook(@Nullable Connection con, long id, boolean available) {
-        final ConnectionFunction<Integer> block = connection -> getBook(connection, id, InnoDBLockMode.UPDATE)
-                .thenApply(book -> {
-                    if (book == null) {
-                        return 2;
-                    } else if (book.isAvailable() == available) {
-                        return 1;
-                    } else {
-                        try (var stmt = connection.prepareStatement("UPDATE Book SET available = ? WHERE id = ?")) {
-                            stmt.setBoolean(1, available);
-                            stmt.setLong(2, id);
-                            return stmt.executeUpdate() > 0 ? 0 : 1;
-                        } catch (SQLException e) {
-                            throw new CompletionException(e);
-                        }
-                    }
-                })
-                .join();
+        final ConnectionFunction<Integer> block = connection -> {
+            final var book = getBook(connection, id, InnoDBLockMode.UPDATE);
+            if (book == null) {
+                return 2;
+            } else if (book.isAvailable() == available) {
+                return 1;
+            } else {
+                try (var stmt = connection.prepareStatement("UPDATE Book SET available = ? WHERE id = ?")) {
+                    stmt.setBoolean(1, available);
+                    stmt.setLong(2, id);
+                    return stmt.executeUpdate() > 0 ? 0 : 1;
+                }
+            }
+        };
 
-        CompletableFuture<Integer> result;
+        Integer result;
         try {
             if (con != null) {
-                result = CompletableFuture.supplyAsync(() -> {
-                    try {
-                        return block.apply(con);
-                    } catch (SQLException e) {
-                        throw new CompletionException(e);
-                    }
-                });
+                result = block.apply(con);
             } else {
                 result = DatabaseConnectionPoolV2.getInstance().execStmt(block);
             }
-            return result.get();
-        } catch (Exception e) {
+        } catch (SQLException e) {
             LOGGER.error("Caught error while updating book status", e);
-            return 1;
+            result = 1;
         }
+        return Objects.requireNonNull(result);
     }
 
     /**
@@ -74,17 +64,15 @@ public class BooksPutDataAccess extends Book {
      * @param lockMode The lock mode when executing the query.
      * @return The book obtained from the query.
      */
-    @NotNull
-    public static CompletableFuture<Book> getBook(
-            @Nullable Connection con,
-            long id,
-            @NotNull InnoDBLockMode lockMode) {
+    @Nullable
+    public static Book getBook(@Nullable Connection con, long id, @NotNull InnoDBLockMode lockMode) throws SQLException {
         final var ext = String.format("where id = ? %s", lockMode.asSQLQueryComponent()).trim();
 
         final var params = new ArrayList<>();
         params.add(id);
         final var bookInDb = QueryUtils.queryTable(con, "Book", ext, params, Book::toBook);
 
-        return bookInDb.thenApply(book -> book.isEmpty() ? null : book.get(0));
+        assert bookInDb.isEmpty() || bookInDb.size() == 1;
+        return bookInDb.isEmpty() ? null : bookInDb.get(0);
     }
 }

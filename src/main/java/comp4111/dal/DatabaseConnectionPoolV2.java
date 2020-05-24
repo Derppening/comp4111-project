@@ -10,7 +10,6 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Predicate;
 
@@ -99,7 +98,7 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
             }
             return connection;
         } catch (SQLException e) {
-            throw new CompletionException(e);
+            throw new RuntimeException("Cannot create new connection to pool", e);
         }
     }
 
@@ -107,15 +106,30 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * Finds an existing connection, or creates a new connection if no existing connections are available.
      *
      * @return A free connection from the pool, either by reusing one or creating one.
+     * @throws SQLException if a database operation fails.
      */
     @NotNull
-    private DatabaseConnectionV2 findOrNewConnection() {
+    private DatabaseConnectionV2 findOrNewConnection() throws SQLException {
+        final DatabaseConnectionV2 connection;
         synchronized (connectionPool) {
-            return connectionPool.stream()
-                    .filter(con -> !con.isInUse())
-                    .findAny()
-                    .orElseGet(this::newConnection);
+            if (connectionPool.isEmpty()) {
+                connection = newConnection();
+            } else {
+                try {
+                    connection = connectionPool.stream()
+                            .filter(con -> !con.isInUse())
+                            .findAny()
+                            .orElseGet(this::newConnection);
+                } catch (RuntimeException e) {
+                    if (e.getCause() instanceof SQLException) {
+                        throw (SQLException) e.getCause();
+                    } else {
+                        throw e;
+                    }
+                }
+            }
         }
+        return connection;
     }
 
     /**
@@ -155,25 +169,24 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @param block The block of SQL statements to execute.
      * @param <R> The return type from the block.
      * @return The return value of the block. May be {@code null}.
+     * @throws SQLException if the database operation fails.
      * @see DatabaseConnectionPoolV2#putTransactionWithId(long, ConnectionFunction)
      */
-    @NotNull
-    public <R> CompletableFuture<R> execStmt(@NotNull ConnectionFunction<R> block) {
-        return CompletableFuture.supplyAsync(() -> {
-            while (true) {
-                final var connection = findOrNewConnection();
+    @Nullable
+    public <R> R execStmt(@NotNull ConnectionFunction<R> block) throws SQLException {
+        while (true) {
+            final var connection = findOrNewConnection();
 
-                if (!connection.isInUse()) {
-                    try {
-                        final var result = connection.execStmt(block);
-                        evictConnectionIfClosed(connection);
-                        return result;
-                    } catch (SQLException e) {
-                        throw new CompletionException(e);
-                    }
+            if (!connection.isInUse()) {
+                try {
+                    final var result = connection.execStmt(block);
+                    evictConnectionIfClosed(connection);
+                    return result;
+                } catch (SQLException e) {
+                    throw new CompletionException(e);
                 }
             }
-        });
+        }
     }
 
     /**
@@ -184,22 +197,20 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * value and the transaction timeout set in the SQL server.
      *
      * @return A long value representing the newly created transaction.
+     * @throws SQLException if the database operation fails.
      */
-    @NotNull
-    public CompletableFuture<Long> getIdForTransaction() {
-        return CompletableFuture.supplyAsync(() -> {
-            while (true) {
-                final var connection = findOrNewConnection();
+    public long getIdForTransaction() throws SQLException {
+        while (true) {
+            final var connection = findOrNewConnection();
 
-                if (!connection.isInUse()) {
-                    try {
-                        return connection.getIdForTransaction(defaultTxTimeout, defaultLockTimeout);
-                    } catch (SQLException e) {
-                        throw new CompletionException(e);
-                    }
+            if (!connection.isInUse()) {
+                try {
+                    return connection.getIdForTransaction(defaultTxTimeout, defaultLockTimeout);
+                } catch (SQLException e) {
+                    throw new CompletionException(e);
                 }
             }
-        });
+        }
     }
 
     /**
@@ -213,22 +224,18 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @param block The block of SQL statements to execute in the transaction.
      * @param <R> The return type from the block.
      * @return The return value of the block. May be {@code null}.
+     * @throws SQLException if the database operation fails.
      * @see DatabaseConnectionPoolV2#execStmt(ConnectionFunction)
      */
-    @NotNull
-    public <R> CompletableFuture<R> putTransactionWithId(long id, @NotNull ConnectionFunction<R> block) {
-        return CompletableFuture.supplyAsync(() -> {
-            final var connection = findConnection(it -> it.isInUse() && it.getTransactionId() == id);
-            if (connection != null && connection.isInUse()) {
-                try {
-                    return connection.execTransaction(block);
-                } catch (SQLException e) {
-                    throw new CompletionException(e);
-                }
-            } else {
-                return null;
-            }
-        });
+    @Nullable
+    public <R> R putTransactionWithId(long id, @NotNull ConnectionFunction<R> block) throws SQLException {
+        final var connection = findConnection(it -> it.isInUse() && it.getTransactionId() == id);
+
+        if (connection != null && connection.isInUse()) {
+            return connection.execTransaction(block);
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -239,26 +246,23 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @return {@code true} if the commit operation was successful. Failure to commit, rolling back, and no such
      * connection will all return {@code false}.
      */
-    @NotNull
-    public CompletableFuture<Boolean> executeTransaction(long id, boolean shouldCommit) {
-        return CompletableFuture.supplyAsync(() -> {
-            final var connection = findConnection(it -> it.isInUse() && it.getTransactionId() == id);
+    public boolean executeTransaction(long id, boolean shouldCommit) {
+        final var connection = findConnection(it -> it.isInUse() && it.getTransactionId() == id);
 
-            final boolean committed;
-            if (connection != null && connection.isInUse()) {
-                if (shouldCommit) {
-                    committed = connection.commit();
-                } else {
-                    connection.rollback();
-                    committed = false;
-                }
-
-                evictConnectionIfClosed(connection);
+        final boolean committed;
+        if (connection != null && connection.isInUse()) {
+            if (shouldCommit) {
+                committed = connection.commit();
             } else {
+                connection.rollback();
                 committed = false;
             }
-            return committed;
-        });
+
+            evictConnectionIfClosed(connection);
+        } else {
+            committed = false;
+        }
+        return committed;
     }
 
     /**

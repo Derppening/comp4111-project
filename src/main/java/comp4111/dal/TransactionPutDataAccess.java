@@ -5,6 +5,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.SQLException;
+
 public class TransactionPutDataAccess {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionPostDataAccess.class);
@@ -29,10 +31,10 @@ public class TransactionPutDataAccess {
                 }
 
                 return transactionPutResult;
-            }).get();
+            });
 
             return res != null ? res : 1;
-        } catch (Exception e) {
+        } catch (SQLException e) {
             LOGGER.error("Error starting a new transaction", e);
             return 1;
         }
