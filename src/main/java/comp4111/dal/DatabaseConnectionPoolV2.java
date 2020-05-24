@@ -91,18 +91,16 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @throws RuntimeException if a new connection cannot be created.
      */
     @NotNull
-    private CompletableFuture<DatabaseConnectionV2> newConnection() {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                final var connection = new DatabaseConnectionV2(url, db, login, password);
-                synchronized (connectionPool) {
-                    connectionPool.add(connection);
-                }
-                return connection;
-            } catch (SQLException e) {
-                throw new CompletionException(e);
+    private DatabaseConnectionV2 newConnection() {
+        try {
+            final var connection = new DatabaseConnectionV2(url, db, login, password);
+            synchronized (connectionPool) {
+                connectionPool.add(connection);
             }
-        });
+            return connection;
+        } catch (SQLException e) {
+            throw new CompletionException(e);
+        }
     }
 
     /**
@@ -111,12 +109,11 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @return A free connection from the pool, either by reusing one or creating one.
      */
     @NotNull
-    private CompletableFuture<DatabaseConnectionV2> findOrNewConnection() {
+    private DatabaseConnectionV2 findOrNewConnection() {
         synchronized (connectionPool) {
             return connectionPool.stream()
                     .filter(con -> !con.isInUse())
                     .findAny()
-                    .map(CompletableFuture::completedFuture)
                     .orElseGet(this::newConnection);
         }
     }
@@ -127,13 +124,13 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @param predicate Predicate to filter the connections in the pool.
      * @return A connection in the pool matching the given predicate, or {@code null} if none matches the predicate.
      */
-    @NotNull
-    private CompletableFuture<@Nullable DatabaseConnectionV2> findConnection(@NotNull Predicate<DatabaseConnectionV2> predicate) {
+    @Nullable
+    private DatabaseConnectionV2 findConnection(@NotNull Predicate<DatabaseConnectionV2> predicate) {
         synchronized (connectionPool) {
-            return CompletableFuture.supplyAsync(() -> connectionPool.stream()
+            return connectionPool.stream()
                     .filter(predicate)
                     .findFirst()
-                    .orElse(null));
+                    .orElse(null);
         }
     }
 
@@ -162,8 +159,11 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      */
     @NotNull
     public <R> CompletableFuture<R> execStmt(@NotNull ConnectionFunction<R> block) {
-        return findOrNewConnection()
-                .thenApplyAsync(connection -> {
+        return CompletableFuture.supplyAsync(() -> {
+            while (true) {
+                final var connection = findOrNewConnection();
+
+                if (!connection.isInUse()) {
                     try {
                         final var result = connection.execStmt(block);
                         evictConnectionIfClosed(connection);
@@ -171,7 +171,9 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
                     } catch (SQLException e) {
                         throw new CompletionException(e);
                     }
-                });
+                }
+            }
+        });
     }
 
     /**
@@ -185,14 +187,19 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      */
     @NotNull
     public CompletableFuture<Long> getIdForTransaction() {
-        return findOrNewConnection()
-                .thenApplyAsync(connection -> {
+        return CompletableFuture.supplyAsync(() -> {
+            while (true) {
+                final var connection = findOrNewConnection();
+
+                if (!connection.isInUse()) {
                     try {
                         return connection.getIdForTransaction(defaultTxTimeout, defaultLockTimeout);
                     } catch (SQLException e) {
                         throw new CompletionException(e);
                     }
-                });
+                }
+            }
+        });
     }
 
     /**
@@ -210,18 +217,18 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      */
     @NotNull
     public <R> CompletableFuture<R> putTransactionWithId(long id, @NotNull ConnectionFunction<R> block) {
-        return findConnection(it -> it.isInUse() && it.getTransactionId() == id)
-                .thenApplyAsync(connection -> {
-                    if (connection != null) {
-                        try {
-                            return connection.execTransaction(block);
-                        } catch (SQLException e) {
-                            throw new CompletionException(e);
-                        }
-                    } else {
-                        return null;
-                    }
-                });
+        return CompletableFuture.supplyAsync(() -> {
+            final var connection = findConnection(it -> it.isInUse() && it.getTransactionId() == id);
+            if (connection != null && connection.isInUse()) {
+                try {
+                    return connection.execTransaction(block);
+                } catch (SQLException e) {
+                    throw new CompletionException(e);
+                }
+            } else {
+                return null;
+            }
+        });
     }
 
     /**
@@ -234,23 +241,24 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      */
     @NotNull
     public CompletableFuture<Boolean> executeTransaction(long id, boolean shouldCommit) {
-        return findConnection(it -> it.isInUse() && it.getTransactionId() == id)
-                .thenApplyAsync(connection -> {
-                    final boolean committed;
-                    if (connection != null) {
-                        if (shouldCommit) {
-                            committed = connection.commit();
-                        } else {
-                            connection.rollback();
-                            committed = false;
-                        }
+        return CompletableFuture.supplyAsync(() -> {
+            final var connection = findConnection(it -> it.isInUse() && it.getTransactionId() == id);
 
-                        evictConnectionIfClosed(connection);
-                    } else {
-                        committed = false;
-                    }
-                    return committed;
-                });
+            final boolean committed;
+            if (connection != null && connection.isInUse()) {
+                if (shouldCommit) {
+                    committed = connection.commit();
+                } else {
+                    connection.rollback();
+                    committed = false;
+                }
+
+                evictConnectionIfClosed(connection);
+            } else {
+                committed = false;
+            }
+            return committed;
+        });
     }
 
     /**
