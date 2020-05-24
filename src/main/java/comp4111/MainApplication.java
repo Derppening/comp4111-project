@@ -35,6 +35,7 @@ public class MainApplication {
     ).stream().collect(Collectors.toUnmodifiableMap(HttpAsyncPathHandler::getHandlePattern, Function.identity()));
 
     public static void main(String[] args) {
+        boolean recreateTables = Arrays.asList(args).contains("--recreate-tables");
         boolean recreateDb = Arrays.asList(args).contains("--recreate-db");
 
         final var config = IOReactorConfig.custom()
@@ -59,7 +60,12 @@ public class MainApplication {
 
         try {
             // Set up the database connection.
-            DatabaseUtils.setupSchemas(recreateDb);
+            if (recreateDb) {
+                DatabaseUtils.createDatabaseSchema(true);
+            }
+            if (recreateDb || recreateTables) {
+                DatabaseUtils.createTableSchemas(true);
+            }
             DatabaseUtils.createDefaultUsers();
 
             DatabaseConnectionPoolV2.getInstance().setDefaultLockTimeout(Duration.ofSeconds(3));
