@@ -2,6 +2,18 @@
 
 [Link to project description](https://course.cse.ust.hk/comp4111/project.html)
 
+## Contribution Declaration
+
+|               | TANG, Au Wa                           | MAK, Ching Hang               |
+| ------------- | ------------------------------------- | ----------------------------- |
+| Share of Work | 40%                                   | 60%                           |
+| Best Five     | `*DataAccess`                         | `DatabaseConnectionPoolV2`    |
+|               | `DatabaseConnection(Pool)` (not V2)   | `DatabaseConnectionV2`        |
+|               | `SecurityUtils`                       | `TokenManager`                |
+|               | `QueryUtils`                          | `HttpPathHandler`             |
+|               | `AsyncServerRequestHandler`           | `HttpEndpointHandler`         |
+
+
 ## Prerequisites
 
 - JDK 11
