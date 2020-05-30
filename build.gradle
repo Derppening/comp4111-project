@@ -86,16 +86,29 @@ wrapper {
     distributionType = Wrapper.DistributionType.ALL
 }
 
-task('runFresh', type: JavaExec) {
+task('runFreshDb', type: JavaExec) {
     dependsOn('classes')
     main = "comp4111.MainApplication"
     args = ["--recreate-db"]
     classpath += sourceSets.main.runtimeClasspath
 }
 
+task('runFreshTables', type: JavaExec) {
+    dependsOn('classes')
+    main = "comp4111.MainApplication"
+    args = ["--recreate-tables"]
+    classpath += sourceSets.main.runtimeClasspath
+}
+
 task('runDbInit', type: JavaExec) {
     dependsOn('classes')
     main = "comp4111.DatabaseCreateUtilApplication"
+    classpath += sourceSets.main.runtimeClasspath
+}
+
+task('runTablesInit', type: JavaExec) {
+    dependsOn('classes')
+    main = "comp4111.DatabaseTablesCreateApplication"
     classpath += sourceSets.main.runtimeClasspath
 }
 

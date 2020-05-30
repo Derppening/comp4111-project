@@ -1,20 +1,21 @@
 package comp4111.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import comp4111.exception.HttpHandlingException;
 import comp4111.handler.impl.TransactionPostHandlerImpl;
 import comp4111.model.TransactionPostRequest;
-import comp4111.util.HttpUtils;
 import comp4111.util.JacksonUtils;
-import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.nio.AsyncResponseProducer;
-import org.apache.hc.core5.http.nio.support.AsyncResponseBuilder;
-import org.apache.hc.core5.http.protocol.HttpContext;
+import org.apache.hc.core5.http.HttpRequest;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.Message;
+import org.apache.hc.core5.http.Method;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
-public abstract class TransactionPostHandler extends HttpAsyncEndpointHandler {
+public abstract class TransactionPostHandler extends HttpAsyncEndpointHandler<TransactionPostRequest> {
 
     private static final HttpEndpoint HANDLER_DEFINITION = new HttpEndpoint() {
         @Override
@@ -44,33 +45,33 @@ public abstract class TransactionPostHandler extends HttpAsyncEndpointHandler {
     }
 
     @Override
-    public void handle(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger, HttpContext context)
-            throws HttpException, IOException {
-        checkMethod(requestObject, responseTrigger, context);
+    protected CompletableFuture<TransactionPostRequest> handleAsync(Message<HttpRequest, String> requestObject) {
+        return CompletableFuture.completedFuture(requestObject)
+                .thenApplyAsync(this::checkMethodAsync)
+                .thenApplyAsync(this::checkTokenAsync)
+                .thenApplyAsync(request -> {
+                    if (request.getBody() == null || request.getBody().isEmpty()) {
+                        LOGGER.info("POST /transaction");
+                        return null;
+                    } else {
+                        final var payload = HttpAsyncEndpointHandler.getPayloadAsync(request);
+                        try {
+                            txRequest = objectMapper.readValue(payload, TransactionPostRequest.class);
+                        } catch (Exception e) {
+                            throw new CompletionException(new HttpHandlingException(HttpStatus.SC_BAD_REQUEST, e));
+                        }
 
-        final var queryParams = HttpUtils.parseQueryParams(requestObject.getHead().getPath(), responseTrigger, context);
-        final var token = checkToken(queryParams, responseTrigger, context);
+                        LOGGER.info("POST /transaction transaction=\"{}\" operation={}",
+                                txRequest.getTransaction(),
+                                txRequest.getOperation());
 
-        if (requestObject.getBody() == null || requestObject.getBody().isEmpty()) {
-            LOGGER.info("POST /transaction token=\"{}\"", token);
-        } else {
-            final String payload = requestObject.getBody();
-
-            try {
-                txRequest = objectMapper.readValue(payload, TransactionPostRequest.class);
-            } catch (Exception e) {
-                final AsyncResponseProducer response = AsyncResponseBuilder.create(HttpStatus.SC_BAD_REQUEST)
-                        .setEntity(e.getLocalizedMessage(), ContentType.TEXT_PLAIN).build();
-                responseTrigger.submitResponse(response, context);
-                throw new IllegalArgumentException(e);
-            }
-
-            LOGGER.info("POST /transaction token=\"{}\" transaction=\"{}\" operation={}", token, txRequest.getTransaction(), txRequest.getOperation());
-        }
+                        return txRequest;
+                    }
+                });
     }
 
     @Nullable
-    protected TransactionPostRequest getTxRequest() {
+    TransactionPostRequest getTxRequest() {
         return txRequest;
     }
 }

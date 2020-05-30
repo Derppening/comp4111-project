@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.function.Predicate;
 
 import static comp4111.dal.DatabaseInfo.*;
@@ -91,18 +92,16 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @throws RuntimeException if a new connection cannot be created.
      */
     @NotNull
-    private CompletableFuture<DatabaseConnectionV2> newConnection() {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                final var connection = new DatabaseConnectionV2(url, db, login, password);
-                synchronized (connectionPool) {
-                    connectionPool.add(connection);
-                }
-                return connection;
-            } catch (SQLException e) {
-                throw new CompletionException(e);
+    private DatabaseConnectionV2 newConnection() {
+        try {
+            final var connection = new DatabaseConnectionV2(url, db, login, password);
+            synchronized (connectionPool) {
+                connectionPool.add(connection);
             }
-        });
+            return connection;
+        } catch (SQLException e) {
+            throw new CompletionException(e);
+        }
     }
 
     /**
@@ -111,12 +110,11 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @return A free connection from the pool, either by reusing one or creating one.
      */
     @NotNull
-    private CompletableFuture<DatabaseConnectionV2> findOrNewConnection() {
+    private DatabaseConnectionV2 findOrNewConnection() {
         synchronized (connectionPool) {
-            return connectionPool.stream()
+            return connectionPool.parallelStream()
                     .filter(con -> !con.isInUse())
                     .findAny()
-                    .map(CompletableFuture::completedFuture)
                     .orElseGet(this::newConnection);
         }
     }
@@ -127,13 +125,13 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @param predicate Predicate to filter the connections in the pool.
      * @return A connection in the pool matching the given predicate, or {@code null} if none matches the predicate.
      */
-    @NotNull
-    private CompletableFuture<@Nullable DatabaseConnectionV2> findConnection(@NotNull Predicate<DatabaseConnectionV2> predicate) {
+    @Nullable
+    private DatabaseConnectionV2 findConnection(@NotNull Predicate<DatabaseConnectionV2> predicate) {
         synchronized (connectionPool) {
-            return CompletableFuture.supplyAsync(() -> connectionPool.stream()
+            return connectionPool.parallelStream()
                     .filter(predicate)
                     .findFirst()
-                    .orElse(null));
+                    .orElse(null);
         }
     }
 
@@ -143,10 +141,18 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      * @param connection Connection to check.
      */
     private void evictConnectionIfClosed(@NotNull DatabaseConnectionV2 connection) {
-        synchronized (connectionPool) {
-            if (connection.isClosed()) {
+        if (connection.isClosed()) {
+            synchronized (connectionPool) {
                 connectionPool.remove(connection);
             }
+        }
+    }
+
+    private void runBlocking(@NotNull ForkJoinPool.ManagedBlocker block) {
+        try {
+            ForkJoinPool.managedBlock(block);
+        } catch (Exception e) {
+            throw new CompletionException(e.getCause());
         }
     }
 
@@ -162,16 +168,44 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      */
     @NotNull
     public <R> CompletableFuture<R> execStmt(@NotNull ConnectionFunction<R> block) {
-        return findOrNewConnection()
-                .thenApplyAsync(connection -> {
-                    try {
-                        final var result = connection.execStmt(block);
-                        evictConnectionIfClosed(connection);
-                        return result;
-                    } catch (SQLException e) {
-                        throw new CompletionException(e);
+        final var execBlock = new ForkJoinPool.ManagedBlocker() {
+
+            R object;
+
+            @Override
+            public boolean block() {
+                while (true) {
+                    final var connection = findOrNewConnection();
+
+                    if (!connection.isInUse()) {
+                        synchronized (connection) {
+                            if (!connection.isInUse()) {
+                                try {
+                                    final var result = connection.execStmt(block);
+                                    evictConnectionIfClosed(connection);
+                                    object = result;
+                                    break;
+                                } catch (SQLException e) {
+                                    throw new CompletionException(e);
+                                }
+                            }
+                        }
                     }
-                });
+                }
+
+                return true;
+            }
+
+            @Override
+            public boolean isReleasable() {
+                return false;
+            }
+        };
+
+        return CompletableFuture.supplyAsync(() -> {
+            runBlocking(execBlock);
+            return execBlock.object;
+        });
     }
 
     /**
@@ -185,14 +219,42 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      */
     @NotNull
     public CompletableFuture<Long> getIdForTransaction() {
-        return findOrNewConnection()
-                .thenApplyAsync(connection -> {
-                    try {
-                        return connection.getIdForTransaction(defaultTxTimeout, defaultLockTimeout);
-                    } catch (SQLException e) {
-                        throw new CompletionException(e);
+        final var execBlock = new ForkJoinPool.ManagedBlocker() {
+
+            long txId;
+
+            @Override
+            public boolean block() {
+                while (true) {
+                    final var connection = findOrNewConnection();
+
+                    if (!connection.isInUse()) {
+                        synchronized (connection) {
+                            if (!connection.isInUse()) {
+                                try {
+                                    txId = connection.getIdForTransaction(defaultTxTimeout, defaultLockTimeout);
+                                    break;
+                                } catch (SQLException e) {
+                                    throw new CompletionException(e);
+                                }
+                            }
+                        }
                     }
-                });
+                }
+
+                return true;
+            }
+
+            @Override
+            public boolean isReleasable() {
+                return false;
+            }
+        };
+
+        return CompletableFuture.supplyAsync(() -> {
+            runBlocking(execBlock);
+            return execBlock.txId;
+        });
     }
 
     /**
@@ -210,18 +272,38 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      */
     @NotNull
     public <R> CompletableFuture<R> putTransactionWithId(long id, @NotNull ConnectionFunction<R> block) {
-        return findConnection(it -> it.isInUse() && it.getTransactionId() == id)
-                .thenApplyAsync(connection -> {
-                    if (connection != null) {
-                        try {
-                            return connection.execTransaction(block);
-                        } catch (SQLException e) {
-                            throw new CompletionException(e);
+        final var execBlock = new ForkJoinPool.ManagedBlocker() {
+
+            R object = null;
+
+            @Override
+            public boolean block() {
+                final var connection = findConnection(it -> it.getTransactionIdNoExcept() == id && it.isInUse());
+                if (connection != null) {
+                    synchronized (connection) {
+                        if (connection.isInUse()) {
+                            try {
+                                object = connection.execTransaction(block);
+                            } catch (SQLException e) {
+                                throw new CompletionException(e);
+                            }
                         }
-                    } else {
-                        return null;
                     }
-                });
+                }
+
+                return true;
+            }
+
+            @Override
+            public boolean isReleasable() {
+                return false;
+            }
+        };
+
+        return CompletableFuture.supplyAsync(() -> {
+            runBlocking(execBlock);
+            return execBlock.object;
+        });
     }
 
     /**
@@ -234,23 +316,46 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
      */
     @NotNull
     public CompletableFuture<Boolean> executeTransaction(long id, boolean shouldCommit) {
-        return findConnection(it -> it.isInUse() && it.getTransactionId() == id)
-                .thenApplyAsync(connection -> {
-                    final boolean committed;
-                    if (connection != null) {
-                        if (shouldCommit) {
-                            committed = connection.commit();
+        final var execBlock = new ForkJoinPool.ManagedBlocker() {
+
+            boolean committed = false;
+
+            @Override
+            public boolean block() {
+                final var connection = findConnection(it -> it.getTransactionIdNoExcept() == id && it.isInUse());
+
+                if (connection != null) {
+                    synchronized (connection) {
+                        if (connection.isInUse()) {
+                            if (shouldCommit) {
+                                committed = connection.commit();
+                            } else {
+                                connection.rollback();
+                                committed = false;
+                            }
+
+                            evictConnectionIfClosed(connection);
                         } else {
-                            connection.rollback();
                             committed = false;
                         }
-
-                        evictConnectionIfClosed(connection);
-                    } else {
-                        committed = false;
                     }
-                    return committed;
-                });
+                } else {
+                    committed = false;
+                }
+
+                return true;
+            }
+
+            @Override
+            public boolean isReleasable() {
+                return false;
+            }
+        };
+
+        return CompletableFuture.supplyAsync(() -> {
+            runBlocking(execBlock);
+            return execBlock.committed;
+        });
     }
 
     /**
@@ -300,7 +405,7 @@ public class DatabaseConnectionPoolV2 implements AutoCloseable {
                 try {
                     con.close();
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    LOGGER.error("Unable to close connection", e);
                 }
             });
             connectionPool.clear();

@@ -38,7 +38,7 @@ public abstract class HttpAsyncPathHandler implements AsyncServerRequestHandler<
      * @implSpec This method should return the same value every invocation.
      */
     @Nullable
-    protected abstract Map<Method, Supplier<HttpAsyncEndpointHandler>> getMethodLut();
+    protected abstract Map<Method, Supplier<HttpAsyncEndpointHandler<?>>> getMethodLut();
 
     /**
      * @return The handler definition, which may be any object which inherits from {@link HttpPath}.
@@ -76,10 +76,10 @@ public abstract class HttpAsyncPathHandler implements AsyncServerRequestHandler<
      * @param lut Lookup table for matching a {@link Method} to its corresponding {@link HttpAsyncEndpointHandler} creator.
      */
     private static void dispatchByMethod(Message<HttpRequest, String> requestObject, ResponseTrigger responseTrigger,
-                                         HttpContext context, Map<Method, Supplier<HttpAsyncEndpointHandler>> lut) throws HttpException, IOException {
+                                         HttpContext context, Map<Method, Supplier<HttpAsyncEndpointHandler<?>>> lut) throws HttpException, IOException {
         final AsyncResponseProducer response;
         final Method method = HttpUtils.toMethodOrNull(requestObject.getHead().getMethod());
-        Supplier<HttpAsyncEndpointHandler> handler = null;
+        Supplier<? extends HttpAsyncEndpointHandler<?>> handler = null;
 
         if (method != null) {
             handler = lut.get(method);

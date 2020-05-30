@@ -16,7 +16,7 @@ public class WildcardHandlerImpl extends WildcardHandler {
 
     @Override
     @Nullable
-    protected Map<Method, Supplier<HttpAsyncEndpointHandler>> getMethodLut() {
+    protected Map<Method, Supplier<HttpAsyncEndpointHandler<?>>> getMethodLut() {
         return null;
     }
 

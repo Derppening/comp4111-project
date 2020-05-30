@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * An DAL over {@link Connection} to enable support for connection reuse.
@@ -35,7 +36,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     static final long NULL_TRANSACTION_ID = -1;
 
     private final Connection connection;
-    private boolean isClosed = false;
+    private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
     /**
      * The default lock timeout as retrieved when the connection is first established to the database.
@@ -47,6 +48,12 @@ public class DatabaseConnectionV2 implements AutoCloseable {
      */
     @Nullable
     private TransactionInfo txInfo = null;
+
+    @NotNull
+    private final Object txInfoMonitor = new Object();
+
+    @NotNull
+    private final AtomicBoolean isInUse = new AtomicBoolean(false);
 
     /**
      * A POD class for storing transaction information.
@@ -157,10 +164,15 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     public synchronized <R> R execStmt(@NotNull ConnectionFunction<R> block) throws SQLException {
         LOGGER.trace("execStmt(block=...)");
 
-        getIdForTransaction(Duration.ZERO, true);
-        final var obj = execTransaction(block);
-        commit();
-        return obj;
+        try {
+            DatabaseUtils.setLockTimeout(connection, defaultLockTimeout);
+            getIdForTransaction(Duration.ZERO, true);
+            final var object = execTransaction(block);
+            commit();
+            return object;
+        } catch (Throwable tr) {
+            throw new RuntimeException(tr);
+        }
     }
 
     /**
@@ -194,10 +206,12 @@ public class DatabaseConnectionV2 implements AutoCloseable {
 
         bindConnection(timeout, isOneTime);
 
-        if (txInfo == null) {
-            throw new IllegalStateException("Transaction ID should be valid");
+        synchronized (txInfoMonitor) {
+            if (txInfo == null) {
+                throw new IllegalStateException("Transaction ID should be valid");
+            }
+            return txInfo.txId;
         }
-        return txInfo.txId;
     }
 
     /**
@@ -211,11 +225,14 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     public synchronized <R> R execTransaction(@NotNull ConnectionFunction<R> block) throws SQLException {
         LOGGER.trace("execTransaction(block=...)");
 
-        if (txInfo == null) {
-            throw new IllegalStateException("Attempted to execute a transaction on an unbound connection");
+        synchronized (txInfoMonitor) {
+            if (txInfo == null) {
+                throw new IllegalStateException("Attempted to execute a transaction on an unbound connection");
+            }
+
+            txInfo.markUsedNow();
         }
 
-        txInfo.markUsedNow();
         return block.apply(connection);
     }
 
@@ -233,12 +250,17 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     public synchronized boolean commit() {
         LOGGER.trace("commit()");
 
-        if (txInfo == null) {
-            throw new IllegalStateException("Attempted to commit an unbound connection");
+        final boolean isTxTimedOut;
+        synchronized (txInfoMonitor) {
+            if (txInfo == null) {
+                throw new IllegalStateException("Attempted to commit an unbound connection");
+            }
+
+            isTxTimedOut = !txInfo.timeout.isZero() && txInfo.hasTimedOut();
         }
 
         boolean isCommitted;
-        if (!txInfo.timeout.isZero() && txInfo.hasTimedOut()) {
+        if (isTxTimedOut) {
             try {
                 LOGGER.info("Transaction timed out: Rolling back transaction");
                 connection.rollback();
@@ -260,9 +282,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
                 }
             }
         }
-
         unbindConnection();
-
         return isCommitted;
     }
 
@@ -274,8 +294,10 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     public synchronized void rollback() {
         LOGGER.trace("rollback()");
 
-        if (txInfo == null) {
-            throw new IllegalStateException("Attempted to commit an unbound connection");
+        synchronized (txInfoMonitor) {
+            if (txInfo == null) {
+                throw new IllegalStateException("Attempted to commit an unbound connection");
+            }
         }
 
         try {
@@ -283,6 +305,7 @@ public class DatabaseConnectionV2 implements AutoCloseable {
         } catch (SQLException e) {
             LOGGER.error("Unable to rollback transaction", e);
         }
+
         unbindConnection();
     }
 
@@ -308,7 +331,10 @@ public class DatabaseConnectionV2 implements AutoCloseable {
             throw new IllegalStateException("Attempted to bind a bound connection");
         }
 
-        txInfo = new TransactionInfo(timeout, isOneTime);
+        isInUse.lazySet(true);
+        synchronized (txInfoMonitor) {
+            txInfo = new TransactionInfo(timeout, isOneTime);
+        }
     }
 
     /**
@@ -318,37 +344,48 @@ public class DatabaseConnectionV2 implements AutoCloseable {
      */
     private synchronized void unbindConnection() {
         LOGGER.trace("unbindConnection()");
-        if (txInfo == null) {
-            throw new IllegalStateException("Attempted to unbind a unbound connection");
+
+        synchronized (txInfoMonitor) {
+            if (txInfo == null) {
+                throw new IllegalStateException("Attempted to unbind a unbound connection");
+            }
+
+            txInfo = null;
         }
 
-        txInfo = null;
+        isInUse.lazySet(false);
+    }
+
+    long getTransactionIdNoExcept() {
+        return isInUse.getAcquire() ? getTransactionId() : NULL_TRANSACTION_ID;
     }
 
     /**
      * @return The transaction ID bound to this connection.
      * @throws IllegalStateException if this connection is not bound to a transaction.
      */
-    synchronized long getTransactionId() {
-        if (txInfo == null) {
-            throw new IllegalStateException("Cannot get transaction ID of an unbound connection");
-        }
+    long getTransactionId() {
+        synchronized (txInfoMonitor) {
+            if (txInfo == null) {
+                throw new IllegalStateException("Cannot get transaction ID of an unbound connection");
+            }
 
-        return txInfo.txId;
+            return txInfo.txId;
+        }
     }
 
     /**
      * @return Whether this connection is currently used by a transaction.
      */
-    synchronized boolean isInUse() {
-        return txInfo != null;
+    boolean isInUse() {
+        return isInUse.getAcquire();
     }
 
     /**
      * @return Whether this connection is closed, i.e. {@link DatabaseConnectionV2#close()} is invoked on this instance.
      */
-    synchronized boolean isClosed() {
-        return isClosed;
+    boolean isClosed() {
+        return isClosed.getAcquire();
     }
 
     /**
@@ -363,11 +400,12 @@ public class DatabaseConnectionV2 implements AutoCloseable {
     @Override
     public synchronized void close() throws SQLException {
         LOGGER.trace("close()");
+        isClosed.lazySet(true);
+
         if (isInUse()) {
             rollback();
         }
         connection.close();
-        isClosed = true;
     }
 
     @Override

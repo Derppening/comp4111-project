@@ -89,7 +89,7 @@ public abstract class AbstractServerTest {
      *
      * @param handlers Handlers to register to the server.
      */
-    protected void registerAndStartServer(final HttpAsyncEndpointHandler... handlers) {
+    protected void registerAndStartServer(final HttpAsyncEndpointHandler<?>... handlers) {
         assumeFalse(server != null);
 
         Arrays.stream(handlers).forEach(handler -> serverBootstrap.register(handler.getHandlePattern(), handler));

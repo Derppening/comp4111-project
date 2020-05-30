@@ -14,13 +14,13 @@ import java.util.stream.Collectors;
 
 public class LoginHandlerImpl extends LoginHandler {
 
-    private static final Map<Method, Supplier<HttpAsyncEndpointHandler>> METHOD_LUT = List.<Supplier<HttpAsyncEndpointHandler>>of(
+    private static final Map<Method, Supplier<HttpAsyncEndpointHandler<?>>> METHOD_LUT = List.<Supplier<HttpAsyncEndpointHandler<?>>>of(
             LoginPostHandler::getInstance
     ).stream().collect(Collectors.toUnmodifiableMap(it -> it.get().getHandleMethod(), Function.identity()));
 
     @Nullable
     @Override
-    public Map<Method, Supplier<HttpAsyncEndpointHandler>> getMethodLut() {
+    public Map<Method, Supplier<HttpAsyncEndpointHandler<?>>> getMethodLut() {
         return METHOD_LUT;
     }
 }

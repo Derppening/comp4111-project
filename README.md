@@ -2,6 +2,18 @@
 
 [Link to project description](https://course.cse.ust.hk/comp4111/project.html)
 
+## Contribution Declaration
+
+|               | TANG, Au Wa                           | MAK, Ching Hang               |
+| ------------- | ------------------------------------- | ----------------------------- |
+| Share of Work | 40%                                   | 60%                           |
+| Best Five     | `*DataAccess`                         | `DatabaseConnectionPoolV2`    |
+|               | `DatabaseConnection(Pool)` (not V2)   | `DatabaseConnectionV2`        |
+|               | `SecurityUtils`                       | `TokenManager`                |
+|               | `QueryUtils`                          | `HttpPathHandler`             |
+|               | `AsyncServerRequestHandler`           | `HttpEndpointHandler`         |
+
+
 ## Prerequisites
 
 - JDK 11
@@ -34,30 +46,34 @@ The application is running when an output similar to the following is displayed 
 > :run
 ```
 
-### Running Example Applications
+You should wait for the message `Listening on port[...]` before starting your testing.
 
-Two example applications are bundled with this project, demonstrating the use of Apache HTTP Components and MySQL's JDBC
-connection respectively.
+### Running Custom Applications
 
-The following Gradle tasks execute the example applications:
+This project contains several other applications which may be useful. You may run these via `./gradlew <name>`
 
-- `runHttpExample`: Runs the example application for Apache HTTP Components
-- `runSqlExample`: Runs the example application for MySQL's JDBC connection
-    - Requires the MySQL server to be running
+- `runFreshDb`: Same as `run`, but drops and recreates the database.
+- `runFreshTables`: Same as `run`, but drops and recreates all tables.
+- `runDbInit`: Only recreate the database.
+- `runTablesInit`: Only recreate the tables.
+- `runDbDrop`: Only drop the database.
+
+It is recommended to always run `runFreshDb` or `runFreshTables` to ensure that the database and/or tables are correctly
+created, and that no additional data are present to mess up the test cases.
 
 ### Running Unit Tests
 
 Unit tests can be run using the following command:
 
 ```sh
-./gradlew check
+./gradlew test
 ```
 
-This task will also run JMeter tests if any are found under `src/test/jmeter`.
+Note that unit tests **WILL** recreate the database on every invocation. There is currently no way to change this.
 
 ### Running Infer
 
-To perform a static analysis using infer, see [this](docker-compose/infer).
+To perform a static analysis using infer, see [here](docker-compose/infer).
 
 ### Cleaning the Project
 
@@ -111,3 +127,12 @@ on your system, and do one of the following:
 the path to your JDK 11 installation
 - Set the `JAVA_HOME` environment variable to your JDK 11 installation. Search Google for instructions specific to your 
 OS and distro.
+
+### Custom Database Info
+
+You may change the database information in `src/main/resources/mysql.properties`.
+
+- `mysql.url`: URL to the MySQL server
+- `mysql.username`: Username to login to the server
+- `mysql.password`: Password of the user
+- `mysql.database`: Database name to use/create
